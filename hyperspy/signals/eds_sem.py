@@ -40,6 +40,7 @@ from hyperspy.io import load
 from hyperspy.misc.eds.FWHM import FWHM_eds
 from hyperspy.misc.eds.TOA import TOA
 import hyperspy.components as components
+from hyperspy.misc import utils
 
 
 
