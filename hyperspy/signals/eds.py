@@ -276,6 +276,169 @@ class EDSSpectrum(Spectrum):
                 intensities.append(self[line_energy-det:line_energy+det].sum(0).data)
         return intensities
 
+
+    def running_sum(self) :
+        """
+        Apply a running sum on the data.
+        
+        """
+        dim = self.data.shape
+        data_s = np.zeros_like(self.data)        
+        data_s = np.insert(data_s, 0, 0,axis=-3)
+        data_s = np.insert(data_s, 0, 0,axis=-2)
+        end_mirrors = [[0,0],[-1,0],[0,-1],[-1,-1]]
+        
+        for end_mirror in end_mirrors:  
+            tmp_s=np.insert(self.data, end_mirror[0], self.data[...,end_mirror[0],:,:],axis=-3)
+            data_s += np.insert(tmp_s, end_mirror[1], tmp_s[...,end_mirror[1],:],axis=-2)
+        data_s = data_s[...,1::,:,:][...,1::,:]
+        
+        if hasattr(self.mapped_parameters, 'SEM'):            
+            mp = self.mapped_parameters.SEM
+        else:
+            mp = self.mapped_parameters.TEM
+        if hasattr(mp, 'EDS') and hasattr(mp.EDS, 'live_time'):
+            mp.EDS.live_time = mp.EDS.live_time * len(end_mirrors)
+        self.data = data_s
+        
+    def plot_Xray_line(self,line_to_plot='selected'):
+        """
+        Annotate a spec.plot() with the name of the selected X-ray 
+        lines
+        
+        Parameters
+        ----------
+        
+        line: string 'selected'|'a'|'ab|'all'
+            Defined which lines to annotate. 'selected': the selected one,
+            'a': all alpha lines of the selected elements, 'ab': all alpha and 
+            beta lines, 'all': all lines of the selected elements
+        
+        See also
+        --------
+        
+        set_elements, add_elements 
+        
+        """
+        if self.axes_manager.navigation_dimension > 0:
+            raise ValueError("Works only for single spectrum")
+        
+        
+        mp = self.mapped_parameters
+        if hasattr(self.mapped_parameters, 'SEM') and\
+          hasattr(self.mapped_parameters.SEM, 'beam_energy'): 
+            beam_energy = mp.SEM.beam_energy
+        elif hasattr(self.mapped_parameters, 'TEM') and\
+          hasattr(self.mapped_parameters.TEM, 'beam_energy'):  
+            beam_energy = mp.TEM.beam_energy
+        else:
+           beam_energy = 300 
+        
+        elements = []
+        lines = []    
+        if line_to_plot=='selected':            
+            Xray_lines = mp.Sample.Xray_lines
+            for Xray_line in Xray_lines:
+                element, line = utils._get_element_and_line(Xray_line)
+                elements.append(element)
+                lines.append(line)
+
+        else:
+            for element in mp.Sample.elements:
+                for line, en in elements_db[element]['Xray_energy'].items():
+                    if en < beam_energy:
+                        if line_to_plot=='a' and line[1]=='a':
+                            elements.append(element)
+                            lines.append(line)
+                        elif line_to_plot=='ab':
+                            if line[1]=='a' or line[1]=='b':  
+                                elements.append(element)
+                                lines.append(line)
+                        elif line_to_plot=='all':
+                            elements.append(element)
+                            lines.append(line)                                          
+                
+        Xray_lines =[]
+        line_energy =[]
+        intensity = []       
+        for i, element in enumerate(elements):                   
+            line_energy.append(elements_db[element]['Xray_energy'][lines[i]])
+            if lines[i]=='a':
+                intensity.append(self[line_energy[-1]].data[0])
+            else:                
+                relative_factor=elements_db['lines']['ratio_line'][lines[i]]
+                a_eng=elements_db[element]['Xray_energy'][lines[i][0]+'a']
+                intensity.append(self[a_eng].data[0]*relative_factor)
+            Xray_lines.append(element+'_'+lines[i])
+            
+
+        self.plot() 
+        for i in range(len(line_energy)):
+            plt.text(line_energy[i],intensity[i]*1.1,Xray_lines[i],
+              rotation =90)
+            plt.vlines(line_energy[i],0,intensity[i]*0.8,color='black')
+            
+def phase_inspector(self,bins=[20,20,20],plot_result=True):
+    """
+    Generate an binary image of different channel
+    """
+    bins=[20,20,20]
+    minmax = []
+    
+    #generate the bins
+    for s in self:    
+        minmax.append([s.data.min(),s.data.max()])
+    center = []
+    for i, mm in enumerate(minmax):
+        temp = list(mlab.frange(mm[0],mm[1],(mm[1]-mm[0])/bins[i]))
+        temp[-1]+= 1
+        center.append(temp)
+        
+    #calculate the Binary images
+    dataBin = []
+    if len(self) ==1:
+        for x in range(bins[0]):
+            temp = self[0].deepcopy()
+            dataBin.append(temp)
+            dataBin[x].data = ((temp.data >= center[0][x])*
+              (temp.data < center[0][x+1])).astype('int')
+    elif len(self) == 2 :    
+        for x in range(bins[0]):
+            dataBin.append([])
+            for y in range(bins[1]):
+                temp = self[0].deepcopy()
+                temp.data = np.ones_like(temp.data)
+                dataBin[-1].append(temp)
+                a = [x,y]
+                for i, s in enumerate(self):
+                    dataBin[x][y].data *= ((s.data >= center[i][a[i]])*
+                     (s.data < center[i][a[i]+1])).astype('int')
+            dataBin[x] = utils.stack(dataBin[x])
+    elif len(self) == 3 :    
+        for x in range(bins[0]):
+            dataBin.append([])
+            for y in range(bins[1]):
+                dataBin[x].append([])                    
+                for z in range(bins[2]):
+                    temp = self[0].deepcopy()
+                    temp.data = np.ones_like(temp.data)
+                    dataBin[-1][-1].append(temp)
+                    a = [x,y,z]
+                    for i, s in enumerate(self):
+                        dataBin[x][y][z].data *= ((s.data >=
+                         center[i][a[i]])*(s.data < 
+                         center[i][a[i]+1])).astype('int')
+                dataBin[x][y] = utils.stack(dataBin[x][y])
+            dataBin[x] = utils.stack(dataBin[x])
+    img = utils.stack(dataBin)
+
+    for i in range(len(self)):
+        img.axes_manager[i].name = self[i].mapped_parameters.title
+        img.axes_manager[i].scale = (minmax[i][1]-minmax[i][0])/bins[i]
+        img.axes_manager[i].offest = minmax[i][0]
+        img.axes_manager[i].units = '-'
+    img.get_dimensions_from_data()
+    return img 
                  
    
     
