@@ -60,7 +60,7 @@ keywords = {
                 # Optional parameters
                 ## Spectrum characteristics
                 'SIGNALTYPE' : {'dtype' : unicode, 'mapped_to' : 
-                    None},
+                    'signal_type'},
                 'XLABEL' : {'dtype' : unicode, 'mapped_to': None},
                 'YLABEL' : {'dtype' : unicode, 'mapped_to': None},
                 'XUNITS' : {'dtype' : unicode, 'mapped_to': None},
@@ -109,6 +109,8 @@ keywords = {
                     'TEM.EDS.live_time'},
                 'REALTIME' : {'dtype' : float, 'mapped_to': 
                     'TEM.EDS.real_time'},
+                'FWHMMNKA' : {'dtype' : float, 'mapped_to': 
+                    'TEM.EDS.energy_resolution_MnKa'},
                 'TBEWIND' : {'dtype' : float, 'mapped_to': None},
                 'TAUWIND' : {'dtype' : float, 'mapped_to': None},
                 'TDEADLYR' : {'dtype' : float, 'mapped_to': None},
@@ -278,6 +280,7 @@ def file_writer(filename, signal, format = None, separator = ', ',
         'NPOINTS' : signal.axes_manager._axes[0].size,
         'NCOLUMNS' : 1,
         'DATATYPE' : format,
+        'SIGNALTYPE' : signal.mapped_parameters.signal_type,
         'XPERCHAN' : signal.axes_manager._axes[0].scale,
         'OFFSET' : signal.axes_manager._axes[0].offset,
         ## Spectrum characteristics
@@ -316,11 +319,14 @@ def file_writer(filename, signal, format = None, separator = ', ',
             loc_kwds[key] = value
             
     for key, dic in keywords.iteritems():
+        
         if dic['mapped_to'] is not None:
+            if 'SEM' in signal.mapped_parameters.signal_type:
+                dic['mapped_to'] = dic['mapped_to'].replace('TEM','SEM')
             if signal.mapped_parameters.has_item(dic['mapped_to']):
                 loc_kwds[key] = eval('signal.mapped_parameters.%s' %
                     dic['mapped_to'])
-                
+               
 
     f = codecs.open(filename, 'w', encoding = encoding,
                     errors = 'ignore')   
