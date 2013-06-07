@@ -704,7 +704,7 @@ class EDSSEMSpectrum(EDSSpectrum):
                 #to be changed with new version
                 print("%s of %s : %s" % (result, Xray_line, data_res))
             else:
-                res_img.plot(False)
+                res_img.plot(None)
         else:
             print("%s of %s calculated" % (result, Xray_line))
         mp.Sample[result][j] = res_img   
