@@ -25,13 +25,16 @@ from hyperspy.signals.spectrum import Spectrum
 from hyperspy.signals.image import Image
 from hyperspy.misc.eds.elements import elements as elements_db
 from hyperspy.misc.eds.FWHM import FWHM_eds
-from hyperspy.misc import utils
-
+from hyperspy.misc.eds import utils as utils_eds
 
 class EDSSpectrum(Spectrum):
+    _signal_type = "EDS"
     
     def __init__(self, *args, **kwards):
         Spectrum.__init__(self, *args, **kwards)
+        if self.mapped_parameters.signal_type == 'EDS':
+            print('The microscope type is not set. Use '
+            'set_signal_type(\'EDS_TEM\') or set_signal_type(\'EDS_SEM\')')
         # Attributes defaults
         if hasattr(self,'elements')==False:
             self.elements = set()
@@ -226,12 +229,18 @@ class EDSSpectrum(Spectrum):
         (< beam energy / 2) is prefered.
             
         """
-        if not hasattr(self.mapped_parameters.SEM,'beam_energy'):
+        if hasattr(self.mapped_parameters, 'SEM') and \
+            hasattr(self.mapped_parameters.SEM,'beam_energy') :
+            beam_energy = self.mapped_parameters.SEM.beam_energy
+        elif hasattr(self.mapped_parameters, 'TEM') and \
+            hasattr(self.mapped_parameters.TEM,'beam_energy') :
+            beam_energy = self.mapped_parameters.TEM.beam_energy
+        else:
             raise ValueError("Beam energy is needed in "
+            "mapped_parameters.TEM.beam_energy  or "
             "mapped_parameters.SEM.beam_energy")
         
         end_energy = self.axes_manager.signal_axes[0].axis[-1]
-        beam_energy = self.mapped_parameters.SEM.beam_energy
         if beam_energy < end_energy:
            end_energy = beam_energy
            
@@ -314,21 +323,22 @@ class EDSSpectrum(Spectrum):
         intensities = []
         #test 1D Spectrum (0D problem)
         if self.axes_manager.navigation_dimension > 1:
-            signal_to_index = self.axes_manager.navigation_dimension - 2                  
+            #signal_to_index = self.axes_manager.navigation_dimension - 2                  
             for Xray_line in Xray_lines:
-                element, line = utils._get_element_and_line(Xray_line)           
+                element, line = utils_eds._get_element_and_line(Xray_line)           
                 line_energy = elements_db[element]['Xray_energy'][line]
                 line_FWHM = FWHM_eds(FWHM_MnKa,line_energy)
-                img = self.to_image(signal_to_index)
-                img.mapped_parameters.title = 'Intensity of ' + Xray_line +\
-                ' at ' + str(line_energy) + ' keV'
                 det = width_energy_reso*line_FWHM
+                img = self[...,line_energy-det:line_energy+det].sum(-1)\
+                        .as_image([0,1])
+                img.mapped_parameters.title = 'Intensity of ' + Xray_line +\
+                ' at ' + str(line_energy) + ' keV'                
                 if plot_result:
-                    img[line_energy-det:line_energy+det].sum(0).plot(None)
-                intensities.append(img[line_energy-det:line_energy+det].sum(0))
+                    img.plot(None)                    
+                intensities.append(img)
         else:
             for Xray_line in Xray_lines:
-                element, line = utils._get_element_and_line(Xray_line)           
+                element, line = utils_eds._get_element_and_line(Xray_line)           
                 line_energy = elements_db[element]['Xray_energy'][line]
                 line_FWHM = FWHM_eds(FWHM_MnKa,line_energy)
                 det = width_energy_reso*line_FWHM
@@ -407,7 +417,7 @@ class EDSSpectrum(Spectrum):
         if line_to_plot=='selected':            
             Xray_lines = mp.Sample.Xray_lines
             for Xray_line in Xray_lines:
-                element, line = utils._get_element_and_line(Xray_line)
+                element, line = utils_eds._get_element_and_line(Xray_line)
                 elements.append(element)
                 lines.append(line)
 

@@ -40,11 +40,12 @@ from hyperspy.io import load
 from hyperspy.misc.eds.FWHM import FWHM_eds
 from hyperspy.misc.eds.TOA import TOA
 import hyperspy.components as components
-from hyperspy.misc import utils
+from hyperspy.misc.eds import utils as utils_eds
 
 
 
 class EDSSEMSpectrum(EDSSpectrum):
+    _signal_type = "EDS_SEM"
     
     def __init__(self, *args, **kwards):
         EDSSpectrum.__init__(self, *args, **kwards)
@@ -110,6 +111,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             mp.add_node('SEM')
         if mp.has_item('SEM.EDS') is False:
             mp.SEM.add_node('EDS') 
+        mp.signal_type = 'EDS_SEM'
         
         #Transfer    
         if hasattr(mp,'TEM'):
@@ -280,7 +282,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         mp.Sample.standard_spec = []
         #for element in mp.Sample.elements:
         for Xray_line in mp.Sample.Xray_lines:
-            element, line = utils._get_element_and_line(Xray_line)  
+            element, line = utils_eds._get_element_and_line(Xray_line)  
             test_file_exist=False           
             for std in std_tot:    
                 mp_std = std.mapped_parameters
@@ -357,7 +359,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         mp = self.mapped_parameters  
         
         for Xray_line in Xray_lines :
-            element, line = utils._get_element_and_line(Xray_line)  
+            element, line = utils_eds._get_element_and_line(Xray_line)  
             std = self.get_result(element,'standard_spec') 
             mp_std = std.mapped_parameters
             line_energy = elements_db[element]['Xray_energy'][line]
@@ -549,7 +551,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         if width_energy=='auto':
             line_energy =[]
             for Xray_line in Xray_lines:
-                element, line = utils._get_element_and_line(Xray_line)  
+                element, line = utils_eds._get_element_and_line(Xray_line)  
                 line_energy.append(elements_db[element]['Xray_energy'][line])
             width_energy = [0,0]
             width_energy[0] = np.min(line_energy)-FWHM_eds(130,np.min(
@@ -574,7 +576,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         spec_sum = np.zeros(len(self.top_hat(line_energy, 
           width_windows).data))
         for Xray_line in Xray_lines:
-            element, line = utils._get_element_and_line(Xray_line)   
+            element, line = utils_eds._get_element_and_line(Xray_line)   
             line_energy = elements_db[element]['Xray_energy'][line]
             width_windows=[line_energy-width_energy[0],width_energy[1]-\
               line_energy]
@@ -687,12 +689,10 @@ class EDSSEMSpectrum(EDSSpectrum):
                 
         for j in range(len(Xray_lines)):
             if Xray_line == Xray_lines[j]:
-                break
-         
-        if (self.axes_manager.navigation_dimension == 3):
-            axes_res = self.to_image(1)[1].axes_manager 
-        elif (self.axes_manager.navigation_dimension == 2):
-            axes_res = self.to_image()[1].axes_manager 
+                break         
+    
+        if (self.axes_manager.navigation_dimension >= 2):
+            axes_res = self.as_image([0,1])[1].axes_manager  
         else:              
             axes_res = self[...,0].axes_manager
         
@@ -831,7 +831,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         z_el = 'Z'
         line_el = 'line'
         for Xray_line in mp.Sample.Xray_lines:
-            el, line = utils._get_element_and_line(Xray_line)  
+            el, line = utils_eds._get_element_and_line(Xray_line)  
             elements = elements + '\t' + el
             z_el = z_el + '\t' + str(elements_db[el]['Z'])
             if line == 'Ka':
