@@ -17,21 +17,9 @@
 # along with  Hyperspy.  If not, see <http://www.gnu.org/licenses/>.
 from __future__ import division
 
-import numpy as np
-#import scipy.interpolate
-#import scipy.optimize
-import matplotlib.pyplot as plt
 import traits.api as t
-import math
-import codecs
-import subprocess
-import os
 
-from hyperspy.signals.spectrum import Spectrum
 from hyperspy.signals.eds import EDSSpectrum
-from hyperspy.signals.image import Image
-from hyperspy.misc.eds.elements import elements as elements_db
-import hyperspy.axes
 from hyperspy.gui.eds import SEMParametersUI
 from hyperspy.defaults_parser import preferences
 import hyperspy.gui.messages as messagesui
@@ -41,7 +29,6 @@ from hyperspy.misc.eds.FWHM import FWHM_eds
 from hyperspy.misc.eds.TOA import TOA
 import hyperspy.components as components
 from hyperspy.misc.eds import utils as utils_eds
-
 
 
 class EDSSEMSpectrum(EDSSpectrum):
@@ -243,7 +230,7 @@ class EDSSEMSpectrum(EDSSpectrum):
                 return True
         else:
             return False
-            
+
             
     def link_standard(self, std_folder, std_file_extension='msa'):
         """
@@ -855,7 +842,3 @@ class EDSSEMSpectrum(EDSSpectrum):
         #img_total = img_0.deepcopy
         #img_total.data = data_total
         #return img_total 
-            
-    
-        
-   
