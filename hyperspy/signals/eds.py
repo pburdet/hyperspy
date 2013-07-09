@@ -22,7 +22,6 @@ import matplotlib.pyplot as plt
 
 from hyperspy.signals.spectrum import Spectrum
 from hyperspy.misc.eds.elements import elements as elements_db
-from hyperspy.misc.eds.FWHM import FWHM_eds
 from hyperspy.misc.eds import utils as utils_eds
 from hyperspy.misc.utils import isiterable
 
@@ -448,7 +447,7 @@ class EDSSpectrum(Spectrum):
         for Xray_line in Xray_lines:
             element, line = utils_eds._get_element_and_line(Xray_line)           
             line_energy = elements_db[element]['Xray_energy'][line]
-            line_FWHM = FWHM_eds(FWHM_MnKa,line_energy)
+            line_FWHM = utils_eds.FWHM(FWHM_MnKa,line_energy)
             det = integration_window_factor * line_FWHM / 2.
             img = self[...,line_energy - det:line_energy + det
                     ].integrate_simpson(-1)
@@ -464,7 +463,7 @@ class EDSSpectrum(Spectrum):
                 img.axes_manager.set_signal_dimension(1)
             if plot_result:
                 if img.axes_manager.signal_dimension != 0:
-                    img.plot()
+                    img.plot(navigator=None)
                 else:
                     print("%s at %s %s : Intensity = %.2f" 
                     % (Xray_line,

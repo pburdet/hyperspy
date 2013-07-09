@@ -1,1 +1,1 @@
-from hyperspy.misc.eds.FWHM import FWHM_eds
+from hyperspy.misc.eds import utils as utils_eds

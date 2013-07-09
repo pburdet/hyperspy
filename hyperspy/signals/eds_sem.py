@@ -25,8 +25,6 @@ from hyperspy.defaults_parser import preferences
 import hyperspy.gui.messages as messagesui
 from hyperspy.decorators import only_interactive
 from hyperspy.io import load
-from hyperspy.misc.eds.FWHM import FWHM_eds
-from hyperspy.misc.eds.TOA import TOA
 import hyperspy.components as components
 from hyperspy.misc.eds import utils as utils_eds
 
@@ -307,7 +305,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         offset = np.copy(self.axes_manager.signal_axes[0].offset)
         scale_s = np.copy(self.axes_manager.signal_axes[0].scale)
         FWHM_MnKa = self.mapped_parameters.SEM.EDS.energy_resolution_MnKa
-        line_FWHM = FWHM_eds(FWHM_MnKa, line_energy) 
+        line_FWHM = utils_eds.FWHM(FWHM_MnKa, line_energy) 
         if np.ndim(width_windows) == 0:            
             det = [width_windows*line_FWHM,width_windows*line_FWHM]
         else :
@@ -541,9 +539,9 @@ class EDSSEMSpectrum(EDSSpectrum):
                 element, line = utils_eds._get_element_and_line(Xray_line)  
                 line_energy.append(elements_db[element]['Xray_energy'][line])
             width_energy = [0,0]
-            width_energy[0] = np.min(line_energy)-FWHM_eds(130,np.min(
+            width_energy[0] = np.min(line_energy)-utils_eds.FWHM(130,np.min(
               line_energy))*2
-            width_energy[1] = np.max(line_energy)+FWHM_eds(130,np.max(
+            width_energy[1] = np.max(line_energy)+utils_eds.FWHM(130,np.max(
               line_energy))*2
                 
         line_energy = np.mean(width_energy)
@@ -809,7 +807,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         f.write('Itermax\t49\r\n')
         f.write('\r\n')
         f.write('HV\t%s\r\n'% mp.SEM.beam_energy)
-        f.write('TOA\t%s\r\n'% TOA(self))
+        f.write('TOA\t%s\r\n'% utils_eds.TOA(self))
         f.write('azimuth\t%s\r\n'% mp.SEM.EDS.azimuth_angle)
         f.write('tilt\t%s\r\n'% mp.SEM.tilt_stage)
         f.write('\r\n')
