@@ -18,6 +18,7 @@
 from __future__ import division
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 from hyperspy.signals.spectrum import Spectrum
 from hyperspy.misc.eds.elements import elements as elements_db
@@ -505,7 +506,7 @@ class EDSSpectrum(Spectrum):
         Parameters
         ----------
         
-        line: string 'selected'|'a'|'ab|'all'
+        line_to_plot: string 'selected'|'a'|'ab|'all'
             Defined which lines to annotate. 'selected': the selected one,
             'a': all alpha lines of the selected elements, 'ab': all alpha and 
             beta lines, 'all': all lines of the selected elements
