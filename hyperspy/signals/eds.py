@@ -24,6 +24,7 @@ from hyperspy.signals.spectrum import Spectrum
 from hyperspy.misc.eds.elements import elements as elements_db
 from hyperspy.misc.eds import utils as utils_eds
 from hyperspy.misc.utils import isiterable
+import hyperspy.components as components
 
 class EDSSpectrum(Spectrum):
     _signal_type = "EDS"
@@ -573,6 +574,65 @@ class EDSSpectrum(Spectrum):
             plt.text(line_energy[i],intensity[i]*1.1,Xray_lines[i],
               rotation =90)
             plt.vlines(line_energy[i],0,intensity[i]*0.8,color='black')
+            
+    def calibrate_energy_resolution(self,Xray_line,bck='auto',
+        set_Mn_Ka=True,model_plot=True):
+        """
+        Calibrate the energy resolution from a peak
+        
+        Estimate the FHWM of the peak, estimate the energy resolution and
+        extrapolate to FWHM of Mn Ka
+        
+        Parameters:
+        Xray_line : str
+            the selected X-ray line. It shouldn't have peak around
+            
+        bck: float | 'auto'
+            the linear background to substract.
+            
+        set_Mn_Ka : bool
+            If true, set the obtain resolution. If false, return the 
+            FHWM at Mn Ka.
+            
+        model_plot : bool
+            If True, plot the fit        
+        
+        """
+        
+        from hyperspy.hspy import create_model 
+        mp = self.mapped_parameters        
+        element, line = utils_eds._get_element_and_line(Xray_line)
+        Xray_energy = elements_db[element]['Xray_energy'][line]
+        FWHM = utils_eds.FWHM(mp.SEM.EDS.energy_resolution_MnKa,
+            Xray_energy)
+        if bck=='auto':
+            spec_bck = self[Xray_energy+2.5*FWHM:Xray_energy+2.7*FWHM]
+            bck = spec_bck.sum(0).data/spec_bck.axes_manager.shape[0]                
+        sb = self - bck
+        m = create_model(sb)
+         
+
+        fp = components.Gaussian()    
+        fp.centre.value = Xray_energy
+        fp.sigma.value = FWHM/2.355
+        print fp.sigma.value
+        m.append(fp)
+        m.set_signal_range(Xray_energy-1.2*FWHM,Xray_energy+1.6*FWHM)
+        m.multifit()
+        print fp.sigma.value
+        if model_plot:
+            m.plot()
+
+        res_MnKa = utils_eds.FWHM(fp.sigma.value*2.355*1000,
+            elements_db['Mn']['Xray_energy']['Ka'],Xray_line)        
+        if set_Mn_Ka:            
+            mp.SEM.EDS.energy_resolution_MnKa = res_MnKa*1000
+            print 'Resolution at Mn Ka ', res_MnKa*1000
+            print 'Shift eng eV ', (Xray_energy-fp.centre.value)*1000
+        else : 
+            return res_MnKa*1000
+        
+        
             
 def phase_inspector(self,bins=[20,20,20],plot_result=True):
     """
