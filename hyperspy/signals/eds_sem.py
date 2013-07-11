@@ -638,27 +638,8 @@ class EDSSEMSpectrum(EDSSpectrum):
                 res.change_dtype('float32')
                 #res.change_dtype('uint32')
             res.save(filename=filename+"_"+result+"_"+Xray_line,
-              extension = extension, overwrite = True)
-        
-    def get_result(self, Xray_line, result):
-        """
-        get the result of one X-ray line (result stored in 
-        'mapped_parameters.Sample'):
-        
-         Parameters
-        ----------        
-        result : string {'kratios'|'quant'|'intensities'}
-            The result to get
-            
-        Xray_lines: string
-            the X-ray line to get.
-        
-        """
-        mp = self.mapped_parameters 
-        for res in mp.Sample[result]:
-            if Xray_line in res.mapped_parameters.title:
-                return res
-        print("Didn't find it")
+              extension = extension, overwrite = True)        
+
         
     def _set_result(self, Xray_line, result, data_res, plot_result):
         """

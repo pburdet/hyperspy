@@ -367,7 +367,8 @@ class EDSSpectrum(Spectrum):
                             only_one=True,
                             only_lines=("Ka", "La", "Ma"),
                             lines_deconvolution=None,
-                            bck=0):
+                            bck=0,
+                            plot_fit=False):
         """Return the intensity map of selected Xray lines.
         
         The intensity maps are computed by integrating the spectrum over the 
@@ -483,51 +484,74 @@ class EDSSpectrum(Spectrum):
                 intensities.append(img)                                
         else:
             fps = []
-            s = self - bck
-            m = create_model(s)
+            if lines_deconvolution == 'standard':  
+                m = create_model(self)
+            else : 
+                s = self - bck
+                m = create_model(s)                
+                
             for Xray_line in Xray_lines:
                 element, line = utils_eds._get_element_and_line(Xray_line)           
                 line_energy = elements_db[element]['Xray_energy'][line]
                 line_FWHM = utils_eds.FWHM(FWHM_MnKa,line_energy)
-                
-                fp = components.Gaussian()    
-                fp.centre.value = line_energy
-                fp.name = Xray_line
-                fp.sigma.value = line_FWHM/2.355 
-                fp.centre.free = False
-                fp.sigma.free = False
+                if lines_deconvolution == 'model':   
+                    fp = components.Gaussian()    
+                    fp.centre.value = line_energy
+                    fp.name = Xray_line
+                    fp.sigma.value = line_FWHM/2.355 
+                    fp.centre.free = False
+                    fp.sigma.free = False
+                elif lines_deconvolution == 'standard':
+                    std = self.get_result(element,'standard_spec')
+                    std[:line_energy-1.5*line_FWHM] = 0
+                    std[line_energy+1.5*line_FWHM:] = 0
+                    fp = components.ScalableFixedPattern(std)
+                    fp.set_parameters_not_free(['offset','xscale','shift'])
                 fps.append(fp)    
                 m.append(fps[-1])
-                for li in elements_db[element]['Xray_energy']:
-                    if line[0] in li and line != li: 
-                        line_energy = elements_db[element]['Xray_energy'][li]
-                        line_FWHM = utils_eds.FWHM(FWHM_MnKa,line_energy)
-                        fp = components.Gaussian()    
-                        fp.centre.value = line_energy
-                        fp.name = element + '_' + li
-                        fp.sigma.value = line_FWHM/2.355 
-                        fp.A.twin = fps[-1].A             
-                        fp.centre.free = False
-                        fp.sigma.free = False
-                        ratio_line = elements_db['lines']['ratio_line'][li]
-                        fp.A.twin_function = lambda x: x * ratio_line
-                        fp.A.twin_inverse_function = lambda x: x / ratio_line
-                        m.append(fp)
+                if lines_deconvolution == 'model':
+                    for li in elements_db[element]['Xray_energy']:
+                        if line[0] in li and line != li: 
+                            line_energy = elements_db[element]['Xray_energy'][li]
+                            line_FWHM = utils_eds.FWHM(FWHM_MnKa,line_energy)
+                            fp = components.Gaussian()    
+                            fp.centre.value = line_energy
+                            fp.name = element + '_' + li
+                            fp.sigma.value = line_FWHM/2.355 
+                            fp.A.twin = fps[-1].A             
+                            fp.centre.free = False
+                            fp.sigma.free = False
+                            ratio_line = elements_db['lines']['ratio_line'][li]
+                            fp.A.twin_function = lambda x: x * ratio_line
+                            fp.A.twin_inverse_function = lambda x: x / ratio_line
+                            m.append(fp)
             m.multifit()
+            if plot_fit:
+                m.plot()
+                plt.title('Fit') 
             for i, fp in enumerate(fps): 
                 Xray_line = Xray_lines[i] 
                 element, line = utils_eds._get_element_and_line(Xray_line)           
                 line_energy = elements_db[element]['Xray_energy'][line]
-                img = self[...,0]                
+                img = self[...,0]             
                 if img.axes_manager.navigation_dimension >= 2:                    
                     img = img.as_image([0,1])
-                    img.data = fp.A.as_signal().data
+                    if lines_deconvolution == 'model': 
+                        img.data = fp.A.as_signal().data
+                    elif lines_deconvolution == 'standard': 
+                        img.data = fp.yscale.as_signal().data
                 elif img.axes_manager.navigation_dimension == 1:
                     img.axes_manager.set_signal_dimension(1) 
-                    img.data = fp.A.value.as_signal().data   
+                    if lines_deconvolution == 'model': 
+                        img.data = fp.A.as_signal().data
+                    elif lines_deconvolution == 'standard': 
+                        img.data = fp.yscale.as_signal().data  
                 elif img.axes_manager.navigation_dimension == 0:
                     img = img.sum(0)
-                    img.data = fp.A.value                
+                    if lines_deconvolution == 'model': 
+                        img.data = fp.A.value
+                    elif lines_deconvolution == 'standard': 
+                        img.data = fp.yscale.value          
                 img.mapped_parameters.title = (
                     'Intensity of %s at %.2f %s from %s' % 
                     (Xray_line,
@@ -701,6 +725,26 @@ class EDSSpectrum(Spectrum):
             print 'Shift eng eV ', (Xray_energy-fp.centre.value)*1000
         else : 
             return res_MnKa*1000
+            
+    def get_result(self, Xray_line, result):
+        """
+        get the result of one X-ray line (result stored in 
+        'mapped_parameters.Sample'):
+        
+         Parameters
+        ----------        
+        result : string {'kratios'|'quant'|'intensities'}
+            The result to get
+            
+        Xray_lines: string
+            the X-ray line to get.
+        
+        """
+        mp = self.mapped_parameters 
+        for res in mp.Sample[result]:
+            if Xray_line in res.mapped_parameters.title:
+                return res
+        print("Didn't find it")
         
         
             
