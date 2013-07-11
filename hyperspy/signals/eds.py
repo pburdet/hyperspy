@@ -365,7 +365,9 @@ class EDSSpectrum(Spectrum):
                             plot_result=False,
                             integration_window_factor=2.,
                             only_one=True,
-                            only_lines=("Ka", "La", "Ma"),):
+                            only_lines=("Ka", "La", "Ma"),
+                            lines_deconvolution=None,
+                            bck=0):
         """Return the intensity map of selected Xray lines.
         
         The intensity maps are computed by integrating the spectrum over the 
@@ -402,6 +404,10 @@ class EDSSpectrum(Spectrum):
             above an overvoltage of 2 (< beam energy / 2).
         only_lines : {None, list of strings}
             If not None, use only the given lines.
+        lines_deconvolution : None | 'model' | 'standard'
+            Deconvolution of the line with a gaussian model. Take time
+        bck : float
+            background to substract. Only for deconvolution
             
         Returns
         -------
@@ -419,7 +425,7 @@ class EDSSpectrum(Spectrum):
         set_elements, add_elements.
         
         """
-
+        from hyperspy.hspy import create_model 
         if Xray_lines is None:
             if 'Sample.Xray_lines' in self.mapped_parameters:
                 Xray_lines = self.mapped_parameters.Sample.Xray_lines
@@ -445,33 +451,99 @@ class EDSSpectrum(Spectrum):
         intensities = []
         #test 1D Spectrum (0D problem)
             #signal_to_index = self.axes_manager.navigation_dimension - 2                  
-        for Xray_line in Xray_lines:
-            element, line = utils_eds._get_element_and_line(Xray_line)           
-            line_energy = elements_db[element]['Xray_energy'][line]
-            line_FWHM = utils_eds.FWHM(FWHM_MnKa,line_energy)
-            det = integration_window_factor * line_FWHM / 2.
-            img = self[...,line_energy - det:line_energy + det
-                    ].integrate_simpson(-1)
-            img.mapped_parameters.title = (
-                'Intensity of %s at %.2f %s from %s' % 
-                (Xray_line,
-                 line_energy,
-                 self.axes_manager.signal_axes[0].units,
-                 self.mapped_parameters.title)) 
-            if img.axes_manager.navigation_dimension >= 2:
-                img = img.as_image([0,1])
-            elif img.axes_manager.navigation_dimension == 1:
-                img.axes_manager.set_signal_dimension(1)
-            if plot_result:
-                if img.axes_manager.signal_dimension != 0:
-                    img.plot(navigator=None)
-                else:
-                    print("%s at %s %s : Intensity = %.2f" 
-                    % (Xray_line,
-                       line_energy,
-                       self.axes_manager.signal_axes[0].units,
-                       img.data))
-            intensities.append(img)
+        if lines_deconvolution is None:
+            for Xray_line in Xray_lines:                
+                element, line = utils_eds._get_element_and_line(Xray_line)           
+                line_energy = elements_db[element]['Xray_energy'][line]
+                line_FWHM = utils_eds.FWHM(FWHM_MnKa,line_energy)
+                det = integration_window_factor * line_FWHM / 2.
+                img = self[...,line_energy - det:line_energy + det
+                        ].integrate_simpson(-1)
+                img.mapped_parameters.title = (
+                    'Intensity of %s at %.2f %s from %s' % 
+                    (Xray_line,
+                     line_energy,
+                     self.axes_manager.signal_axes[0].units,
+                     self.mapped_parameters.title)) 
+                if img.axes_manager.navigation_dimension >= 2:
+                    img = img.as_image([0,1])
+                #useless never the case
+                elif img.axes_manager.navigation_dimension == 1:
+                    print a
+                    img.axes_manager.set_signal_dimension(1)
+                if plot_result:
+                    if img.axes_manager.signal_dimension != 0:
+                        img.plot(navigator=None)
+                    else:
+                        print("%s at %s %s : Intensity = %.3f" 
+                        % (Xray_line,
+                           line_energy,
+                           self.axes_manager.signal_axes[0].units,
+                           img.data))
+                intensities.append(img)                                
+        else:
+            fps = []
+            s = self - bck
+            m = create_model(s)
+            for Xray_line in Xray_lines:
+                element, line = utils_eds._get_element_and_line(Xray_line)           
+                line_energy = elements_db[element]['Xray_energy'][line]
+                line_FWHM = utils_eds.FWHM(FWHM_MnKa,line_energy)
+                
+                fp = components.Gaussian()    
+                fp.centre.value = line_energy
+                fp.name = Xray_line
+                fp.sigma.value = line_FWHM/2.355 
+                fp.centre.free = False
+                fp.sigma.free = False
+                fps.append(fp)    
+                m.append(fps[-1])
+                for li in elements_db[element]['Xray_energy']:
+                    if line[0] in li and line != li: 
+                        line_energy = elements_db[element]['Xray_energy'][li]
+                        line_FWHM = utils_eds.FWHM(FWHM_MnKa,line_energy)
+                        fp = components.Gaussian()    
+                        fp.centre.value = line_energy
+                        fp.name = element + '_' + li
+                        fp.sigma.value = line_FWHM/2.355 
+                        fp.A.twin = fps[-1].A             
+                        fp.centre.free = False
+                        fp.sigma.free = False
+                        ratio_line = elements_db['lines']['ratio_line'][li]
+                        fp.A.twin_function = lambda x: x * ratio_line
+                        fp.A.twin_inverse_function = lambda x: x / ratio_line
+                        m.append(fp)
+            m.multifit()
+            for i, fp in enumerate(fps): 
+                Xray_line = Xray_lines[i] 
+                element, line = utils_eds._get_element_and_line(Xray_line)           
+                line_energy = elements_db[element]['Xray_energy'][line]
+                img = self[...,0]                
+                if img.axes_manager.navigation_dimension >= 2:                    
+                    img = img.as_image([0,1])
+                    img.data = fp.A.as_signal().data
+                elif img.axes_manager.navigation_dimension == 1:
+                    img.axes_manager.set_signal_dimension(1) 
+                    img.data = fp.A.value.as_signal().data   
+                elif img.axes_manager.navigation_dimension == 0:
+                    img = img.sum(0)
+                    img.data = fp.A.value                
+                img.mapped_parameters.title = (
+                    'Intensity of %s at %.2f %s from %s' % 
+                    (Xray_line,
+                     line_energy,
+                     self.axes_manager.signal_axes[0].units,
+                     self.mapped_parameters.title)) 
+                if plot_result:
+                    if img.axes_manager.signal_dimension != 0:
+                        img.plot(navigator=None)
+                    else:
+                        print("%s at %s %s : Intensity = %.3f" 
+                        % (Xray_line,
+                           line_energy,
+                           self.axes_manager.signal_axes[0].units,
+                           img.data))
+                intensities.append(img)
         return intensities
 
     def running_sum(self) :
@@ -615,11 +687,9 @@ class EDSSpectrum(Spectrum):
         fp = components.Gaussian()    
         fp.centre.value = Xray_energy
         fp.sigma.value = FWHM/2.355
-        print fp.sigma.value
         m.append(fp)
         m.set_signal_range(Xray_energy-1.2*FWHM,Xray_energy+1.6*FWHM)
         m.multifit()
-        print fp.sigma.value
         if model_plot:
             m.plot()
 
