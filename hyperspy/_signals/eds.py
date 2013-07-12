@@ -20,7 +20,7 @@ from __future__ import division
 import numpy as np
 import matplotlib.pyplot as plt
 
-from hyperspy.signals.spectrum import Spectrum
+from hyperspy._signals.spectrum import Spectrum
 from hyperspy.misc.eds.elements import elements as elements_db
 from hyperspy.misc.eds import utils as utils_eds
 from hyperspy.misc.utils import isiterable
@@ -470,7 +470,6 @@ class EDSSpectrum(Spectrum):
                     img = img.as_image([0,1])
                 #useless never the case
                 elif img.axes_manager.navigation_dimension == 1:
-                    print a
                     img.axes_manager.set_signal_dimension(1)
                 if plot_result:
                     if img.axes_manager.signal_dimension != 0:

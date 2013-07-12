@@ -492,7 +492,7 @@ class Signal1DTools(object):
 
         i1, i2 = axis._get_index(start), axis._get_index(end) 
         shift_array = np.zeros(self.axes_manager._navigation_shape_in_array)
-        ref = self.navigation_indexer[reference_indices].data[i1:i2]
+        ref = self.inav[reference_indices].data[i1:i2]
         if interpolate is True:
             ref = spectrum_tools.interpolate1D(ip, ref)
         pbar = progressbar(
@@ -1130,8 +1130,8 @@ class MVATools(object):
                         vector_scale=1,
                         no_nans=True, per_row=3):
 
-        from hyperspy.signals.image import Image
-        from hyperspy.signals.spectrum import Spectrum
+        from hyperspy._signals.image import Image
+        from hyperspy._signals.spectrum import Spectrum
         
         if multiple_files is None:
             multiple_files = preferences.MachineLearning.multiple_files
@@ -1283,8 +1283,8 @@ class MVATools(object):
                          no_nans=True,
                          per_row=3):
 
-        from hyperspy.signals.image import Image
-        from hyperspy.signals.spectrum import Spectrum
+        from hyperspy._signals.image import Image
+        from hyperspy._signals.spectrum import Spectrum
 
         if multiple_files is None:
             multiple_files = preferences.MachineLearning.multiple_files
@@ -2324,16 +2324,11 @@ class Signal(MVA,
             dic['learning_results'] = copy.deepcopy(
                                                 self.learning_results.__dict__)
         return dic
-
+        
     def _get_undefined_axes_list(self):
         axes = []
         for i in xrange(len(self.data.shape)):
-            axes.append({
-                        'name': 'axis%i' % i,
-                        'scale': 1.,
-                        'offset': 0.,
-                        'size': int(self.data.shape[i]),
-                        'units': 'undefined',})
+            axes.append({'size': int(self.data.shape[i]),})
         return axes
 
     def __call__(self, axes_manager=None):
@@ -2855,16 +2850,15 @@ class Signal(MVA,
         to_remove = []
         for axis, dim in zip(self.axes_manager._axes, new_shape):
             if dim == 1:
-                uname += ',' + axis.name
-                uunits = ',' + axis.units
+                uname += ',' + str(axis)
+                uunits = ',' + str(axis.units)
                 to_remove.append(axis)
-        self.axes_manager._axes[unfolded_axis].name += uname
-        self.axes_manager._axes[unfolded_axis].units += uunits
-        self.axes_manager._axes[unfolded_axis].size = \
-                                        self.data.shape[unfolded_axis]
+        ua = self.axes_manager._axes[unfolded_axis]
+        ua.name = str(ua) + uname
+        ua.units = str(ua.units) + uunits                                             
+        ua.size = self.data.shape[unfolded_axis]
         for axis in to_remove:
-            self.axes_manager._axes.remove(axis)
-
+            self.axes_manager.remove(axis.index_in_axes_manager)
         self.data = self.data.squeeze()
 
     def unfold(self):
@@ -3250,8 +3244,7 @@ class Signal(MVA,
         Example
         -------
         >>> import numpy as np
-        >>> from hyperspy.signals.spectrum import Spectrum        ns = 
-        ns.data = self.data.copy()
+        >>> from hyperspy.signals import Spectrum
         >>> s = signals.Spectrum(np.array([1,2,3,4,5]))
         >>> s.data
         array([1, 2, 3, 4, 5])
@@ -3400,13 +3393,13 @@ class Signal(MVA,
         if self.axes_manager.navigation_dimension == 0:
             return self.__class__(np.array([0,]).astype(self.data.dtype))
         elif self.axes_manager.navigation_dimension == 1:
-            from hyperspy.signals.spectrum import Spectrum
+            from hyperspy._signals.spectrum import Spectrum
             s = Spectrum(
                     np.zeros(self.axes_manager._navigation_shape_in_array,
                              dtype=self.data.dtype),
                          axes=self.axes_manager._get_navigation_axes_dicts())
         elif self.axes_manager.navigation_dimension == 2:
-            from hyperspy.signals.image import Image
+            from hyperspy._signals.image import Image
             s = Image(np.zeros(self.axes_manager._navigation_shape_in_array,
                                dtype=self.data.dtype),
                       axes=self.axes_manager._get_navigation_axes_dicts())

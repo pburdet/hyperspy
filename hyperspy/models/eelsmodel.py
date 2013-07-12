@@ -22,7 +22,7 @@ import numpy as np
 import traits.api as t
 
 from hyperspy.model import Model
-from hyperspy.components.eels_cl_edge import EELSCLEdge
+from hyperspy.components import EELSCLEdge
 from hyperspy.components import PowerLaw
 from hyperspy.misc.interactive_ns import interactive_ns
 from hyperspy.defaults_parser import preferences
@@ -30,7 +30,7 @@ import hyperspy.messages as messages
 from hyperspy import components
 from hyperspy.decorators import only_interactive
 from hyperspy.exceptions import MissingParametersError
-from hyperspy.signals.eels import EELSSpectrum
+from hyperspy._signals.eels import EELSSpectrum
 import hyperspy.gui.messages as messagesui
 
 def _give_me_delta(master, slave):
@@ -103,7 +103,7 @@ class EELSModel(Model):
         """Run model setup tasks
         
         This function must be called everytime that we add or remove components
-        <undefined>       from the model.
+        from the model.
         It creates the bookmarks self.edges and sef._background_components and 
         configures the edges by setting the energy_scale attribute and setting 
         the fine structure.
