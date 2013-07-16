@@ -17,8 +17,14 @@
 # along with  Hyperspy.  If not, see <http://www.gnu.org/licenses/>.
 from __future__ import division
 
+import numpy as np
 import traits.api as t
+import os
+import codecs
+import subprocess
+import matplotlib.pyplot as plt
 
+from hyperspy._signals.image import Image
 from hyperspy._signals.eds import EDSSpectrum
 from hyperspy.gui.eds import SEMParametersUI
 from hyperspy.defaults_parser import preferences
@@ -27,6 +33,7 @@ from hyperspy.decorators import only_interactive
 from hyperspy.io import load
 import hyperspy.components as components
 from hyperspy.misc.eds import utils as utils_eds
+from hyperspy.misc.eds.elements import elements as elements_db
 
 
 class EDSSEMSpectrum(EDSSpectrum):
@@ -664,10 +671,10 @@ class EDSSEMSpectrum(EDSSpectrum):
         
                 
         if self.axes_manager.navigation_dimension == 0:
-            res_img = Spectrum(np.array([data_res]))
+            res_img = EDSSEMSpectrum(np.array(data_res))
         else:
             res_img = Image(data_res)
-        res_img.axes_manager = axes_res
+            res_img.axes_manager = axes_res
         res_img.mapped_parameters.title = result + ' ' + Xray_line
         if plot_result:                
             if self.axes_manager.navigation_dimension == 0:
@@ -745,7 +752,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         if self.axes_manager.navigation_dimension == 0:
             f.write("1_1\r\n")
             for i in range(len(mp.Sample.Xray_lines)):
-                f.write("%s\t" % mp.Sample.kratios[i])
+                f.write("%s\t" % mp.Sample.kratios[i].data)
         elif self.axes_manager.navigation_dimension == 2:
             for x in range(dim[1]):
                 for y in range(dim[0]):
@@ -792,7 +799,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         f.write('azimuth\t%s\r\n'% mp.SEM.EDS.azimuth_angle)
         f.write('tilt\t%s\r\n'% mp.SEM.tilt_stage)
         f.write('\r\n')
-        f.write('nbelement\t%s\r\n'% mp.Sample.Xray_lines.shape[0])
+        f.write('nbelement\t%s\r\n'% len(mp.Sample.Xray_lines))
         elements = 'Element'
         z_el = 'Z'
         line_el = 'line'
