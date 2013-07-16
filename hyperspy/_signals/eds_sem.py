@@ -24,7 +24,7 @@ import codecs
 import subprocess
 import matplotlib.pyplot as plt
 
-from hyperspy._signals.image import Image
+
 from hyperspy._signals.eds import EDSSpectrum
 from hyperspy.gui.eds import SEMParametersUI
 from hyperspy.defaults_parser import preferences
@@ -34,6 +34,7 @@ from hyperspy.io import load
 import hyperspy.components as components
 from hyperspy.misc.eds import utils as utils_eds
 from hyperspy.misc.eds.elements import elements as elements_db
+from hyperspy.misc.config_dir import config_path, os_name, data_path
 
 
 class EDSSEMSpectrum(EDSSpectrum):
@@ -645,46 +646,7 @@ class EDSSEMSpectrum(EDSSpectrum):
                 res.change_dtype('float32')
                 #res.change_dtype('uint32')
             res.save(filename=filename+"_"+result+"_"+Xray_line,
-              extension = extension, overwrite = True)        
-
-        
-    def _set_result(self, Xray_line, result, data_res, plot_result):
-        """
-        Transform data_res (a result) into an image or a spectrum and
-        stored it in 'mapped_parameters.Sample'
-        """
-        
-        mp = self.mapped_parameters
-        if len(Xray_line) < 3 :
-            Xray_lines = mp.Sample.elements
-        else:
-            Xray_lines = mp.Sample.Xray_lines
-                
-        for j in range(len(Xray_lines)):
-            if Xray_line == Xray_lines[j]:
-                break         
-    
-        if (self.axes_manager.navigation_dimension >= 2):
-            axes_res = self.as_image([0,1])[1].axes_manager  
-        else:              
-            axes_res = self[...,0].axes_manager
-        
-                
-        if self.axes_manager.navigation_dimension == 0:
-            res_img = EDSSEMSpectrum(np.array(data_res))
-        else:
-            res_img = Image(data_res)
-            res_img.axes_manager = axes_res
-        res_img.mapped_parameters.title = result + ' ' + Xray_line
-        if plot_result:                
-            if self.axes_manager.navigation_dimension == 0:
-                #to be changed with new version
-                print("%s of %s : %s" % (result, Xray_line, data_res))
-            else:
-                res_img.plot(None)
-        else:
-            print("%s of %s calculated" % (result, Xray_line))
-        mp.Sample[result][j] = res_img   
+              extension = extension, overwrite = True) 
     
     
     def quant(self,plot_result=True):        
@@ -705,8 +667,8 @@ class EDSSEMSpectrum(EDSSpectrum):
         set_elements, link_standard, top_hat, get_kratio
         
         """
-        
-        foldername = os.path.realpath("")+"//algo//v1_6Quant//"
+        foldername = os.path.join(config_path, 'strata_quant//')
+        #foldername = os.path.realpath("")+"//algo//v1_6Quant//"
         self._write_nbData_tsv(foldername + 'essai')
         self._write_donnee_tsv(foldername + 'essai')
         p = subprocess.Popen(foldername + 'Debug//essai.exe')
@@ -731,13 +693,14 @@ class EDSSEMSpectrum(EDSSpectrum):
         mp.Sample.quant = list(np.zeros(len(mp.Sample.Xray_lines)))
         for Xray_line in mp.Sample.Xray_lines:  
             if (self.axes_manager.navigation_dimension == 0):
-                    data_quant=a[i][0]
-            else:
-                if (self.axes_manager.navigation_dimension == 3):                    
-                    data_quant=np.array(a[i]).reshape((dim[2],dim[1],
-                      dim[0])).T
-                else:
-                    data_quant=np.array(a[i]).reshape((dim[1],dim[0])).T
+                data_quant=a[i][0]
+            elif (self.axes_manager.navigation_dimension == 1):
+                data_quant=np.array(a[i]).reshape((dim[0]))
+            elif (self.axes_manager.navigation_dimension == 2):
+                data_quant=np.array(a[i]).reshape((dim[1],dim[0])).T        
+            elif (self.axes_manager.navigation_dimension == 3):                    
+                data_quant=np.array(a[i]).reshape((dim[2],dim[1],
+                  dim[0])).T
             self._set_result( Xray_line, 'quant',data_quant, plot_result)        
             i += 1
         
@@ -753,6 +716,14 @@ class EDSSEMSpectrum(EDSSpectrum):
             f.write("1_1\r\n")
             for i in range(len(mp.Sample.Xray_lines)):
                 f.write("%s\t" % mp.Sample.kratios[i].data)
+        elif self.axes_manager.navigation_dimension == 1:
+            for x in range(dim[0]):
+                y = 0
+                f.write("%s_%s\r\n" % (x+1,y+1))
+                for Xray_line in Xray_lines:
+                    f.write("%s\t" % self.get_result(Xray_line,
+                      'kratios').data[x])
+                f.write('\r\n')
         elif self.axes_manager.navigation_dimension == 2:
             for x in range(dim[1]):
                 for y in range(dim[0]):

@@ -21,6 +21,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from hyperspy._signals.spectrum import Spectrum
+from hyperspy.signal import Signal
+from hyperspy._signals.image import Image
 from hyperspy.misc.eds.elements import elements as elements_db
 from hyperspy.misc.eds import utils as utils_eds
 from hyperspy.misc.utils import isiterable
@@ -528,29 +530,44 @@ class EDSSpectrum(Spectrum):
             if plot_fit:
                 m.plot()
                 plt.title('Fit') 
-            for i, fp in enumerate(fps): 
+            for i, fp in enumerate(fps):                
                 Xray_line = Xray_lines[i] 
                 element, line = utils_eds._get_element_and_line(Xray_line)           
                 line_energy = elements_db[element]['Xray_energy'][line]
-                img = self[...,0]             
-                if img.axes_manager.navigation_dimension >= 2:                    
-                    img = img.as_image([0,1])
+                
+                if self.axes_manager.navigation_dimension == 0:
                     if lines_deconvolution == 'model': 
-                        img.data = fp.A.as_signal().data
+                        data_res = fp.A.value
                     elif lines_deconvolution == 'standard': 
-                        img.data = fp.yscale.as_signal().data
-                elif img.axes_manager.navigation_dimension == 1:
-                    img.axes_manager.set_signal_dimension(1) 
+                        data_res = fp.yscale.value 
+                else: 
                     if lines_deconvolution == 'model': 
-                        img.data = fp.A.as_signal().data
+                        data_res = fp.A.as_signal().data
                     elif lines_deconvolution == 'standard': 
-                        img.data = fp.yscale.as_signal().data  
-                elif img.axes_manager.navigation_dimension == 0:
-                    img = img.sum(0)
-                    if lines_deconvolution == 'model': 
-                        img.data = fp.A.value
-                    elif lines_deconvolution == 'standard': 
-                        img.data = fp.yscale.value          
+                        data_res = fp.yscale.as_signal().data
+                img = self._set_result( Xray_line, 'Int', 
+                    data_res, plot_result=False, store_in_mp=False)             
+                
+                #img = self[...,0]             
+                #if img.axes_manager.navigation_dimension >= 2:                    
+                    #img = img.as_image([0,1])
+                    #if lines_deconvolution == 'model': 
+                        #img.data = fp.A.as_signal().data
+                    #elif lines_deconvolution == 'standard': 
+                        #img.data = fp.yscale.as_signal().data
+                #elif img.axes_manager.navigation_dimension == 1:
+                    #img.axes_manager.set_signal_dimension(1) 
+                    #if lines_deconvolution == 'model': 
+                        #img.data = fp.A.as_signal().data
+                    #elif lines_deconvolution == 'standard': 
+                        #img.data = fp.yscale.as_signal().data  
+                #elif img.axes_manager.navigation_dimension == 0:
+                    #img = img.sum(0)
+                    #if lines_deconvolution == 'model': 
+                        #img.data = fp.A.value
+                    #elif lines_deconvolution == 'standard': 
+                        #img.data = fp.yscale.value 
+                                 
                 img.mapped_parameters.title = (
                     'Intensity of %s at %.2f %s from %s' % 
                     (Xray_line,
@@ -746,66 +763,50 @@ class EDSSpectrum(Spectrum):
         print("Didn't find it")
         
         
-            
-def phase_inspector(self,bins=[20,20,20],plot_result=True):
-    """
-    Generate an binary image of different channel
-    """
-    bins=[20,20,20]
-    minmax = []
-    
-    #generate the bins
-    for s in self:    
-        minmax.append([s.data.min(),s.data.max()])
-    center = []
-    for i, mm in enumerate(minmax):
-        temp = list(mlab.frange(mm[0],mm[1],(mm[1]-mm[0])/bins[i]))
-        temp[-1]+= 1
-        center.append(temp)
+    def _set_result(self, Xray_line, result, data_res, plot_result,
+        store_in_mp=True):
+        """
+        Transform data_res (a result) into an image or a signal and
+        stored it in 'mapped_parameters.Sample'
+        """
         
-    #calculate the Binary images
-    dataBin = []
-    if len(self) ==1:
-        for x in range(bins[0]):
-            temp = self[0].deepcopy()
-            dataBin.append(temp)
-            dataBin[x].data = ((temp.data >= center[0][x])*
-              (temp.data < center[0][x+1])).astype('int')
-    elif len(self) == 2 :    
-        for x in range(bins[0]):
-            dataBin.append([])
-            for y in range(bins[1]):
-                temp = self[0].deepcopy()
-                temp.data = np.ones_like(temp.data)
-                dataBin[-1].append(temp)
-                a = [x,y]
-                for i, s in enumerate(self):
-                    dataBin[x][y].data *= ((s.data >= center[i][a[i]])*
-                     (s.data < center[i][a[i]+1])).astype('int')
-            dataBin[x] = utils.stack(dataBin[x])
-    elif len(self) == 3 :    
-        for x in range(bins[0]):
-            dataBin.append([])
-            for y in range(bins[1]):
-                dataBin[x].append([])                    
-                for z in range(bins[2]):
-                    temp = self[0].deepcopy()
-                    temp.data = np.ones_like(temp.data)
-                    dataBin[-1][-1].append(temp)
-                    a = [x,y,z]
-                    for i, s in enumerate(self):
-                        dataBin[x][y][z].data *= ((s.data >=
-                         center[i][a[i]])*(s.data < 
-                         center[i][a[i]+1])).astype('int')
-                dataBin[x][y] = utils.stack(dataBin[x][y])
-            dataBin[x] = utils.stack(dataBin[x])
-    img = utils.stack(dataBin)
+        mp = self.mapped_parameters
+        if len(Xray_line) < 3 :
+            Xray_lines = mp.Sample.elements
+        else:
+            Xray_lines = mp.Sample.Xray_lines
+                
+        for j in range(len(Xray_lines)):
+            if Xray_line == Xray_lines[j]:
+                break         
+    
+        if (self.axes_manager.navigation_dimension >= 2):
+            axes_res = self.as_image([0,1])[1].axes_manager  
+        else:              
+            axes_res = self[...,0].axes_manager
+        
+                
+        if self.axes_manager.navigation_dimension <= 1:
+            res_img = Signal(np.array(data_res))
+        else:
+            res_img = Image(data_res)
+            res_img.axes_manager = axes_res
+        res_img.mapped_parameters.title = result + ' ' + Xray_line
+        if plot_result:                
+            if self.axes_manager.navigation_dimension == 0:
+                #to be changed with new version
+                print("%s of %s : %s" % (result, Xray_line, data_res))
+            else:
+                res_img.plot(None)
+        else:
+            print("%s of %s calculated" % (result, Xray_line))
+            
+        if store_in_mp:
+            mp.Sample[result][j] = res_img 
+        else:
+            return res_img 
+        
+        
+            
 
-    for i in range(len(self)):
-        img.axes_manager[i].name = self[i].mapped_parameters.title
-        img.axes_manager[i].scale = (minmax[i][1]-minmax[i][0])/bins[i]
-        img.axes_manager[i].offest = minmax[i][0]
-        img.axes_manager[i].units = '-'
-    img.get_dimensions_from_data()
-    return img 
 
