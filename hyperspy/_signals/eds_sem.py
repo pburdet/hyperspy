@@ -370,8 +370,7 @@ class EDSSEMSpectrum(EDSSpectrum):
                     fp.yscale.value/diff_ltime, plot_result)
             else:
                 self._set_result( Xray_line, 'kratios',\
-                    fp.yscale.as_signal().data/diff_ltime, plot_result)
-                    
+                    fp.yscale.as_signal().data/diff_ltime, plot_result)                  
                
     
         
@@ -649,7 +648,7 @@ class EDSSEMSpectrum(EDSSpectrum):
               extension = extension, overwrite = True) 
     
     
-    def quant(self,plot_result=True):        
+    def quant(self,plot_result=True,ehn=False):        
         """
         Quantify using stratagem, a commercial software. A licence is 
         needed.
@@ -662,18 +661,26 @@ class EDSSEMSpectrum(EDSSpectrum):
         plot_result: bool
             If true (default option), plot the result.
         
+        ehn: bool   
+            If True, used the ehnanced quantification (need 3D data)
+        
         See also
         --------
         set_elements, link_standard, top_hat, get_kratio
         
         """
-        foldername = os.path.join(config_path, 'strata_quant//')
-        #foldername = os.path.realpath("")+"//algo//v1_6Quant//"
-        self._write_nbData_tsv(foldername + 'essai')
+        if ehn == False:
+            foldername = os.path.join(config_path, 'strata_quant//')
+            self._write_nbData_tsv(foldername + 'essai')
+        if ehn == True and self.axes_manager.navigation_dimension == 3:
+            foldername = os.path.join(config_path, 'strata_quant_ehn//')
+            self._write_nbData_ehn_tsv(foldername + 'essai')
+        else: 
+            print("Warning: Ehnanced quantification needs 3D data.") 
         self._write_donnee_tsv(foldername + 'essai')
-        p = subprocess.Popen(foldername + 'Debug//essai.exe')
-        p.wait()
-        self._read_result_tsv(foldername + 'essai',plot_result)
+        #p = subprocess.Popen(foldername + 'Debug//essai.exe')
+        #p.wait()
+        #self._read_result_tsv(foldername + 'essai',plot_result)
         
     def _read_result_tsv(self,foldername,plot_result):
         encoding = 'latin-1'
@@ -787,6 +794,55 @@ class EDSSEMSpectrum(EDSSpectrum):
         f.write('%s\r\n'% elements)
         f.write('%s\r\n'% z_el)
         f.write('%s\r\n'% line_el)
+        f.close()
+        
+    def _write_nbData_ehn_tsv(self, foldername):
+        encoding = 'latin-1'
+        mp=self.mapped_parameters
+        f = codecs.open(foldername+'//nbData.tsv', 'w', 
+          encoding = encoding,errors = 'ignore') 
+        dim = np.copy(self.axes_manager.navigation_shape).tolist()
+        scale = []
+        for ax in self.axes_manager.navigation_axes:
+            scale.append(ax.scale*1000)
+        f.write("v2_\t0\t2\t0.1\r\n")
+        f.write("nbpixel_xyz\t%s\t%s\t%s\r\n" % (dim[0],dim[1],dim[2]))
+        #f.write('nbpixel_y\t%s\r\n' % dim[1])
+        #f.write('nbpixel_z\t%s\r\n' % dim[2])
+        #f.write('pixelsize_z\t%s' % self.axes_manager[0].scale*1000)
+        f.write('pixelsize_xyz\t%s\t%s\t%s\r\n' % (scale[0],scale[1],scale[2]))
+        #f.write('pixelsize_z\t100\r\n')
+        f.write('nblayermax\t5\r\n')
+        f.write('Limitkratio0\t0.001\r\n')
+        f.write('Limitcompsame\t0.01\r\n')
+        f.write('Itermax\t49\r\n')
+        f.write('\r\n')
+        f.write('HV\t%s\r\n'% mp.SEM.beam_energy)
+        f.write('TOA\t%s\r\n'% utils_eds.TOA(self))
+        f.write('azimuth\t%s\r\n'% mp.SEM.EDS.azimuth_angle)
+        f.write('tilt\t%s\r\n'% mp.SEM.tilt_stage)
+        f.write('\r\n')
+        f.write('nbelement\t%s\r\n'% len(mp.Sample.Xray_lines))
+        elements = 'Element'
+        z_el = 'Z'
+        line_el = 'line'
+        for Xray_line in mp.Sample.Xray_lines:
+            el, line = utils_eds._get_element_and_line(Xray_line)  
+            elements = elements + '\t' + el
+            z_el = z_el + '\t' + str(elements_db[el]['Z'])
+            if line == 'Ka':
+                line_el = line_el + '\t0'
+            if line== 'La':
+                line_el = line_el + '\t1'
+            if line == 'Ma':
+                line_el = line_el + '\t2'    
+        f.write('%s\r\n'% elements)
+        f.write('%s\r\n'% z_el)
+        f.write('%s\r\n'% line_el)
+        f.write('\r\n')
+        f.write('DistrX_Min_Max_Dx_IncF\r\n')
+        f.write('DistrZ_Size_nbforelems\r\n')
+        f.write('\r\n')
         f.close()
         
     #def check_total(self):

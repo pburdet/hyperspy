@@ -234,7 +234,7 @@ class Test_quantification:
         np.allclose(res,
             np.array([ 0.41666667,  0.2382134 ]))
             
-    def test_kratio(self):
+    def test_quant(self):
         s = self.signal
         
         s1 = s.deepcopy()[0,0,0]
