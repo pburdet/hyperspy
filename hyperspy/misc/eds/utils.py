@@ -195,14 +195,67 @@ def phase_inspector(self,bins=[20,20,20],plot_result=True):
     return img 
     
     
-def simulate_one_spectrum(mp,nTraj,dose=120):
+def simulate_one_spectrum(nTraj,dose=100,mp='gui',
+        elements='auto',
+        composition='auto',
+        density='auto',
+        detector='Si(Li)'):
     """"
     Simulate a spectrum using DTSA-II
+    
+    Parameters
+    ----------
+    
+    nTraj: int
+        number of electron trajectories
+        
+    dose: float
+        Electron current time the live time in nA*sec
+        
+    mp: dict
+        Microscope parameters. If 'gui' raise a general interface.
+        
+    elements: list of str
+        Set the elements. If auto, look in mp.Sample if elements are defined.
+        auto cannot be used with 'gui' option.
+        
+    composition: list of string
+        Give the composition. If auto, equally parted
+        
+    detector: str
+        Give the detector name defined in DTSA-II       
+   
     """
     from hyperspy import signals
+    if mp == 'gui':
+        spec = signals.EDSSEMSpectrum(np.zeros(1024))
+        spec.set_microscope_parameters()
+        mp = spec.mapped_parameters
+        dic = mp.as_dictionary()
+        if elements == 'auto':
+            print 'Elements need to be set with gui option'
+            return 0
+        else:
+            spec.set_elements(elements)  
     dic = mp.as_dictionary()
-    dic['Sample']['Xray_lines'] = list(dic['Sample']['Xray_lines'])
-    dic['Sample']['elements'] = list(dic['Sample']['elements'])
+    if hasattr(mp.Sample, 'Xray_lines'):
+        dic['Sample']['Xray_lines'] = list(dic['Sample']['Xray_lines'])
+        
+    if hasattr(mp.Sample, 'elements'):
+        dic['Sample']['elements'] = list(dic['Sample']['elements'])
+    else:
+        print 'Elements needs to be defined'
+        return 0
+        
+    if density == 'auto':
+        density = 7.0
+        
+    if composition == 'auto':
+        composition = []
+        for elm in dic['Sample']['elements']:
+            composition.append(1./len(dic['Sample']['elements']))         
+        
+
     import execnet
     gw = execnet.makegateway(
         "popen//python=C:\Users\pb565\Documents\Java\Jython2.7b\jython.bat")
@@ -215,15 +268,15 @@ def simulate_one_spectrum(mp,nTraj,dose=120):
        
         param = """ + str(dic) + """
 
-        Xray_lines = param[u'Sample'][u'Xray_lines']
+        elements = param[u'Sample'][u'elements']
         elms = []
-        xrts = []
-        for Xray_line in Xray_lines:
-            element, line  = dtsa2._get_element_and_line(Xray_line)
+        for element in elements:
             elms.append(getattr(dtsa2.epq.Element,element))
-            xrts.append(dtsa2.line_to_number(line))
+        density = """ + str(density) + """
+        composition = """ + str(composition) + """
         e0 = param[u'SEM'][u'beam_energy']
         tiltD = -1*param[u'SEM'][u'tilt_stage']
+        live_time = param[u'SEM'][u'EDS'][u'live_time']
 
         nTraj = """ + str(nTraj) + """
         dose = """ + str(dose) + """
@@ -234,13 +287,17 @@ def simulate_one_spectrum(mp,nTraj,dose=120):
         pixTot = pixLat[0]*pixLat[1]
         tilt = math.radians(tiltD) # tilt angle radian
 
-        det = dtsa2.findDetector("Inca-x")
+        det = dtsa2.findDetector('""" + detector + """')
         origin = epu.Math2.multiply(1.0e-3, epq.SpectrumUtils.getSamplePosition(det.getProperties()))
         z0 = origin[2]
 
         el = 0
-        m0=epq.Composition(elms[el])
-        mat=epq.MaterialFactory.createPureElement(elms[el])
+        if len(elms) == 1:
+            mat=epq.MaterialFactory.createPureElement(elms[el])
+        else:            
+            mat = epq.Material(epq.Composition(elms,composition ),
+                                    epq.ToSI.gPerCC(density))
+
 
         # Create a simulator and initialize it
         monteb = nm.MonteCarloSS()
@@ -267,22 +324,55 @@ def simulate_one_spectrum(mp,nTraj,dose=120):
         propsb.setNumericProperty(epq.SpectrumProperties.LiveTime, dose)
         propsb.setNumericProperty(epq.SpectrumProperties.FaradayBegin,1.0)
         propsb.setNumericProperty(epq.SpectrumProperties.BeamEnergy,e0)
-        noisyb=epq.SpectrumUtils.addNoiseToSpectrum(specb,1.0)
+        noisyb=epq.SpectrumUtils.addNoiseToSpectrum(specb,live_time)
         dtsa2.display(noisyb)
-
-        for i in range(1024):
+        
+        a = det.calibration.getProperties()
+        
+        channelWidth = det.calibration.getChannelWidth()
+        offset = det.calibration.getZeroOffset()
+        resolution = a.getPropertyByName('Resolution')
+        if e0 < 15.0 :
+            channelMax = 1024
+        else:
+            channelMax = 2048
+        channel.send(channelWidth)
+        channel.send(offset)
+        channel.send(resolution)
+        for i in range(channelMax):
             channel.send(noisyb.getCounts(i))
                
     """)
-    #for item in channel:
-        #print (item)
-    
+
     datas = []
-    for item in channel:
-        datas.append(item)
-    spec = signals.EDSSEMSpectrum(np.array(datas))
-    spec.get_dimensions_from_data()
-    spec.plot()
+    for i, item in enumerate(channel):
+        if i == 0:
+            scale = item
+        elif i==1:
+            offset = item
+        elif i==2:
+            reso = item
+        else:
+            datas.append(item)
+        
+    try:
+        spec
+    except:
+        spec = signals.EDSSEMSpectrum(np.array(datas))
+        spec.mapped_parameters = mp
+    else:    
+        spec.data = np.array(datas)
+    spec.get_dimensions_from_data() 
+    
+    spec.mapped_parameters.SEM.EDS.energy_resolution_MnKa = reso
+    spec.axes_manager[0].scale = scale / 1000
+    spec.axes_manager[0].offset = offset
+    spec.axes_manager[0].name = 'Energy'
+    spec.axes_manager[0].unit = 'keV'
+    spec.mapped_parameters.title = 'Simulated spectrum'
+    
+    
+
     return spec
     
     
