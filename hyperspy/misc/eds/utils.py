@@ -193,3 +193,96 @@ def phase_inspector(self,bins=[20,20,20],plot_result=True):
         img.axes_manager[i].units = '-'
     img.get_dimensions_from_data()
     return img 
+    
+    
+def simulate_one_spectrum(mp,nTraj,dose=120):
+    """"
+    Simulate a spectrum using DTSA-II
+    """
+    from hyperspy import signals
+    dic = mp.as_dictionary()
+    dic['Sample']['Xray_lines'] = list(dic['Sample']['Xray_lines'])
+    dic['Sample']['elements'] = list(dic['Sample']['elements'])
+    import execnet
+    gw = execnet.makegateway(
+        "popen//python=C:\Users\pb565\Documents\Java\Jython2.7b\jython.bat")
+    channel = gw.remote_exec("""   
+        import dtsa2
+        import math
+        epq = dtsa2.epq 
+        epu = dtsa2.epu
+        nm = dtsa2.nm
+       
+        param = """ + str(dic) + """
+
+        Xray_lines = param[u'Sample'][u'Xray_lines']
+        elms = []
+        xrts = []
+        for Xray_line in Xray_lines:
+            element, line  = dtsa2._get_element_and_line(Xray_line)
+            elms.append(getattr(dtsa2.epq.Element,element))
+            xrts.append(dtsa2.line_to_number(line))
+        e0 = param[u'SEM'][u'beam_energy']
+        tiltD = -1*param[u'SEM'][u'tilt_stage']
+
+        nTraj = """ + str(nTraj) + """
+        dose = """ + str(dose) + """
+        
+        IncrementF = 0.5
+        pixSize = (4*1.0e-9,200*1.0e-9,100*1.0e-9)
+        pixLat = (70, 5)
+        pixTot = pixLat[0]*pixLat[1]
+        tilt = math.radians(tiltD) # tilt angle radian
+
+        det = dtsa2.findDetector("Inca-x")
+        origin = epu.Math2.multiply(1.0e-3, epq.SpectrumUtils.getSamplePosition(det.getProperties()))
+        z0 = origin[2]
+
+        el = 0
+        m0=epq.Composition(elms[el])
+        mat=epq.MaterialFactory.createPureElement(elms[el])
+
+        # Create a simulator and initialize it
+        monteb = nm.MonteCarloSS()
+        monteb.setBeamEnergy(epq.ToSI.keV(e0))
+
+        # top substrat
+        monteb.addSubRegion(monteb.getChamber(), mat,      
+                                  nm.MultiPlaneShape.createSubstrate([math.sin(tilt),0.0,-math.cos(tilt)], origin) )
+        # Add event listeners to model characteristic radiation
+        xrel=nm.XRayEventListener2(monteb,det)
+        monteb.addActionListener(xrel)
+
+        # Add event listeners to model bBremsstrahlung
+        brem=nm.BremsstrahlungEventListener(monteb,det)
+        monteb.addActionListener(brem)
+        # Reset the detector and run the electrons
+        det.reset()
+        monteb.runMultipleTrajectories(nTraj)
+        # Get the spectrum and assign properties
+        specb=det.getSpectrum(dose*1.0e-9 / (nTraj * epq.PhysicalConstants.ElectronCharge) )
+        propsb=specb.getProperties()
+        propsb.setTextProperty(epq.SpectrumProperties.SpectrumDisplayName, 
+                              "%s std." % (elms[el]))
+        propsb.setNumericProperty(epq.SpectrumProperties.LiveTime, dose)
+        propsb.setNumericProperty(epq.SpectrumProperties.FaradayBegin,1.0)
+        propsb.setNumericProperty(epq.SpectrumProperties.BeamEnergy,e0)
+        noisyb=epq.SpectrumUtils.addNoiseToSpectrum(specb,1.0)
+        dtsa2.display(noisyb)
+
+        for i in range(1024):
+            channel.send(noisyb.getCounts(i))
+               
+    """)
+    #for item in channel:
+        #print (item)
+    
+    datas = []
+    for item in channel:
+        datas.append(item)
+    spec = signals.EDSSEMSpectrum(np.array(datas))
+    spec.get_dimensions_from_data()
+    spec.plot()
+    return spec
+    
+    
