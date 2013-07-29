@@ -574,7 +574,7 @@ class EDSSEMSpectrum(EDSSpectrum):
               line_energy]
             
             std_spec = self.get_result(element,'standard_spec')
-            kratio = self.get_result(Xray_line,'kratios').data[0]
+            kratio = self.get_result(Xray_line,'kratios').data
             diff_ltime = mp.SEM.EDS.live_time/\
               std_spec.mapped_parameters.SEM.EDS.live_time
             if top_hat_applied:
@@ -669,18 +669,18 @@ class EDSSEMSpectrum(EDSSpectrum):
         set_elements, link_standard, top_hat, get_kratio
         
         """
-        if ehn == False:
+        if ehn is False:
             foldername = os.path.join(config_path, 'strata_quant//')
             self._write_nbData_tsv(foldername + 'essai')
-        if ehn == True and self.axes_manager.navigation_dimension == 3:
+        elif ehn is True and self.axes_manager.navigation_dimension == 3:
             foldername = os.path.join(config_path, 'strata_quant_ehn//')
             self._write_nbData_ehn_tsv(foldername + 'essai')
         else: 
             print("Warning: Ehnanced quantification needs 3D data.") 
         self._write_donnee_tsv(foldername + 'essai')
-        #p = subprocess.Popen(foldername + 'Debug//essai.exe')
-        #p.wait()
-        #self._read_result_tsv(foldername + 'essai',plot_result)
+        p = subprocess.Popen(foldername + 'Debug//essai.exe')
+        p.wait()
+        self._read_result_tsv(foldername + 'essai',plot_result)
         
     def _read_result_tsv(self,foldername,plot_result):
         encoding = 'latin-1'

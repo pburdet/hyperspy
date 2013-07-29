@@ -194,7 +194,7 @@ def phase_inspector(self,bins=[20,20,20],plot_result=True):
     img.get_dimensions_from_data()
     return img 
     
-    
+#Should go in is own file    
 def simulate_one_spectrum(nTraj,dose=100,mp='gui',
         elements='auto',
         composition='auto',

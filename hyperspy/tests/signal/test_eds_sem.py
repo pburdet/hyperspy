@@ -207,6 +207,8 @@ class Test_quantification:
         assert_true(np.allclose(res,
             np.array([0.4166665022647609, 0.23821329009859846]))) 
             
+        s1.check_kratio(('Al_Ka','Zn_La'))
+            
         s1 = s.deepcopy()[0,0]
         s1.get_kratio(plot_result=False)
         res = np.array([s1.get_result('Al_Ka','kratios').data[0],
@@ -267,4 +269,76 @@ class Test_quantification:
             s.get_result('Zn_La','quant').data[0,0,0]])        
         assert_true(np.allclose(res,
             np.array([ 0.610979,  0.246892])))
+            
+#Should go in is own file            
+class Test_simulation:    
+    def setUp(self):
+        s = EDSSEMSpectrum(np.ones(1024))
+        energy_axis = s.axes_manager.signal_axes[0]
+        energy_axis.scale = 1e-2
+        energy_axis.units = 'keV'
+        energy_axis.name = "Energy"
+        s.mapped_parameters.SEM.EDS.live_time = 3.1
+        s.mapped_parameters.SEM.beam_energy = 15.0 
+ 
+        s.set_elements(('Al','Zn'))
+        s.add_lines()
+
+
+        self.signal = s
+        
+    def test_simu_1_spec(self):
+        s = self.signal
+        utils_eds.simulate_one_spectrum(10,mp=s.mapped_parameters)
+        
+class Test_running_sum:        
+    def setUp(self):
+        s = EDSSEMSpectrum(np.ones((2,2,3,1024)))
+        energy_axis = s.axes_manager.signal_axes[0]
+        energy_axis.scale = 1e-2
+        energy_axis.units = 'keV'
+        energy_axis.name = "Energy"
+        s.mapped_parameters.SEM.EDS.live_time = 3.1
+        s.mapped_parameters.SEM.beam_energy = 15.0
+        
+        self.signal = s 
+        
+    def test_running_sum(self):
+        s = self.signal
+        s.running_sum()
+        
+        assert_equal(s[0,0,0,0].data[0], 4.)
+        
+        s = self.signal
+        s = s[0]
+        
+        s.running_sum()
+        assert_equal(s[0,0,0].data[0], 16.)
+        
+        assert_equal(s.mapped_parameters.SEM.EDS.live_time,49.6)
+        
+class Test_plot_Xray_lines:        
+    def setUp(self):
+        s = EDSSEMSpectrum(np.ones(1024))
+        energy_axis = s.axes_manager.signal_axes[0]
+        energy_axis.scale = 1e-2
+        energy_axis.units = 'keV'
+        energy_axis.name = "Energy"
+        s.mapped_parameters.SEM.EDS.live_time = 3.1
+        s.mapped_parameters.SEM.beam_energy = 15.0
+        
+        s.set_elements(('Al','Zn'))
+        s.add_lines()
+        
+        self.signal = s 
+        
+    def test_plot_Xray_lines(self):
+        s = self.signal
+        
+        s.plot_Xray_line()        
+        s.plot_Xray_line(line_to_plot='all')
+        s.plot_Xray_line(line_to_plot='a')
+        s.plot_Xray_line(line_to_plot='ab')
+        
+        
 
