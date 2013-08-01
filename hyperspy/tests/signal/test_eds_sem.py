@@ -291,6 +291,34 @@ class Test_simulation:
         s = self.signal
         utils_eds.simulate_one_spectrum(10,mp=s.mapped_parameters)
         
+class Test_electron_distribution:    
+    def setUp(self):
+        s = EDSSEMSpectrum(np.ones((2,2,3,1024)))
+        energy_axis = s.axes_manager.signal_axes[0]
+        energy_axis.scale = 1e-2
+        energy_axis.units = 'keV'
+        energy_axis.name = "Energy"
+        s.mapped_parameters.SEM.EDS.live_time = 3.1
+        s.mapped_parameters.SEM.beam_energy = 5.0 
+        
+        nav_axis = s.axes_manager.navigation_axes
+        units_name = '${\mu}m$'
+        EDS_scale = np.array([0.050,0.050,0.100])
+        for i, ax in enumerate(nav_axis):
+            ax.units = units_name
+            ax.scale = EDS_scale[i]
+ 
+        s.set_elements(('Al','Zn'))
+        s.add_lines()
+
+
+        self.signal = s
+        
+    def test_electron_distribution(self):
+        s = self.signal
+        s.simulate_electron_distribution(nb_traj=10,
+            limit_x=[-0.250, 0.300], dx0=0.004, dx_increment=0.75)
+        
 class Test_running_sum:        
     def setUp(self):
         s = EDSSEMSpectrum(np.ones((2,2,3,1024)))

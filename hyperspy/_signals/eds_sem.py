@@ -23,6 +23,8 @@ import os
 import codecs
 import subprocess
 import matplotlib.pyplot as plt
+#import matplotlib.mlab as mlab
+import execnet
 
 
 from hyperspy._signals.eds import EDSSpectrum
@@ -648,7 +650,7 @@ class EDSSEMSpectrum(EDSSpectrum):
               extension = extension, overwrite = True) 
     
     
-    def quant(self,plot_result=True,ehn=False):        
+    def quant(self,plot_result=True,enh=False,enh_param=[0.001,0.01,49]):        
         """
         Quantify using stratagem, a commercial software. A licence is 
         needed.
@@ -661,22 +663,40 @@ class EDSSEMSpectrum(EDSSpectrum):
         plot_result: bool
             If true (default option), plot the result.
         
-        ehn: bool   
-            If True, used the ehnanced quantification (need 3D data)
+        enh: bool   
+            If True, used the enhanced quantification (need 3D data)
+            
+        enh_param: list of float
+            Parameter needed for the enh quantifiacation: 
+            [limit_kratio_0,limit_comp_same,iter_max]
+            1. Limit to consider a k-ratio equivalent to null
+            2. Limit to consider two compositions equivalent
+            3. Number maximum of iteration of the thin-film quantification
         
         See also
         --------
         set_elements, link_standard, top_hat, get_kratio
         
         """
-        if ehn is False:
+        mp = self.mapped_parameters
+        if enh is False:
             foldername = os.path.join(config_path, 'strata_quant//')
             self._write_nbData_tsv(foldername + 'essai')
-        elif ehn is True and self.axes_manager.navigation_dimension == 3:
-            foldername = os.path.join(config_path, 'strata_quant_ehn//')
+        elif enh is True and self.axes_manager.navigation_dimension == 3:
+            if mp.has_item('elec_distr') is False:
+                print("Error: Simulate an electron distribution first " +
+                "with simulate_electron_distribution.")
+                return 0 
+            foldername = os.path.join(config_path, 'strata_quant_enh//')
+            if mp.has_item('enh_param') is False:
+                mp.add_node('enh_param')
+            mp.enh_param['limit_kratio_0'] = enh_param[0]
+            mp.enh_param['limit_comp_same'] = enh_param[1]
+            mp.enh_param['iter_max'] = enh_param[2]
             self._write_nbData_ehn_tsv(foldername + 'essai')
         else: 
-            print("Warning: Ehnanced quantification needs 3D data.") 
+            print("Error: Ehnanced quantification needs 3D data.")
+            return 0 
         self._write_donnee_tsv(foldername + 'essai')
         p = subprocess.Popen(foldername + 'Debug//essai.exe')
         p.wait()
@@ -802,9 +822,11 @@ class EDSSEMSpectrum(EDSSpectrum):
         f = codecs.open(foldername+'//nbData.tsv', 'w', 
           encoding = encoding,errors = 'ignore') 
         dim = np.copy(self.axes_manager.navigation_shape).tolist()
+        distr = self.mapped_parameters.elec_distr
         scale = []
         for ax in self.axes_manager.navigation_axes:
-            scale.append(ax.scale*1000)
+            scale.append(ax.scale*1000)    
+            
         f.write("v2_\t0\t2\t0.1\r\n")
         f.write("nbpixel_xyz\t%s\t%s\t%s\r\n" % (dim[0],dim[1],dim[2]))
         #f.write('nbpixel_y\t%s\r\n' % dim[1])
@@ -812,15 +834,16 @@ class EDSSEMSpectrum(EDSSpectrum):
         #f.write('pixelsize_z\t%s' % self.axes_manager[0].scale*1000)
         f.write('pixelsize_xyz\t%s\t%s\t%s\r\n' % (scale[0],scale[1],scale[2]))
         #f.write('pixelsize_z\t100\r\n')
-        f.write('nblayermax\t5\r\n')
-        f.write('Limitkratio0\t0.001\r\n')
-        f.write('Limitcompsame\t0.01\r\n')
-        f.write('Itermax\t49\r\n')
+        f.write('nblayermax\t%s\r\n' % max(distr.max_slice_z))
+        f.write('Limitkratio0\t%s\r\n' % mp.enh_param['limit_kratio_0']) 
+        f.write('Limitcompsame\t%s\r\n' % mp.enh_param['limit_comp_same'])
+        f.write('Itermax\t%s\r\n' % mp.enh_param['iter_max'])
         f.write('\r\n')
         f.write('HV\t%s\r\n'% mp.SEM.beam_energy)
         f.write('TOA\t%s\r\n'% utils_eds.TOA(self))
         f.write('azimuth\t%s\r\n'% mp.SEM.EDS.azimuth_angle)
-        f.write('tilt\t%s\r\n'% mp.SEM.tilt_stage)
+        #Be carefull with that + or -
+        f.write('tilt\t%s\r\n'% -mp.SEM.tilt_stage)
         f.write('\r\n')
         f.write('nbelement\t%s\r\n'% len(mp.Sample.Xray_lines))
         elements = 'Element'
@@ -840,9 +863,20 @@ class EDSSEMSpectrum(EDSSpectrum):
         f.write('%s\r\n'% z_el)
         f.write('%s\r\n'% line_el)
         f.write('\r\n')
-        f.write('DistrX_Min_Max_Dx_IncF\r\n')
-        f.write('DistrZ_Size_nbforelems\r\n')
-        f.write('\r\n')
+        f.write('DistrX_Min_Max_Dx_IncF\t%s\t%s\t%s\t%s\r\n' % 
+            (distr.limit_x[0]*1000,distr.limit_x[1]*1000,distr.dx0*1000,
+            distr.dx_increment))
+        f.write('DistrZ_Size_nbforelems')
+        for slice_z in distr.max_slice_z:
+            f.write('\t%s' % slice_z)
+        f.write('\r\n') 
+        f.write('\r\n')        
+        for el in range(len(mp.Sample.Xray_lines)):
+            for z in range(distr.max_slice_z[el]):
+                for x in distr.distr[el][z]: 
+                    f.write("%s\t" % x)
+                f.write('\r\n')
+            f.write('\r\n')
         f.close()
         
     #def check_total(self):
@@ -855,3 +889,222 @@ class EDSSEMSpectrum(EDSSpectrum):
         #img_total = img_0.deepcopy
         #img_total.data = data_total
         #return img_total 
+        
+    def simulate_electron_distribution(self, 
+        nb_traj, 
+        limit_x, 
+        dx0,
+        dx_increment,
+        detector='Si(Li)',
+        plot_result=False,
+        gateway='auto'):
+        """"
+        Simulate a the electron distribution in each layer z using DTSA-II
+        
+        Parameters
+        ----------
+        
+        nb_traj: int
+            number of electron trajectories
+            
+        limit_x: list of float
+            Parameters to define the grid system for the simulation :
+            Min and max in x [mum]
+            
+        dx0: float
+            Parameter to define the grid system for the simulation :
+            voxel size iny for the upper layer [mum]
+            
+        dx_increment: list of float
+            Parameter to define the grid system for the simulation :
+            Increment in y voxel at each subsequent layer.
+            
+        detector: str
+            Give the detector name defined in DTSA-II
+            
+        gateway: execnet Gateway
+            If 'auto', generate automatically the connection to jython.
+            
+        plot_result: bool
+            If true (default option), plot the result.
+            
+        Return
+        ------
+        
+        The number of electron in each place of the grid and the position
+        of each grid.
+       
+        """              
+        
+        mp = self.mapped_parameters     
+        dic = mp.as_dictionary()
+        if hasattr(mp.Sample, 'Xray_lines'):
+            dic['Sample']['Xray_lines'] = list(dic['Sample']['Xray_lines'])            
+        if hasattr(mp.Sample, 'elements'):
+            dic['Sample']['elements'] = list(dic['Sample']['elements'])
+        else:
+            print 'Elements needs to be defined'
+            return 0
+            
+        elements = dic['Sample']['elements']
+        e0 = dic['SEM']['beam_energy']
+        tilt = dic['SEM']['tilt_stage']
+            
+     
+        #Units!! 
+        pixSize = [dx0*1.0e-6, 0.2*1.0e-6,
+            self.axes_manager[2].scale *1.0e-6]
+        nblayer = []
+        for el in elements:
+            nblayer.append(utils_eds.electron_range(el,e0,tilt=tilt))            
+            
+        nblayermax = int(round(max(nblayer)/self.axes_manager[2].scale))
+        pixLat = [int((limit_x[1]-limit_x[0])/dx0+1), nblayermax]
+        dev = (limit_x[1] + limit_x[0])*1.0e-6
+
+        if 1 == 0:
+            #AlZn nTraj = 20000
+            dx_increment = 0.75
+            #pixLat = nbx nbz
+            pixSize = [4*1.0e-9,200*1.0e-9,40*1.0e-9] #y,x,z
+            pixLat = [138, 7] #(max -min)/y +1 (ou 0.5), maxeldepth #nb de pixel
+            dev =  50*1.0e-9 #min+max, deviation du centre
+        if 1 == 0:
+            #TiFeNi
+            dx_increment = 0.5
+            pixSize = (8*1.0e-9,200*1.0e-9,100*1.0e-9)
+            pixLat =(100, 5)
+            dev =  100*1.0e-9
+
+        
+        if gateway == 'auto':
+            gateway = utils_eds.get_link_to_jython()
+        channel = gateway.remote_exec("""   
+            import dtsa2
+            import math
+            epq = dtsa2.epq 
+            epu = dtsa2.epu
+            nm = dtsa2.nm
+           
+            param = """ + str(dic) + """
+            elements = param[u'Sample'][u'elements']
+            elms = []
+            for element in elements:
+                elms.append(getattr(dtsa2.epq.Element,element))
+            e0 = param[u'SEM'][u'beam_energy']
+            tiltD = -1*param[u'SEM'][u'tilt_stage']
+            
+            nTraj = """ + str(nb_traj) + """
+            IncrementF = """ + str(dx_increment) + """
+            pixSize = """ + str(pixSize) + """
+            pixLat = """ + str(pixLat) + """
+            dev = """ + str(dev) + """
+            pixTot = pixLat[0]*pixLat[1]
+            tilt = math.radians(tiltD) # tilt angle radian
+
+            det = dtsa2.findDetector('""" + detector + """')
+            origin = epu.Math2.multiply(1.0e-3,
+                epq.SpectrumUtils.getSamplePosition(det.getProperties()))
+            z0 = origin[2]
+            
+            for el in elms : 
+            
+                # Create a simulator and initialize it
+                monteb = nm.MonteCarloSS()
+                monteb.setBeamEnergy(epq.ToSI.keV(e0))
+
+                # top substrat
+                mat=epq.MaterialFactory.createPureElement(el)
+                monteb.addSubRegion(monteb.getChamber(),
+                    mat, nm.MultiPlaneShape.createSubstrate(
+                    [math.sin(tilt),0.0,-math.cos(tilt)], origin) )
+                
+                #Create Shape
+                center0=epu.Math2.plus(origin,
+                    [-math.cos(tilt)*(pixLat[0]-1)/2.0*pixSize[0]-math.sin(tilt)*pixSize[2]/2,0,
+                    -math.sin(tilt)*(pixLat[0]-1)/2.0*pixSize[0]+math.cos(tilt)*pixSize[2]/2])
+                stats=range(pixTot)
+                k=0
+                for z in range (pixLat[1]):
+                    center0=epu.Math2.plus(origin,
+                        [-math.cos(tilt)*((pixLat[0]-1)*pixSize[0]*(1+IncrementF*z)-dev)/
+                        2.0-math.sin(tilt)*pixSize[2]*(1/2+z),0,
+                        -math.sin(tilt)*((pixLat[0]-1)*pixSize[0]*(1+IncrementF*z)-dev)/
+                        2.0+math.cos(tilt)*pixSize[2]*(1/2+z)])
+                    for y in range (pixLat[0]):
+                        stats[k] = nm.ElectronStatsListener(monteb, 
+                            -5e-3, 5e-3, 1,-5e-3, 5e-3, 1,-5e-3, 5e-3, 1)                        
+                        cub1=nm.MultiPlaneShape.createBlock([pixSize[0],
+                            pixSize[1],pixSize[2]],center0, 0.0, -tilt,0.0)
+
+                        stats[k].setShape(cub1)
+                        monteb.addActionListener(stats[k]) 
+                        k=k+1            
+                        center0=epu.Math2.plus(center0,
+                            [pixSize[0]*math.cos(tilt)*(1+IncrementF*z),
+                            0.0,pixSize[0]*math.sin(tilt)*(1+IncrementF*z)])               
+                
+                # Reset the detector and run the electrons
+                det.reset()
+                monteb.runMultipleTrajectories(nTraj)
+            
+                k = 0            
+                for z in range (pixLat[1]):
+                    for x in range (pixLat[0]):
+                        channel.send(stats[k].getSpatialDistribution().maxValue())
+                        k=k+1
+                   
+        """)
+
+        datas = []
+        for i, item in enumerate(channel):
+            datas.append(item)
+            
+        i=0        
+        stat = np.zeros([len(elements),pixLat[1],pixLat[0]])
+        for el, elm in enumerate(elements): 
+            for z in range(pixLat[1]):
+                    for x in range(pixLat[0]):
+                        stat[el,z,x] = datas[i]
+                        i = i+1
+        distres = []
+        xdatas = []
+        for el, elm in enumerate(elements): 
+            distres.append([]) 
+            xdatas.append([])
+            if plot_result:
+                f = plt.figure()
+                leg=[]
+            for i, distr in enumerate(stat[el]):                
+                length = int((limit_x[1]-limit_x[0])/(dx0*(dx_increment*i+1))+1)
+                distr = distr[int(pixLat[0]/2.-round(length/2.)):
+                    int(pixLat[0]/2.+int(length/2.))] 
+                if sum(distr) != 0:
+                    xdata =[]
+                    for x in range(length):
+                        xdata.append(limit_x[0]+x*dx0*(dx_increment*i+1))
+                    if plot_result:     
+                        leg.append('z slice ' + str(pixSize[2]*1.0e6*i)+ ' ${\mu}m$')
+                        plt.plot(xdata,distr)
+                    distres[el].append([x/sum(distr) for x in distr])
+                    xdatas[el].append(xdata)
+        
+            if plot_result:
+                plt.legend(leg,loc=2)
+                plt.title('Electron depth distribution ' + elm)
+                plt.xlabel('x position [${\mu}m$]')
+                plt.ylabel('nb electrons')
+                
+        if mp.has_item('elec_distr') is False:
+            mp.add_node('elec_distr')
+        mp.elec_distr['limit_x'] = limit_x
+        mp.elec_distr['dx0'] = dx0
+        mp.elec_distr['dx_increment'] = dx_increment
+        max_slice_z = []
+        for el, elm in enumerate(elements): 
+            max_slice_z.append(len(distres[el]))
+        mp.elec_distr['max_slice_z'] = max_slice_z
+        mp.elec_distr['distr'] = distres
+        mp.elec_distr['nb_traj'] = nb_traj
+                
+        return distres, xdatas

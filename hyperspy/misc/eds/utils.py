@@ -1,5 +1,6 @@
 import math
 import numpy as np
+import execnet
 
 from hyperspy.misc.eds.elements import elements as elements_db
     
@@ -13,7 +14,7 @@ def xray_range(Xray_line,beam_energy,rho=None):
     Parameters
     ----------    
     Xray_line: str
-        The X-ray line, e.g. Al_Ka
+        The X-ray line, e.g. 'Al_Ka'
         
     beam_energy: float (kV)
         The energy of the beam in kV. 
@@ -41,6 +42,44 @@ def xray_range(Xray_line,beam_energy,rho=None):
     
     return 0.064/rho*(np.power(beam_energy,1.68)-
         np.power(Xray_energy,1.68))
+        
+def electron_range(element,beam_energy,rho=None,tilt=0):
+    '''Return the Kanaya-Okayama electron range in a pure material.
+    
+    Parameters
+    ----------    
+    elements: str
+        The element, e.g. 'Al'
+        
+    beam_energy: float (kV)
+        The energy of the beam in kV. 
+        
+    rho: float (g/cm3)
+        The density of the material. If None, the density of the pure 
+        element is used.
+        
+    tilt: float (degree)
+        the tilt of the sample.
+        
+    Returns
+    -------
+    Electron range in micrometer.
+        
+    Notes
+    -----
+    From Kanaya, K. and S. Okayama (1972). J. Phys. D. Appl. Phys. 5, p43
+    
+    See also the textbook of Goldstein et al., Plenum publisher, 
+    third edition p 72
+    '''
+
+    if rho is None:
+        rho = elements_db[element]['density']
+        Z = elements_db[element]['Z']
+        A = elements_db[element]['A']
+    
+    return (0.0276*A/np.power(Z,0.89)/rho*
+        np.power(beam_energy,1.67)*math.cos(math.radians(tilt)))
         
 def FWHM(FWHM_ref,E,line_ref='Mn_Ka'):
     """Calculates the FWHM of a peak at energy E from the FWHM of a 
@@ -192,14 +231,16 @@ def phase_inspector(self,bins=[20,20,20],plot_result=True):
         img.axes_manager[i].offest = minmax[i][0]
         img.axes_manager[i].units = '-'
     img.get_dimensions_from_data()
-    return img 
+    return img  
+
     
-#Should go in is own file    
+    
 def simulate_one_spectrum(nTraj,dose=100,mp='gui',
         elements='auto',
         composition='auto',
         density='auto',
-        detector='Si(Li)'):
+        detector='Si(Li)',
+        gateway='auto'):
     """"
     Simulate a spectrum using DTSA-II
     
@@ -223,7 +264,10 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
         Give the composition. If auto, equally parted
         
     detector: str
-        Give the detector name defined in DTSA-II       
+        Give the detector name defined in DTSA-II
+        
+    gateway: execnet Gateway
+        If 'auto', generate automatically the connection to jython. 
    
     """
     from hyperspy import signals
@@ -256,10 +300,10 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
             composition.append(1./len(dic['Sample']['elements']))         
         
 
-    import execnet
-    gw = execnet.makegateway(
-        "popen//python=C:\Users\pb565\Documents\Java\Jython2.7b\jython.bat")
-    channel = gw.remote_exec("""   
+    
+    if gateway == 'auto':
+        gateway = get_link_to_jython()
+    channel = gateway.remote_exec("""   
         import dtsa2
         import math
         epq = dtsa2.epq 
@@ -279,12 +323,8 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
         live_time = param[u'SEM'][u'EDS'][u'live_time']
 
         nTraj = """ + str(nTraj) + """
-        dose = """ + str(dose) + """
-        
-        IncrementF = 0.5
-        pixSize = (4*1.0e-9,200*1.0e-9,100*1.0e-9)
-        pixLat = (70, 5)
-        pixTot = pixLat[0]*pixLat[1]
+        dose = """ + str(dose) + """        
+
         tilt = math.radians(tiltD) # tilt angle radian
 
         det = dtsa2.findDetector('""" + detector + """')
@@ -370,9 +410,15 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
     spec.axes_manager[0].name = 'Energy'
     spec.axes_manager[0].unit = 'keV'
     spec.mapped_parameters.title = 'Simulated spectrum'
-    
-    
 
     return spec
+
+def get_link_to_jython():
+    """Return the execnet gateway to jython.
+    """
+    return execnet.makegateway(
+        "popen//python=C:\Users\pb565\Documents\Java\Jython2.7b\jython.bat")
+        
+    
     
     
