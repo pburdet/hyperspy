@@ -538,8 +538,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             If True, apply the top hat to all spectra
             
         plot_all_standard: boolean
-            If True, plot all standard spectra
-        
+            If True, plot all standard spectra        
         
         """
         if width_energy=='auto':
@@ -626,8 +625,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             
         See also
         -------        
-        get_kratio, deconvolove_intensity, quant
-        
+        get_kratio, deconvolove_intensity, quant        
         
         """
         
@@ -933,6 +931,10 @@ class EDSSEMSpectrum(EDSSpectrum):
         
         The number of electron in each place of the grid and the position
         of each grid.
+        
+        Notes
+        -----
+        Micron need to be used
        
         """              
         
@@ -1076,7 +1078,7 @@ class EDSSEMSpectrum(EDSSpectrum):
                 f = plt.figure()
                 leg=[]
             for i, distr in enumerate(stat[el]):                
-                length = int((limit_x[1]-limit_x[0])/(dx0*(dx_increment*i+1))+1)
+                length = int((limit_x[1]-limit_x[0])/(dx0*(dx_increment*i+1)))
                 distr = distr[int(pixLat[0]/2.-round(length/2.)):
                     int(pixLat[0]/2.+int(length/2.))] 
                 if sum(distr) != 0:
@@ -1091,7 +1093,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         
             if plot_result:
                 plt.legend(leg,loc=2)
-                plt.title('Electron depth distribution ' + elm)
+                plt.title(elm + ': Electron depth distribution')
                 plt.xlabel('x position [${\mu}m$]')
                 plt.ylabel('nb electrons')
                 
@@ -1108,3 +1110,46 @@ class EDSSEMSpectrum(EDSSpectrum):
         mp.elec_distr['nb_traj'] = nb_traj
                 
         return distres, xdatas
+        
+    def plot_electron_distribution(self):
+        """Retrieve and plot the electron distribution from 
+        simulate_electron_distribution
+        """
+        
+        mp = self.mapped_parameters
+        
+        if mp.has_item('elec_distr') is False:
+            print("Error: Simulate an electron distribution first " +
+            "with simulate_electron_distribution.")
+            return 0 
+        elements = mp['Sample']['elements']
+        limit_x = mp.elec_distr['limit_x'] 
+        dx0 = mp.elec_distr['dx0'] 
+        dx_increment  = mp.elec_distr['dx_increment']    
+        distres = mp.elec_distr['distr']
+        nb_traj = mp.elec_distr['nb_traj'] 
+        
+        pixSize = self.axes_manager[2].scale
+        
+
+        for el, elm in enumerate(elements): 
+            
+            f = plt.figure()
+            leg=[]
+            for i, distr in enumerate(distres [el]):                
+                length = int((limit_x[1]-limit_x[0])/(dx0*(dx_increment*i+1)))
+                xdata =[]
+                for x in range(length):
+                    xdata.append(limit_x[0]+x*dx0*(dx_increment*i+1))     
+                leg.append('z slice ' + str(pixSize*i)+ ' ${\mu}m$')
+                plt.plot(xdata,distr)    
+            
+            plt.legend(leg,loc=2)
+            plt.title(elm + ': Electron depth distribution (nb traj :' 
+                + str(nb_traj) +')')
+            plt.xlabel('x position [${\mu}m$]')
+            plt.ylabel('nb electrons / sum electrons in the layer')
+            
+
+    
+    
