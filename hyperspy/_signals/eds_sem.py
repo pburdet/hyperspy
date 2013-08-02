@@ -35,6 +35,7 @@ from hyperspy.decorators import only_interactive
 from hyperspy.io import load
 import hyperspy.components as components
 from hyperspy.misc.eds import utils as utils_eds
+from hyperspy import utils
 from hyperspy.misc.eds.elements import elements as elements_db
 from hyperspy.misc.config_dir import config_path, os_name, data_path
 
@@ -648,7 +649,7 @@ class EDSSEMSpectrum(EDSSpectrum):
               extension = extension, overwrite = True) 
     
     
-    def quant(self,plot_result=True,enh=False,enh_param=[0.001,0.01,49]):        
+    def quant(self,plot_result=True,enh=False,enh_param=[0, 0.001,0.01,49]):        
         """
         Quantify using stratagem, a commercial software. A licence is 
         needed.
@@ -666,7 +667,8 @@ class EDSSEMSpectrum(EDSSpectrum):
             
         enh_param: list of float
             Parameter needed for the enh quantifiacation: 
-            [limit_kratio_0,limit_comp_same,iter_max]
+            [method, limit_kratio_0,limit_comp_same,iter_max]
+            1. The method to use
             1. Limit to consider a k-ratio equivalent to null
             2. Limit to consider two compositions equivalent
             3. Number maximum of iteration of the thin-film quantification
@@ -688,9 +690,10 @@ class EDSSEMSpectrum(EDSSpectrum):
             foldername = os.path.join(config_path, 'strata_quant_enh//')
             if mp.has_item('enh_param') is False:
                 mp.add_node('enh_param')
-            mp.enh_param['limit_kratio_0'] = enh_param[0]
-            mp.enh_param['limit_comp_same'] = enh_param[1]
-            mp.enh_param['iter_max'] = enh_param[2]
+            mp.enh_param['method'] = enh_param[0]
+            mp.enh_param['limit_kratio_0'] = enh_param[1]
+            mp.enh_param['limit_comp_same'] = enh_param[2]
+            mp.enh_param['iter_max'] = enh_param[3]
             self._write_nbData_ehn_tsv(foldername + 'essai')
         else: 
             print("Error: Ehnanced quantification needs 3D data.")
@@ -698,9 +701,9 @@ class EDSSEMSpectrum(EDSSpectrum):
         self._write_donnee_tsv(foldername + 'essai')
         p = subprocess.Popen(foldername + 'Debug//essai.exe')
         p.wait()
-        self._read_result_tsv(foldername + 'essai',plot_result)
+        self._read_result_tsv(foldername + 'essai',plot_result,enh=enh)
         
-    def _read_result_tsv(self,foldername,plot_result):
+    def _read_result_tsv(self,foldername,plot_result,enh):
         encoding = 'latin-1'
         mp=self.mapped_parameters
         
@@ -715,7 +718,10 @@ class EDSSEMSpectrum(EDSSpectrum):
                 a[i].append(float(line.split()[3+i]))            
         f.close()
         i=0
-        mp.Sample.quant = list(np.zeros(len(mp.Sample.Xray_lines)))
+        if enh :
+            mp.Sample.quant_enh = list(np.zeros(len(mp.Sample.Xray_lines)))
+        else:
+            mp.Sample.quant = list(np.zeros(len(mp.Sample.Xray_lines)))
         for Xray_line in mp.Sample.Xray_lines:  
             if (self.axes_manager.navigation_dimension == 0):
                 data_quant=a[i][0]
@@ -726,7 +732,11 @@ class EDSSEMSpectrum(EDSSpectrum):
             elif (self.axes_manager.navigation_dimension == 3):                    
                 data_quant=np.array(a[i]).reshape((dim[2],dim[1],
                   dim[0])).T
-            self._set_result( Xray_line, 'quant',data_quant, plot_result)        
+            if enh : 
+                data_quant = data_quant[::,::-1]
+                self._set_result( Xray_line, 'quant_enh',data_quant, plot_result)
+            else:
+                self._set_result( Xray_line, 'quant',data_quant, plot_result)        
             i += 1
         
     def _write_donnee_tsv(self, foldername):
@@ -793,7 +803,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         f.write('HV\t%s\r\n'% mp.SEM.beam_energy)
         f.write('TOA\t%s\r\n'% utils_eds.TOA(self))
         f.write('azimuth\t%s\r\n'% mp.SEM.EDS.azimuth_angle)
-        f.write('tilt\t%s\r\n'% mp.SEM.tilt_stage)
+        f.write('tilt\t%s\r\n'% -mp.SEM.tilt_stage)
         f.write('\r\n')
         f.write('nbelement\t%s\r\n'% len(mp.Sample.Xray_lines))
         elements = 'Element'
@@ -820,19 +830,33 @@ class EDSSEMSpectrum(EDSSpectrum):
         f = codecs.open(foldername+'//nbData.tsv', 'w', 
           encoding = encoding,errors = 'ignore') 
         dim = np.copy(self.axes_manager.navigation_shape).tolist()
-        distr = self.mapped_parameters.elec_distr
+        distr_dic = self.mapped_parameters.elec_distr
         scale = []
         for ax in self.axes_manager.navigation_axes:
-            scale.append(ax.scale*1000)    
+            scale.append(ax.scale*1000)  
+             
+        elements = mp['Sample']['elements']
+        limit_x = distr_dic['limit_x'] 
+        dx0 = distr_dic['dx0'] 
+        dx_increment  = distr_dic['dx_increment']    
+        stat = distr_dic['distr']   
+        #pixSize = self.axes_manager[2].scale
+        pixLat = int((limit_x[1]-limit_x[0])/dx0+1) 
+                
+        distres = []
+        for el, elm in enumerate(elements): 
+            distres.append([]) 
+            for i, distr in enumerate(stat[el]):                
+                length = int((limit_x[1]-limit_x[0])/(dx0*(dx_increment*i+1)))
+                distr = distr[int(pixLat/2.-round(length/2.)):
+                    int(pixLat/2.+int(length/2.))] 
+                if sum(distr) != 0:
+                    distres[el].append([x/sum(distr) for x in distr])
             
-        f.write("v2_\t0\t2\t0.1\r\n")
+        f.write("v2_\t%s\t2\t0.1\r\n" % mp.enh_param['method'])
         f.write("nbpixel_xyz\t%s\t%s\t%s\r\n" % (dim[0],dim[1],dim[2]))
-        #f.write('nbpixel_y\t%s\r\n' % dim[1])
-        #f.write('nbpixel_z\t%s\r\n' % dim[2])
-        #f.write('pixelsize_z\t%s' % self.axes_manager[0].scale*1000)
         f.write('pixelsize_xyz\t%s\t%s\t%s\r\n' % (scale[0],scale[1],scale[2]))
-        #f.write('pixelsize_z\t100\r\n')
-        f.write('nblayermax\t%s\r\n' % max(distr.max_slice_z))
+        f.write('nblayermax\t%s\r\n' % max(distr_dic.max_slice_z))
         f.write('Limitkratio0\t%s\r\n' % mp.enh_param['limit_kratio_0']) 
         f.write('Limitcompsame\t%s\r\n' % mp.enh_param['limit_comp_same'])
         f.write('Itermax\t%s\r\n' % mp.enh_param['iter_max'])
@@ -844,12 +868,12 @@ class EDSSEMSpectrum(EDSSpectrum):
         f.write('tilt\t%s\r\n'% -mp.SEM.tilt_stage)
         f.write('\r\n')
         f.write('nbelement\t%s\r\n'% len(mp.Sample.Xray_lines))
-        elements = 'Element'
+        el_str = 'Element'
         z_el = 'Z'
         line_el = 'line'
         for Xray_line in mp.Sample.Xray_lines:
             el, line = utils_eds._get_element_and_line(Xray_line)  
-            elements = elements + '\t' + el
+            el_str = el_str + '\t' + el
             z_el = z_el + '\t' + str(elements_db[el]['Z'])
             if line == 'Ka':
                 line_el = line_el + '\t0'
@@ -857,25 +881,32 @@ class EDSSEMSpectrum(EDSSpectrum):
                 line_el = line_el + '\t1'
             if line == 'Ma':
                 line_el = line_el + '\t2'    
-        f.write('%s\r\n'% elements)
+        f.write('%s\r\n'% el_str)
         f.write('%s\r\n'% z_el)
         f.write('%s\r\n'% line_el)
         f.write('\r\n')
         f.write('DistrX_Min_Max_Dx_IncF\t%s\t%s\t%s\t%s\r\n' % 
-            (distr.limit_x[0]*1000,distr.limit_x[1]*1000,distr.dx0*1000,
-            distr.dx_increment))
+            (limit_x[0]*1000,limit_x[1]*1000,dx0*1000,dx_increment))
         f.write('DistrZ_Size_nbforelems')
-        for slice_z in distr.max_slice_z:
+        for slice_z in distr_dic.max_slice_z:
             f.write('\t%s' % slice_z)
         f.write('\r\n') 
         f.write('\r\n')        
-        for el in range(len(mp.Sample.Xray_lines)):
-            for z in range(distr.max_slice_z[el]):
-                for x in distr.distr[el][z]: 
+        for el in range(len(elements)):
+            for z in range(distr_dic.max_slice_z[el]):
+                for x in distres[el][z]: 
                     f.write("%s\t" % x)
                 f.write('\r\n')
             f.write('\r\n')
         f.close()
+        
+        elements = mp['Sample']['elements']
+        limit_x = distr_dic['limit_x'] 
+        dx0 = distr_dic['dx0'] 
+        dx_increment  = distr_dic['dx_increment']    
+        stat = distr_dic['distr']   
+        #pixSize = self.axes_manager[2].scale
+        pixLat = int((limit_x[1]-limit_x[0])/dx0+1) 
         
     #def check_total(self):
         #img_0 = self.get_result(Xray_lines[0],'kratios')
@@ -939,16 +970,12 @@ class EDSSEMSpectrum(EDSSpectrum):
         """              
         
         mp = self.mapped_parameters     
-        dic = mp.as_dictionary()
-        if hasattr(mp.Sample, 'Xray_lines'):
-            dic['Sample']['Xray_lines'] = list(dic['Sample']['Xray_lines'])            
-        if hasattr(mp.Sample, 'elements'):
-            dic['Sample']['elements'] = list(dic['Sample']['elements'])
-        else:
+        dic = self.deepcopy().mapped_parameters.as_dictionary()           
+        if hasattr(mp.Sample, 'elements') is False:
             print 'Elements needs to be defined'
             return 0
             
-        elements = dic['Sample']['elements']
+        elements = list(dic['Sample']['elements'])
         e0 = dic['SEM']['beam_energy']
         tilt = dic['SEM']['tilt_stage']
             
@@ -988,13 +1015,12 @@ class EDSSEMSpectrum(EDSSpectrum):
             epu = dtsa2.epu
             nm = dtsa2.nm
            
-            param = """ + str(dic) + """
-            elements = param[u'Sample'][u'elements']
+            elements = """ + str(elements) + """
             elms = []
             for element in elements:
                 elms.append(getattr(dtsa2.epq.Element,element))
-            e0 = param[u'SEM'][u'beam_energy']
-            tiltD = -1*param[u'SEM'][u'tilt_stage']
+            e0 = """ + str(e0) + """
+            tiltD = -""" + str(tilt) + """
             
             nTraj = """ + str(nb_traj) + """
             IncrementF = """ + str(dx_increment) + """
@@ -1106,10 +1132,12 @@ class EDSSEMSpectrum(EDSSpectrum):
         for el, elm in enumerate(elements): 
             max_slice_z.append(len(distres[el]))
         mp.elec_distr['max_slice_z'] = max_slice_z
-        mp.elec_distr['distr'] = distres
+        mp.elec_distr['distr'] = stat
         mp.elec_distr['nb_traj'] = nb_traj
                 
         return distres, xdatas
+        
+    
         
     def plot_electron_distribution(self):
         """Retrieve and plot the electron distribution from 
@@ -1126,18 +1154,20 @@ class EDSSEMSpectrum(EDSSpectrum):
         limit_x = mp.elec_distr['limit_x'] 
         dx0 = mp.elec_distr['dx0'] 
         dx_increment  = mp.elec_distr['dx_increment']    
-        distres = mp.elec_distr['distr']
+        stat = mp.elec_distr['distr']
         nb_traj = mp.elec_distr['nb_traj'] 
         
         pixSize = self.axes_manager[2].scale
-        
+        pixLat = int((limit_x[1]-limit_x[0])/dx0+1)
 
         for el, elm in enumerate(elements): 
             
             f = plt.figure()
             leg=[]
-            for i, distr in enumerate(distres [el]):                
+            for i, distr in enumerate(stat[el]):                
                 length = int((limit_x[1]-limit_x[0])/(dx0*(dx_increment*i+1)))
+                distr = distr[int(pixLat/2.-round(length/2.)):
+                    int(pixLat/2.+int(length/2.))]
                 xdata =[]
                 for x in range(length):
                     xdata.append(limit_x[0]+x*dx0*(dx_increment*i+1))     
@@ -1149,6 +1179,63 @@ class EDSSEMSpectrum(EDSSpectrum):
                 + str(nb_traj) +')')
             plt.xlabel('x position [${\mu}m$]')
             plt.ylabel('nb electrons / sum electrons in the layer')
+            
+    def save(self, filename=None, overwrite=None, extension=None,
+             **kwds):
+        """Saves the signal in the specified format.
+
+        The function gets the format from the extension.:
+            - hdf5 for HDF5
+            - rpl for Ripple (useful to export to Digital Micrograph)
+            - msa for EMSA/MSA single spectrum saving.
+            - Many image formats such as png, tiff, jpeg...
+
+        If no extension is provided the default file format as defined 
+        in the `preferences` is used.
+        Please note that not all the formats supports saving datasets of
+        arbitrary dimensions, e.g. msa only suports 1D data.
+        
+        Each format accepts a different set of parameters. For details 
+        see the specific format documentation.
+
+        Parameters
+        ----------
+        filename : str or None
+            If None (default) and tmp_parameters.filename and 
+            `tmp_paramters.folder` are defined, the
+            filename and path will be taken from there. A valid
+            extension can be provided e.g. "my_file.rpl", see `extension`.
+        overwrite : None, bool
+            If None, if the file exists it will query the user. If 
+            True(False) it (does not) overwrites the file if it exists.
+        extension : {None, 'hdf5', 'rpl', 'msa',common image extensions e.g. 'tiff', 'png'}
+            The extension of the file that defines the file format. 
+            If None, the extesion is taken from the first not None in the follwoing list:
+            i) the filename 
+            ii)  `tmp_parameters.extension`
+            iii) `preferences.General.default_file_format` in this order. 
+        """
+        mp = self.mapped_parameters
+        if hasattr(mp, 'Sample'):
+            if hasattr(mp.Sample, 'standard_spec'):
+                l_time = []
+                for el in range(len(mp.Sample.elements)):
+                    l_time.append(
+                        mp.Sample.standard_spec[el].mapped_parameters.SEM.EDS.live_time)
+                mp.Sample.standard_spec = utils.stack(mp.Sample.standard_spec)
+                mp.Sample.standard_spec.mapped_parameters.SEM.EDS.live_time = l_time 
+            if hasattr(mp.Sample, 'kratios'):
+                mp.Sample.kratios = utils.stack(mp.Sample.kratios)
+            if hasattr(mp.Sample, 'quant'):
+                mp.Sample.quant = utils.stack(mp.Sample.quant)
+            if hasattr(mp.Sample, 'quant_enh'):
+                mp.Sample.quant_enh = utils.stack(mp.Sample.quant_enh)
+            if hasattr(mp.Sample, 'intensities'):
+                mp.Sample.intensities = utils.stack(mp.Sample.intensities)
+
+                
+        
+        super(EDSSEMSpectrum, self).save(filename, overwrite, extension)
             
 
     

@@ -3,6 +3,7 @@ import numpy as np
 import execnet
 
 from hyperspy.misc.eds.elements import elements as elements_db
+
     
 def _get_element_and_line(Xray_line):
     lim = Xray_line.find('_')
@@ -418,6 +419,82 @@ def get_link_to_jython():
     """
     return execnet.makegateway(
         "popen//python=C:\Users\pb565\Documents\Java\Jython2.7b\jython.bat")
+        
+def load_EDSSEMSpectrum(filenames=None,
+         record_by=None,
+         signal_type=None,
+         signal_origin=None,
+         stack=False,
+         stack_axis=None,
+         new_axis_name="stack_element",
+         mmap=False,
+         mmap_dir=None,
+         **kwds):
+    """Load the EDSSEMSpectrum and the result.
+    
+    See also
+    --------
+    
+    load
+    """
+    from hyperspy.io import load
+    
+    s = load(filenames,record_by,signal_type,signal_origin,stack,
+         stack_axis,new_axis_name,mmap,mmap_dir,**kwds)
+         
+    mp = s.mapped_parameters
+    if hasattr(mp, 'Sample'):
+        if hasattr(mp.Sample, 'standard_spec'):
+            std = mp.Sample.standard_spec
+            temp = std.split(axis=0,number_of_parts=len(mp.Sample.elements))
+            l_time = std.mapped_parameters.SEM.EDS.live_time
+            std = []
+            for i, tp in enumerate(temp):
+                tp = tp.squeeze()
+                tp.mapped_parameters.title = mp.Sample.elements[i] + '_std'
+                tp.mapped_parameters.SEM.EDS.live_time = l_time[i]
+                std.append(tp)
+            mp.Sample.standard_spec = std
+            
+        if hasattr(mp.Sample, 'kratios'):
+            std = mp.Sample.kratios
+            temp = std.split(axis=1,number_of_parts=len(mp.Sample.Xray_lines))
+            std = []
+            for i, tp in enumerate(temp):
+                tp = tp.squeeze()
+                tp.mapped_parameters.title = 'kratios ' + mp.Sample.Xray_lines[i]
+                std.append(tp)
+            mp.Sample.kratios = std
+        if hasattr(mp.Sample, 'quant'):
+            std = mp.Sample.quant
+            temp = std.split(axis=1,number_of_parts=len(mp.Sample.Xray_lines))
+            std = []
+            for i, tp in enumerate(temp):
+                tp = tp.squeeze()
+                tp.mapped_parameters.title = 'quant ' + mp.Sample.Xray_lines[i]
+                std.append(tp)
+            mp.Sample.quant = std            
+        if hasattr(mp.Sample, 'quant_enh'):
+            std = mp.Sample.quant_enh
+            temp = std.split(axis=1,number_of_parts=len(mp.Sample.Xray_lines))
+            std = []
+            for i, tp in enumerate(temp):
+                tp = tp.squeeze()
+                tp.mapped_parameters.title = 'quant_enh ' + mp.Sample.Xray_lines[i]
+                std.append(tp)
+            mp.Sample.quant_enh = std
+        if hasattr(mp.Sample, 'intensities'):
+            std = mp.Sample.intensities
+            temp = std.split(axis=1,number_of_parts=len(mp.Sample.Xray_lines))
+            std = []
+            for i, tp in enumerate(temp):
+                tp = tp.squeeze()
+                tp.mapped_parameters.title = 'intensities ' + mp.Sample.Xray_lines[i]
+                std.append(tp)
+            mp.Sample.intensities = std
+
+            
+    return s
         
     
     
