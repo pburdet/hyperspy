@@ -931,35 +931,27 @@ class EDSSEMSpectrum(EDSSpectrum):
         Simulate a the electron distribution in each layer z using DTSA-II
         
         Parameters
-        ----------
-        
+        ----------        
         nb_traj: int
-            number of electron trajectories
-            
+            number of electron trajectories.            
         limit_x: list of float
             Parameters to define the grid system for the simulation :
-            Min and max in x [mum]
-            
+            Min and max in x [mum].            
         dx0: float
             Parameter to define the grid system for the simulation :
-            voxel size iny for the upper layer [mum]
-            
+            voxel size iny for the upper layer [mum].            
         dx_increment: list of float
             Parameter to define the grid system for the simulation :
-            Increment in y voxel at each subsequent layer.
-            
+            Increment in y voxel at each subsequent layer.            
         detector: str
-            Give the detector name defined in DTSA-II
-            
+            Give the detector name defined in DTSA-II.            
         gateway: execnet Gateway
-            If 'auto', generate automatically the connection to jython.
-            
+            If 'auto', generate automatically the connection to jython.            
         plot_result: bool
             If true (default option), plot the result.
             
         Return
-        ------
-        
+        ------        
         The number of electron in each place of the grid and the position
         of each grid.
         
@@ -1224,18 +1216,42 @@ class EDSSEMSpectrum(EDSSpectrum):
                         mp.Sample.standard_spec[el].mapped_parameters.SEM.EDS.live_time)
                 mp.Sample.standard_spec = utils.stack(mp.Sample.standard_spec)
                 mp.Sample.standard_spec.mapped_parameters.SEM.EDS.live_time = l_time 
-            if hasattr(mp.Sample, 'kratios'):
-                mp.Sample.kratios = utils.stack(mp.Sample.kratios)
-            if hasattr(mp.Sample, 'quant'):
-                mp.Sample.quant = utils.stack(mp.Sample.quant)
-            if hasattr(mp.Sample, 'quant_enh'):
-                mp.Sample.quant_enh = utils.stack(mp.Sample.quant_enh)
-            if hasattr(mp.Sample, 'intensities'):
-                mp.Sample.intensities = utils.stack(mp.Sample.intensities)
-
-                
+            for result in ['kratios','quant','quant_enh','intensities']:
+                if hasattr(mp.Sample, result):
+                    mp.Sample[result] = utils.stack(mp.Sample[result])
+              
         
         super(EDSSEMSpectrum, self).save(filename, overwrite, extension)
+        
+    def align_result(self,results='all',reference=['kratios',0],starting_slice=0):
+        """Align the results on the same alignement matrix.
+        
+        A reference stack with another signal can be used.
+          
+        Parameters
+        ----------                  
+        results: 'all' | List of string
+            The list of result to be align. If 'all', all result are aligned.          
+        reference: [result,elements] | image
+            The reference is used to gerenerate an alignement matrix.            
+        starting_slice: int
+            The starting slice for the alignment.
+            
+        See also
+        --------                
+        align_with_stackReg
+        
+        Notes
+        -----
+        Defined by P. Thevenaz, U. Ruttimann, and M. Unser,
+        IEEE Transaction on IMage Processing 7(1), pp 27-41 (1998)    
+        
+        The version of MulitStackReg has been modified. Translation and save 
+        save the alignement is used.
+                
+        """
+        
+        
             
 
     

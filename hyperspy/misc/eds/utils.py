@@ -1,8 +1,11 @@
 import math
 import numpy as np
 import execnet
+import os
 
 from hyperspy.misc.eds.elements import elements as elements_db
+from hyperspy.misc.config_dir import config_path
+from hyperspy.io import load
 
     
 def _get_element_and_line(Xray_line):
@@ -243,8 +246,7 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
         detector='Si(Li)',
         gateway='auto'):
     """"
-    Simulate a spectrum using DTSA-II
-    
+    Simulate a spectrum using DTSA-II (NIST-Monte)
     Parameters
     ----------
     
@@ -269,6 +271,12 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
         
     gateway: execnet Gateway
         If 'auto', generate automatically the connection to jython. 
+        
+    Note
+    ----
+    
+    For further details on DTSA-II please refer to 
+    http://www.cstl.nist.gov/div837/837.02/epq/dtsa2/index.html
    
     """
     from hyperspy import signals
@@ -443,58 +451,177 @@ def load_EDSSEMSpectrum(filenames=None,
          stack_axis,new_axis_name,mmap,mmap_dir,**kwds)
          
     mp = s.mapped_parameters
-    if hasattr(mp, 'Sample'):
-        if hasattr(mp.Sample, 'standard_spec'):
-            std = mp.Sample.standard_spec
-            temp = std.split(axis=0,number_of_parts=len(mp.Sample.elements))
-            l_time = std.mapped_parameters.SEM.EDS.live_time
-            std = []
-            for i, tp in enumerate(temp):
-                tp = tp.squeeze()
-                tp.mapped_parameters.title = mp.Sample.elements[i] + '_std'
-                tp.mapped_parameters.SEM.EDS.live_time = l_time[i]
-                std.append(tp)
-            mp.Sample.standard_spec = std
-            
-        if hasattr(mp.Sample, 'kratios'):
-            std = mp.Sample.kratios
-            temp = std.split(axis=1,number_of_parts=len(mp.Sample.Xray_lines))
-            std = []
-            for i, tp in enumerate(temp):
-                tp = tp.squeeze()
-                tp.mapped_parameters.title = 'kratios ' + mp.Sample.Xray_lines[i]
-                std.append(tp)
-            mp.Sample.kratios = std
-        if hasattr(mp.Sample, 'quant'):
-            std = mp.Sample.quant
-            temp = std.split(axis=1,number_of_parts=len(mp.Sample.Xray_lines))
-            std = []
-            for i, tp in enumerate(temp):
-                tp = tp.squeeze()
-                tp.mapped_parameters.title = 'quant ' + mp.Sample.Xray_lines[i]
-                std.append(tp)
-            mp.Sample.quant = std            
-        if hasattr(mp.Sample, 'quant_enh'):
-            std = mp.Sample.quant_enh
-            temp = std.split(axis=1,number_of_parts=len(mp.Sample.Xray_lines))
-            std = []
-            for i, tp in enumerate(temp):
-                tp = tp.squeeze()
-                tp.mapped_parameters.title = 'quant_enh ' + mp.Sample.Xray_lines[i]
-                std.append(tp)
-            mp.Sample.quant_enh = std
-        if hasattr(mp.Sample, 'intensities'):
-            std = mp.Sample.intensities
-            temp = std.split(axis=1,number_of_parts=len(mp.Sample.Xray_lines))
-            std = []
-            for i, tp in enumerate(temp):
-                tp = tp.squeeze()
-                tp.mapped_parameters.title = 'intensities ' + mp.Sample.Xray_lines[i]
-                std.append(tp)
-            mp.Sample.intensities = std
+    if hasattr(mp, 'Sample'):   
+        for result in ['standard_spec','kratios','quant','quant_enh','intensities']:
+            if hasattr(mp.Sample, result):
+                _set_result_signal_list(mp,result)
 
-            
     return s
+    
+def _set_result_signal_list(mp,result):
+    std = mp.Sample[result]
+    if result =='standard_spec':
+        temp = std.split(axis=0,number_of_parts=len(mp.Sample.elements))
+        l_time = std.mapped_parameters.SEM.EDS.live_time
+    else:
+        temp = std.split(axis=1,number_of_parts=len(mp.Sample.Xray_lines))
+    std = []
+    for i, tp in enumerate(temp):
+        tp = tp.squeeze()
+        if result == 'standard_spec':
+            tp.mapped_parameters.title = mp.Sample.elements[i] + '_std'
+            tp.mapped_parameters.SEM.EDS.live_time = l_time[i]
+        else:
+            tp.mapped_parameters.title = result + ' ' + mp.Sample.Xray_lines[i]
+        std.append(tp)
+    mp.Sample[result] = std
+
+
+def align_with_stackReg(img,
+    starting_slice=0,
+    return_align_img=True,
+    gateway='auto'):
+    """Align a stack of images with stackReg from Imagej.
+    
+    Generate a alignement file.
+    
+    Parameters
+    ----------    
+    img: signal.Image
+        The image to align.
+    starting_slice: int
+        The starting slice for the alignment.
+    return_align_img:
+        If True return the align stack of images.        
+    gateway: execnet Gateway
+        If 'auto', generate automatically the connection to jython. 
+    
+    Notes
+    -----
+    Defined by P. Thevenaz, U. Ruttimann, and M. Unser,
+    IEEE Transaction on IMage Processing 7(1), pp 27-41 (1998)    
+    
+    The version of MulitStackReg has been modified. Translation and save 
+    save the alignement is used.
+    
+    """
+    import time
+    path_align_file = os.path.join(config_path, "imageJ\\TransfoMatrix.txt")
+    path_img = os.path.join(config_path, "imageJ\\tmp.tiff")
+    path_img_alnd = os.path.join(config_path, "imageJ\\tmp_alnd.tiff")
+    
+    
+    if os.path.exists(path_img_alnd):
+        os.remove(path_img_alnd)
+
+    if os.path.exists(path_align_file):
+        os.remove(path_align_file)
+    
+    if img.data.dtype == 'float64':
+        imgtemp = img.deepcopy()
+        imgtemp.change_dtype('float32')
+        imgtemp.save(path_img,overwrite=True)
+    else:
+        img.save(path_img,overwrite=True)
+    
+    for i in range(100):
+        if os.path.exists(path_img):               
+            break
+        else:
+            time.sleep(0.5)
+
+    if gateway == 'auto':
+        gateway = get_link_to_jython()
+    channel = gateway.remote_exec(""" 
+        import ij.IJ as IJ
+        import ij.gui
+        path_img = """ + str([path_img]) + """
+        path_img_alnd =  """ + str([path_img_alnd]) + """
+        imp = IJ.openImage(path_img[0]) 
+
+        imp.show()
+        imp.setSlice("""+str(starting_slice)+"""+1)
+        IJ.runPlugIn(imp, "MultiStackReg_", "")
+
+        return_align_img="""+str(return_align_img)+"""
+        if return_align_img:
+            IJ.saveAs(imp,"Tiff",path_img_alnd[0])
+        imp.close()
+    
+    """)
+    
+    for i in range(100):
+        if os.path.exists(path_align_file):               
+            break
+        else:
+            time.sleep(0.5)
+        
+    if return_align_img:        
+        for i in range(100):
+            if os.path.exists(path_img_alnd):               
+                imgTemp = load(path_img_alnd)
+                break
+            else:
+                time.sleep(0.5)
+
+        #imgTemp = load(path_img_alnd)
+        data_align = imgTemp.data
+        imgTemp = img.deepcopy()
+        imgTemp.data = data_align
+        return imgTemp
+        
+def _read_alignement_file():
+    """ Read the Alignement file (TransformationMatrix.txt) generated by
+    align_with_stackReg (MultiStackReg in imageJ)
+    
+    Return
+    ------    
+    An array that can be use with align2D
+    """
+    
+    path_align_file = os.path.join(config_path, "imageJ\\TransfoMatrix.txt")
+    f = open(path_align_file, 'r')
+    for i in range(10):
+        line = f.readline()
+    middle = [float(line.split('\t')[0]),float(line.split('\t')[1][:-1])]
+    #readshift
+    f = open(path_align_file, 'r')
+    shiftI = list()
+    i=-1
+    for line in f:
+        if 'Source' in line:
+            if i == -1:
+                shiftI.append([int(line.split(' ')[-1]),middle])
+            shiftI.append([int(line.split(' ')[2])])
+            i=1
+        elif i == 1:
+            shiftI[-1].append([float(line.split('\t')[0]),float(line.split('\t')[1][:-1])])
+            i = 0
+    f.close()
+    starting_slice = shiftI[0][0]
+    shiftI.sort()
+    a = []
+    for i, shift in enumerate(shiftI):
+        a.append(shift[1])        
+    shiftI=(np.array(a)-middle)
+    shiftIcumu = []
+    for i, sh in enumerate(shiftI):
+        if i < starting_slice:
+            shiftIcumu.append(np.sum(shiftI[i:starting_slice],axis=0))
+        else:
+            shiftIcumu.append(np.sum(shiftI[starting_slice:i+1],axis=0))
+    shiftIcumu = np.array(shiftIcumu)
+    shiftIcumu=np.array([shiftIcumu[::,1],shiftIcumu[::,0]]).T
+    
+    return shiftIcumu
+    
+        
+
+    
+
+    
+    
+    
         
     
     
