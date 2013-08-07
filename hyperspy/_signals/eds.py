@@ -760,7 +760,7 @@ class EDSSpectrum(Spectrum):
         for res in mp.Sample[result]:
             if Xray_line in res.mapped_parameters.title:
                 return res
-        print("Didn't find it")
+        raise ValueError("Didn't find it")
         
         
     def _set_result(self, Xray_line, result, data_res, plot_result,

@@ -286,7 +286,7 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
         mp = spec.mapped_parameters
         dic = mp.as_dictionary()
         if elements == 'auto':
-            print 'Elements need to be set with gui option'
+            raise ValueError( 'Elements need to be set with gui option')
             return 0
         else:
             spec.set_elements(elements)  
@@ -479,11 +479,12 @@ def _set_result_signal_list(mp,result):
 
 def align_with_stackReg(img,
     starting_slice=0,
-    return_align_img=True,
+    align_img=False,
+    return_align_img=False,
     gateway='auto'):
     """Align a stack of images with stackReg from Imagej.
     
-    Generate a alignement file.
+    store the shifts in mapped_parameters.align.shifts
     
     Parameters
     ----------    
@@ -491,10 +492,16 @@ def align_with_stackReg(img,
         The image to align.
     starting_slice: int
         The starting slice for the alignment.
+    align_img:
+        If True, align stack of images (align2D).
     return_align_img:
-        If True return the align stack of images.        
+        If True, return the align stack as done by imageI.
     gateway: execnet Gateway
         If 'auto', generate automatically the connection to jython. 
+        
+    See also
+    --------    
+    align2D
     
     Notes
     -----
@@ -520,9 +527,9 @@ def align_with_stackReg(img,
     if img.data.dtype == 'float64':
         imgtemp = img.deepcopy()
         imgtemp.change_dtype('float32')
-        imgtemp.save(path_img,overwrite=True)
+        imgtemp.save(path_img,overwrite=True);
     else:
-        img.save(path_img,overwrite=True)
+        img.save(path_img,overwrite=True);
     
     for i in range(100):
         if os.path.exists(path_img):               
@@ -555,6 +562,20 @@ def align_with_stackReg(img,
             break
         else:
             time.sleep(0.5)
+            
+    shifts = _read_alignement_file()
+    mp = img.mapped_parameters
+    if mp.has_item('align') is False:
+            mp.add_node('align')
+    mp.align.crop = False
+    mp.align.method = 'StackReg'
+    mp.align.shifts = shifts
+            
+    if align_img:
+        img.align2D(shifts=shifts)
+        mp.align.is_aligned = True
+    else:        
+        mp.align.is_aligned = False
         
     if return_align_img:        
         for i in range(100):
@@ -564,7 +585,6 @@ def align_with_stackReg(img,
             else:
                 time.sleep(0.5)
 
-        #imgTemp = load(path_img_alnd)
         data_align = imgTemp.data
         imgTemp = img.deepcopy()
         imgTemp.data = data_align

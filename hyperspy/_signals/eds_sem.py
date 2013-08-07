@@ -684,7 +684,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             self._write_nbData_tsv(foldername + 'essai')
         elif enh is True and self.axes_manager.navigation_dimension == 3:
             if mp.has_item('elec_distr') is False:
-                print("Error: Simulate an electron distribution first " +
+                raise ValueError(" Simulate an electron distribution first " +
                 "with simulate_electron_distribution.")
                 return 0 
             foldername = os.path.join(config_path, 'strata_quant_enh//')
@@ -696,7 +696,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             mp.enh_param['iter_max'] = enh_param[3]
             self._write_nbData_ehn_tsv(foldername + 'essai')
         else: 
-            print("Error: Ehnanced quantification needs 3D data.")
+            raise ValueError("Ehnanced quantification needs 3D data.")
             return 0 
         self._write_donnee_tsv(foldername + 'essai')
         p = subprocess.Popen(foldername + 'Debug//essai.exe')
@@ -964,7 +964,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         mp = self.mapped_parameters     
         dic = self.deepcopy().mapped_parameters.as_dictionary()           
         if hasattr(mp.Sample, 'elements') is False:
-            print 'Elements needs to be defined'
+            raise ValueError( 'Elements needs to be defined')
             return 0
             
         elements = list(dic['Sample']['elements'])
@@ -1139,7 +1139,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         mp = self.mapped_parameters
         
         if mp.has_item('elec_distr') is False:
-            print("Error: Simulate an electron distribution first " +
+            raise ValueError(" Simulate an electron distribution first " +
             "with simulate_electron_distribution.")
             return 0 
         elements = mp['Sample']['elements']
@@ -1223,7 +1223,13 @@ class EDSSEMSpectrum(EDSSpectrum):
         
         super(EDSSEMSpectrum, self).save(filename, overwrite, extension)
         
-    def align_result(self,results='all',reference=['kratios',0],starting_slice=0):
+    def align_results(self,
+        results='all',
+        reference=['kratios',0],
+        starting_slice=0,
+        align_ref=False,
+        crop=True,
+        shifts='StackReg'):
         """Align the results on the same alignement matrix.
         
         A reference stack with another signal can be used.
@@ -1236,6 +1242,15 @@ class EDSSEMSpectrum(EDSSpectrum):
             The reference is used to gerenerate an alignement matrix.            
         starting_slice: int
             The starting slice for the alignment.
+        align_ref: bool
+            If true the external reference is aligned.
+        crop : bool
+            If True, the data will be cropped not to include regions
+            with missing data
+        shifts : 'StackReg' | 'mp' | array 
+            1. If StackReg, use align_with_stackReg
+            2. If mp, look in the mapped_parameters of  reference 
+            3. or give an array
             
         See also
         --------                
@@ -1250,8 +1265,102 @@ class EDSSEMSpectrum(EDSSpectrum):
         save the alignement is used.
                 
         """
+        from hyperspy import signals
+        mp = self.mapped_parameters
+        if isinstance(reference, signals.Image) is False:
+            ref_is_result = True
+            if isinstance(reference[1], basestring) is False:
+                reference[1]=mp.Sample.Xray_lines[reference[1]]                
+            reference = self.get_result(reference[1], reference[0])
+        else:
+            ref_is_result = False
+            
+
+                
+        mp_ref = reference.mapped_parameters       
+        if shifts == 'StackReg':
+            utils_eds.align_with_stackReg(reference,
+                starting_slice=starting_slice,align_img=False,
+                return_align_img=False)
+            shifts = mp_ref.align.shifts
+        elif shifts == 'mp':
+            shifts = mp_ref.align.shifts 
         
+            
+        if results == 'all':
+            results = ['kratios','quant','quant_enh','intensities']  
         
+        res_shape = mp.Sample[results[0]][0].axes_manager.shape
+        ref_shape = reference.axes_manager.shape
+        scale = [1,1]  
+        if res_shape != ref_shape and ref_is_result is False:
+            if (res_shape[0]==res_shape[0] and
+                ref_shape[1]%res_shape[1]==0 and 
+                ref_shape[2]%res_shape[2]==0):
+                scale = [ref_shape[1]/res_shape[1],ref_shape[2]/res_shape[2]]
+                shifts = shifts * scale
+            else:
+                raise ValueError(
+                "The reference dimensions are not compatible with those" 
+                "of the result.")     
+                print ref_shape      
+
+        if crop is True:            
+            shifts = -shifts
+            bottom, top = (int(np.floor(shifts[:,0].min())) if 
+                                    shifts[:,0].min() < 0 else None,
+                           int(np.ceil(shifts[:,0].max())) if 
+                                    shifts[:,0].max() > 0 else 0)
+            right, left = (int(np.floor(shifts[:,1].min())) if 
+                                    shifts[:,1].min() < 0 else None,
+                           int(np.ceil(shifts[:,1].max())) if 
+                                    shifts[:,1].max() > 0 else 0)
+            shifts = -shifts
+            if bottom is not None:
+                bottom_ref = bottom*int(scale[0])
+            else:
+                bottom_ref = bottom
+            if top is not None:
+                top_ref = top*int(scale[0])
+            else:
+                top_ref = top
+            if right is not None:
+                right_ref = right*int(scale[1])
+            else:
+                right_ref = right
+            if left is not None:
+                left_ref = left*int(scale[1])
+            else:
+                left_ref = left
+
+                    
+        if align_ref and ref_is_result is False:
+            if mp_ref.has_item('align') is False:
+                mp_ref.add_node('align')
+                reference.align2D(shifts=shifts/scale,crop=False)                             
+            elif mp_ref.align.is_aligned is False:            
+                reference.align2D(shifts=shifts/scale,crop=False)
+            mp_ref.align.is_aligned = True
+            if crop and mp_ref.align.crop is False:
+                reference.crop_image(top_ref, bottom_ref, left_ref, right_ref)
+                mp_ref.align.crop = True
+
+            
+        for result in results:
+            if hasattr(mp.Sample, result):
+                result_images = mp.Sample[result]
+                for res in result_images:
+                    res.align2D(shifts=shifts,crop=False)
+                    mp_temp = res.mapped_parameters
+                    if mp_temp.has_item('align') is False:
+                        mp_temp.add_node('align')
+                    mp_temp.align.crop = crop
+                    mp_temp.align.is_aligned = True
+                    mp_temp.align.shifts = shifts
+                    mp_temp.align.method = 'ref : ' + mp_ref.title
+                    if crop is True:
+                       res.crop_image(top, bottom, left, right) 
+
             
 
     
