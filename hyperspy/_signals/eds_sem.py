@@ -25,6 +25,7 @@ import subprocess
 import matplotlib.pyplot as plt
 #import matplotlib.mlab as mlab
 import execnet
+import copy
 
 
 from hyperspy._signals.eds import EDSSpectrum
@@ -680,6 +681,10 @@ class EDSSEMSpectrum(EDSSpectrum):
         """
         mp = self.mapped_parameters
         if enh is False:
+            if len(mp.Sample.Xray_lines) != len(mp.Sample.elements):
+                raise ValueError("Only one X-ray lines should be " + 
+                    "attributed per element.")
+                return 0
             foldername = os.path.join(config_path, 'strata_quant//')
             self._write_nbData_tsv(foldername + 'essai')
         elif enh is True and self.axes_manager.navigation_dimension == 3:
@@ -709,13 +714,14 @@ class EDSSEMSpectrum(EDSSpectrum):
         
         f = codecs.open(foldername+'//result.tsv', encoding = encoding,
           errors = 'replace') 
-        dim = list(self.data.shape)
-        a = []
+        #dim = list(self.data.shape)
+        dim = list(self.axes_manager.navigation_shape)[::-1]
+        raw_data = []
         for Xray_line in mp.Sample.Xray_lines:
-            a.append([])        
+            raw_data.append([])        
         for line in f.readlines():
             for i in range(len(mp.Sample.Xray_lines)):
-                a[i].append(float(line.split()[3+i]))            
+                raw_data[i].append(float(line.split()[3+i]))            
         f.close()
         i=0
         if enh :
@@ -724,13 +730,13 @@ class EDSSEMSpectrum(EDSSpectrum):
             mp.Sample.quant = list(np.zeros(len(mp.Sample.Xray_lines)))
         for Xray_line in mp.Sample.Xray_lines:  
             if (self.axes_manager.navigation_dimension == 0):
-                data_quant=a[i][0]
+                data_quant=raw_data[i][0]
             elif (self.axes_manager.navigation_dimension == 1):
-                data_quant=np.array(a[i]).reshape((dim[0]))
+                data_quant=np.array(raw_data[i]).reshape((dim[0]))
             elif (self.axes_manager.navigation_dimension == 2):
-                data_quant=np.array(a[i]).reshape((dim[1],dim[0])).T        
+                data_quant=np.array(raw_data[i]).reshape((dim[1],dim[0])).T        
             elif (self.axes_manager.navigation_dimension == 3):                    
-                data_quant=np.array(a[i]).reshape((dim[2],dim[1],
+                data_quant=np.array(raw_data[i]).reshape((dim[2],dim[1],
                   dim[0])).T
             if enh : 
                 data_quant = data_quant[::,::-1]
@@ -987,11 +993,13 @@ class EDSSEMSpectrum(EDSSpectrum):
             #AlZn nTraj = 20000
             dx_increment = 0.75
             #pixLat = nbx nbz
+            limit_x=[-250,300]
             pixSize = [4*1.0e-9,200*1.0e-9,40*1.0e-9] #y,x,z
             pixLat = [138, 7] #(max -min)/y +1 (ou 0.5), maxeldepth #nb de pixel
             dev =  50*1.0e-9 #min+max, deviation du centre
         if 1 == 0:
             #TiFeNi
+            limit_x=[-350,450]
             dx_increment = 0.5
             pixSize = (8*1.0e-9,200*1.0e-9,100*1.0e-9)
             pixLat =(100, 5)
@@ -1207,21 +1215,34 @@ class EDSSEMSpectrum(EDSSpectrum):
             ii)  `tmp_parameters.extension`
             iii) `preferences.General.default_file_format` in this order. 
         """
+        
         mp = self.mapped_parameters
         if hasattr(mp, 'Sample'):
             if hasattr(mp.Sample, 'standard_spec'):
                 l_time = []
-                for el in range(len(mp.Sample.elements)):
+                #for el in range(len(mp.Sample.elements)):
+                for el in range(len(mp.Sample.Xray_lines)):
                     l_time.append(
                         mp.Sample.standard_spec[el].mapped_parameters.SEM.EDS.live_time)
+                std = copy.deepcopy(mp.Sample.standard_spec)
                 mp.Sample.standard_spec = utils.stack(mp.Sample.standard_spec)
                 mp.Sample.standard_spec.mapped_parameters.SEM.EDS.live_time = l_time 
+            result_store = []
             for result in ['kratios','quant','quant_enh','intensities']:
                 if hasattr(mp.Sample, result):
-                    mp.Sample[result] = utils.stack(mp.Sample[result])
-              
+                    result_store.append(copy.deepcopy(mp.Sample[result]))
+                    mp.Sample[result] = utils.stack(mp.Sample[result])         
         
         super(EDSSEMSpectrum, self).save(filename, overwrite, extension)
+        
+        if hasattr(mp, 'Sample'):
+            if hasattr(mp.Sample, 'standard_spec'):
+                mp.Sample.standard_spec = std
+            i = 0
+            for result in ['kratios','quant','quant_enh','intensities']:
+                if hasattr(mp.Sample, result):
+                    mp.Sample[result] = result_store[i] 
+                    i = i+1 
         
     def align_results(self,
         results='all',
@@ -1274,8 +1295,6 @@ class EDSSEMSpectrum(EDSSpectrum):
             reference = self.get_result(reference[1], reference[0])
         else:
             ref_is_result = False
-            
-
                 
         mp_ref = reference.mapped_parameters       
         if shifts == 'StackReg':
@@ -1333,17 +1352,23 @@ class EDSSEMSpectrum(EDSSpectrum):
             else:
                 left_ref = left
 
-                    
         if align_ref and ref_is_result is False:
             if mp_ref.has_item('align') is False:
                 mp_ref.add_node('align')
                 reference.align2D(shifts=shifts/scale,crop=False)                             
             elif mp_ref.align.is_aligned is False:            
-                reference.align2D(shifts=shifts/scale,crop=False)
+                reference.align2D(shifts=shiftscale,crop=False)
             mp_ref.align.is_aligned = True
-            if crop and mp_ref.align.crop is False:
-                reference.crop_image(top_ref, bottom_ref, left_ref, right_ref)
-                mp_ref.align.crop = True
+            if crop :
+                if mp_ref.align.has_item('crop'):
+                    if mp_ref.align.crop is False:
+                        reference.crop_image(top_ref, bottom_ref, 
+                            left_ref, right_ref)
+                        mp_ref.align.crop = True
+                else:
+                    reference.crop_image(top_ref, bottom_ref,   
+                        left_ref, right_ref)
+                    mp_ref.align.crop = True
 
             
         for result in results:

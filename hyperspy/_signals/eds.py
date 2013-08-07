@@ -778,19 +778,17 @@ class EDSSpectrum(Spectrum):
                 
         for j in range(len(Xray_lines)):
             if Xray_line == Xray_lines[j]:
-                break         
-    
-        if (self.axes_manager.navigation_dimension >= 2):
-            axes_res = self.as_image([0,1])[1].axes_manager  
-        else:              
-            axes_res = self[...,0].axes_manager
+                break  
         
-                
+        axes_res = self.axes_manager.deepcopy()
+        axes_res.remove(3)
+        
         if self.axes_manager.navigation_dimension <= 1:
             res_img = Signal(np.array(data_res))
         else:
-            res_img = Image(data_res)
+            res_img = Signal(data_res)
             res_img.axes_manager = axes_res
+            res_img = res_img.as_image([0,1])
         res_img.mapped_parameters.title = result + ' ' + Xray_line
         if plot_result:                
             if self.axes_manager.navigation_dimension == 0:
