@@ -650,7 +650,8 @@ class EDSSEMSpectrum(EDSSpectrum):
               extension = extension, overwrite = True) 
     
     
-    def quant(self,plot_result=True,enh=False,enh_param=[0, 0.001,0.01,49]):        
+    def quant(self,plot_result=True,enh=False,enh_param=[0, 0.001,0.01,49],
+        compiler=0):        
         """
         Quantify using stratagem, a commercial software. A licence is 
         needed.
@@ -673,6 +674,11 @@ class EDSSEMSpectrum(EDSSpectrum):
             1. Limit to consider a k-ratio equivalent to null
             2. Limit to consider two compositions equivalent
             3. Number maximum of iteration of the thin-film quantification
+            
+        compiler: (0|1|2)
+            use different the same script in another folder 
+            ('.hyperspy/stratquant1' or '.hyperspy/stratquant') for processing
+            in parallel.        
         
         See also
         --------
@@ -685,7 +691,12 @@ class EDSSEMSpectrum(EDSSpectrum):
                 raise ValueError("Only one X-ray lines should be " + 
                     "attributed per element.")
                 return 0
-            foldername = os.path.join(config_path, 'strata_quant//')
+            if compiler == 0:
+                foldername = os.path.join(config_path, 'strata_quant//')
+            else :
+                foldername = os.path.join(config_path, 
+                    'strata_quant'+str(compiler)+'//')
+
             self._write_nbData_tsv(foldername + 'essai')
         elif enh is True and self.axes_manager.navigation_dimension == 3:
             if mp.has_item('elec_distr') is False:
@@ -1317,7 +1328,8 @@ class EDSSEMSpectrum(EDSSpectrum):
                 ref_shape[1]%res_shape[1]==0 and 
                 ref_shape[2]%res_shape[2]==0):
                 scale = [ref_shape[1]/res_shape[1],ref_shape[2]/res_shape[2]]
-                shifts = shifts * scale
+                #shifts = shifts * scale
+                shifts = shifts / scale
             else:
                 raise ValueError(
                 "The reference dimensions are not compatible with those" 
@@ -1355,9 +1367,9 @@ class EDSSEMSpectrum(EDSSpectrum):
         if align_ref and ref_is_result is False:
             if mp_ref.has_item('align') is False:
                 mp_ref.add_node('align')
-                reference.align2D(shifts=shifts/scale,crop=False)                             
+                reference.align2D(shifts=shifts*scale,crop=False)                             
             elif mp_ref.align.is_aligned is False:            
-                reference.align2D(shifts=shiftscale,crop=False)
+                reference.align2D(shifts=shift*scale,crop=False)
             mp_ref.align.is_aligned = True
             if crop :
                 if mp_ref.align.has_item('crop'):
