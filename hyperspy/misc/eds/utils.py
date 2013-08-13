@@ -469,9 +469,9 @@ def _set_result_signal_list(mp,result):
     if result =='standard_spec':
         #Need to change
         #number_of_parts=len(mp.Sample.elements)
-        number_of_parts=len(mp.Sample.Xray_lines)
-        temp = std.split(axis=0,number_of_parts=number_of_parts)
         l_time = std.mapped_parameters.SEM.EDS.live_time
+        number_of_parts=len(mp.Sample.Xray_lines)
+        temp = std.split(axis=0,number_of_parts=number_of_parts)        
     else:
         temp = std.split(axis=1,number_of_parts=number_of_parts)
     std = []

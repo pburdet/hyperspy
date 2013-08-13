@@ -702,8 +702,12 @@ class EDSSEMSpectrum(EDSSpectrum):
             if mp.has_item('elec_distr') is False:
                 raise ValueError(" Simulate an electron distribution first " +
                 "with simulate_electron_distribution.")
-                return 0 
-            foldername = os.path.join(config_path, 'strata_quant_enh//')
+                return 0
+            if compiler == 0:
+                foldername = os.path.join(config_path, 'strata_quant_enh//')
+            else :
+                foldername = os.path.join(config_path, 
+                    'strata_quant_enh'+str(compiler)+'//')
             if mp.has_item('enh_param') is False:
                 mp.add_node('enh_param')
             mp.enh_param['method'] = enh_param[0]
@@ -726,7 +730,10 @@ class EDSSEMSpectrum(EDSSpectrum):
         f = codecs.open(foldername+'//result.tsv', encoding = encoding,
           errors = 'replace') 
         #dim = list(self.data.shape)
-        dim = list(self.axes_manager.navigation_shape)[::-1]
+        Xray_lines = mp.Sample.Xray_lines
+        #dim = list(self.axes_manager.navigation_shape)[::-1]
+        dim = np.copy(self.get_result(Xray_lines[0],
+            'kratios').data.shape).tolist()
         raw_data = []
         for Xray_line in mp.Sample.Xray_lines:
             raw_data.append([])        
@@ -762,8 +769,12 @@ class EDSSEMSpectrum(EDSSpectrum):
         Xray_lines = mp.Sample.Xray_lines
         f = codecs.open(foldername+'//donnee.tsv', 'w', 
           encoding = encoding,errors = 'ignore') 
-        dim = np.copy(self.axes_manager.navigation_shape).tolist()
-        dim.reverse()
+        dim = np.copy(self.get_result(Xray_lines[0],
+            'kratios').data.shape).tolist()
+        #dim = np.copy(self.axes_manager.navigation_shape).tolist()
+        #dim = np.copy(self.get_result(Xray_lines[0],
+        #    'kratios').axes_manager.navigation_shape).tolist()
+        #dim.reverse()
         if self.axes_manager.navigation_dimension == 0:
             f.write("1_1\r\n")
             for i in range(len(mp.Sample.Xray_lines)):
@@ -801,12 +812,18 @@ class EDSSEMSpectrum(EDSSpectrum):
         mp=self.mapped_parameters
         f = codecs.open(foldername+'//nbData.tsv', 'w', 
           encoding = encoding,errors = 'ignore') 
-        dim = np.copy(self.axes_manager.navigation_shape).tolist()
+          
+        Xray_lines = mp.Sample.Xray_lines
+        dim = np.copy(self.get_result(Xray_lines[0],
+            'kratios').data.shape).tolist()        
+        dim.reverse()
+        #dim = np.copy(self.axes_manager.navigation_shape).tolist()
         #dim.reverse()
         dim.append(1)
         dim.append(1)
-        if dim[0] == 0:
-            dim[0] =1
+        dim.append(1)
+        #if dim[0] == 0:
+        #    dim[0] =1
         f.write("nbpixel_x\t%s\r\n" % dim[0])
         f.write('nbpixel_y\t%s\r\n' % dim[1])
         f.write('nbpixel_z\t%s\r\n' % dim[2])
@@ -822,11 +839,11 @@ class EDSSEMSpectrum(EDSSpectrum):
         f.write('azimuth\t%s\r\n'% mp.SEM.EDS.azimuth_angle)
         f.write('tilt\t%s\r\n'% -mp.SEM.tilt_stage)
         f.write('\r\n')
-        f.write('nbelement\t%s\r\n'% len(mp.Sample.Xray_lines))
+        f.write('nbelement\t%s\r\n'% len(Xray_lines))
         elements = 'Element'
         z_el = 'Z'
         line_el = 'line'
-        for Xray_line in mp.Sample.Xray_lines:
+        for Xray_line in Xray_lines:
             el, line = utils_eds._get_element_and_line(Xray_line)  
             elements = elements + '\t' + el
             z_el = z_el + '\t' + str(elements_db[el]['Z'])
@@ -846,7 +863,11 @@ class EDSSEMSpectrum(EDSSpectrum):
         mp=self.mapped_parameters
         f = codecs.open(foldername+'//nbData.tsv', 'w', 
           encoding = encoding,errors = 'ignore') 
-        dim = np.copy(self.axes_manager.navigation_shape).tolist()
+        Xray_lines = mp.Sample.Xray_lines
+        dim = np.copy(self.get_result(Xray_lines[0],
+            'kratios').data.shape).tolist()        
+        dim.reverse()
+        #dim = np.copy(self.axes_manager.navigation_shape).tolist()
         distr_dic = self.mapped_parameters.elec_distr
         scale = []
         for ax in self.axes_manager.navigation_axes:
@@ -884,11 +905,11 @@ class EDSSEMSpectrum(EDSSpectrum):
         #Be carefull with that + or -
         f.write('tilt\t%s\r\n'% -mp.SEM.tilt_stage)
         f.write('\r\n')
-        f.write('nbelement\t%s\r\n'% len(mp.Sample.Xray_lines))
+        f.write('nbelement\t%s\r\n'% len(Xray_lines))
         el_str = 'Element'
         z_el = 'Z'
         line_el = 'line'
-        for Xray_line in mp.Sample.Xray_lines:
+        for Xray_line in Xray_lines:
             el, line = utils_eds._get_element_and_line(Xray_line)  
             el_str = el_str + '\t' + el
             z_el = z_el + '\t' + str(elements_db[el]['Z'])
@@ -1237,12 +1258,14 @@ class EDSSEMSpectrum(EDSSpectrum):
                         mp.Sample.standard_spec[el].mapped_parameters.SEM.EDS.live_time)
                 std = copy.deepcopy(mp.Sample.standard_spec)
                 mp.Sample.standard_spec = utils.stack(mp.Sample.standard_spec)
+                del mp.Sample.standard_spec.original_parameters.stack_elements
                 mp.Sample.standard_spec.mapped_parameters.SEM.EDS.live_time = l_time 
             result_store = []
             for result in ['kratios','quant','quant_enh','intensities']:
                 if hasattr(mp.Sample, result):
                     result_store.append(copy.deepcopy(mp.Sample[result]))
-                    mp.Sample[result] = utils.stack(mp.Sample[result])         
+                    mp.Sample[result] = utils.stack(mp.Sample[result]) 
+                    del mp.Sample[result].original_parameters.stack_elements        
         
         super(EDSSEMSpectrum, self).save(filename, overwrite, extension)
         
