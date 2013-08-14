@@ -731,22 +731,24 @@ class EDSSEMSpectrum(EDSSpectrum):
           errors = 'replace') 
         #dim = list(self.data.shape)
         Xray_lines = mp.Sample.Xray_lines
+        elements = mp.Sample.elements
+        nbElem = len(elements)
         #dim = list(self.axes_manager.navigation_shape)[::-1]
         dim = np.copy(self.get_result(Xray_lines[0],
             'kratios').data.shape).tolist()
         raw_data = []
-        for Xray_line in mp.Sample.Xray_lines:
+        for el in elements:
             raw_data.append([])        
         for line in f.readlines():
-            for i in range(len(mp.Sample.Xray_lines)):
+            for i in range(nbElem):
                 raw_data[i].append(float(line.split()[3+i]))            
         f.close()
         i=0
         if enh :
-            mp.Sample.quant_enh = list(np.zeros(len(mp.Sample.Xray_lines)))
+            mp.Sample.quant_enh = list(np.zeros(nbElem))
         else:
-            mp.Sample.quant = list(np.zeros(len(mp.Sample.Xray_lines)))
-        for Xray_line in mp.Sample.Xray_lines:  
+            mp.Sample.quant = list(np.zeros(nbElem))
+        for el in elements:  
             if (self.axes_manager.navigation_dimension == 0):
                 data_quant=raw_data[i][0]
             elif (self.axes_manager.navigation_dimension == 1):
@@ -758,9 +760,9 @@ class EDSSEMSpectrum(EDSSpectrum):
                   dim[0])).T
             if enh : 
                 data_quant = data_quant[::,::-1]
-                self._set_result( Xray_line, 'quant_enh',data_quant, plot_result)
+                self._set_result( el, 'quant_enh',data_quant, plot_result)
             else:
-                self._set_result( Xray_line, 'quant',data_quant, plot_result)        
+                self._set_result( el, 'quant',data_quant, plot_result)        
             i += 1
         
     def _write_donnee_tsv(self, foldername):
@@ -768,7 +770,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         mp=self.mapped_parameters
         Xray_lines = mp.Sample.Xray_lines
         f = codecs.open(foldername+'//donnee.tsv', 'w', 
-          encoding = encoding,errors = 'ignore') 
+          encoding = encoding,errors = 'ignore')
         dim = np.copy(self.get_result(Xray_lines[0],
             'kratios').data.shape).tolist()
         #dim = np.copy(self.axes_manager.navigation_shape).tolist()
@@ -777,7 +779,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         #dim.reverse()
         if self.axes_manager.navigation_dimension == 0:
             f.write("1_1\r\n")
-            for i in range(len(mp.Sample.Xray_lines)):
+            for i in range(len(Xray_lines)):
                 f.write("%s\t" % mp.Sample.kratios[i].data)
         elif self.axes_manager.navigation_dimension == 1:
             for x in range(dim[0]):
@@ -905,20 +907,34 @@ class EDSSEMSpectrum(EDSSpectrum):
         #Be carefull with that + or -
         f.write('tilt\t%s\r\n'% -mp.SEM.tilt_stage)
         f.write('\r\n')
-        f.write('nbelement\t%s\r\n'% len(Xray_lines))
+        f.write('nbelement\t%s\t%s\r\n'% (len(elements),len(Xray_lines)))
         el_str = 'Element'
         z_el = 'Z'
         line_el = 'line'
-        for Xray_line in Xray_lines:
-            el, line = utils_eds._get_element_and_line(Xray_line)  
-            el_str = el_str + '\t' + el
-            z_el = z_el + '\t' + str(elements_db[el]['Z'])
-            if line == 'Ka':
-                line_el = line_el + '\t0'
-            if line== 'La':
-                line_el = line_el + '\t1'
-            if line == 'Ma':
-                line_el = line_el + '\t2'    
+        for elm in elements:            
+            el_str = el_str + '\t' + elm
+            z_el = z_el + '\t' + str(elements_db[elm]['Z'])
+            i=0
+            line_el = line_el +'\t'
+            for Xray_line in Xray_lines:        
+                if elm + '_' in Xray_line:
+                    tmp, line = utils_eds._get_element_and_line(Xray_line) 
+                    if i == 1:
+                        line_el = line_el + '_'
+                    if line == 'Ka':
+                        line_el = line_el + '0'
+                    if line== 'La':
+                        line_el = line_el + '1'
+                    if line == 'Ma':
+                        line_el = line_el + '2'
+                    i=1
+            #el, line = utils_eds._get_element_and_line(Xray_line)  
+            #if line == 'Ka':
+                #line_el = line_el + '\t0'
+            #if line== 'La':
+                #line_el = line_el + '\t1'
+            #if line == 'Ma':
+                #line_el = line_el + '\t2'    
         f.write('%s\r\n'% el_str)
         f.write('%s\r\n'% z_el)
         f.write('%s\r\n'% line_el)

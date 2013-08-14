@@ -242,31 +242,31 @@ class Test_quantification:
         s1 = s.deepcopy()[0,0,0]
         s1.get_kratio(plot_result=False)
         s1.quant(plot_result=False)
-        res = np.array([s1.get_result('Al_Ka','quant').data,
-            s1.get_result('Zn_La','quant').data])        
+        res = np.array([s1.get_result('Al','quant').data,
+            s1.get_result('Zn','quant').data])        
         assert_true(np.allclose(res,
             np.array([ 0.610979,  0.246892])))
             
         s1 = s.deepcopy()[0,0]
         s1.get_kratio(plot_result=False)
         s1.quant(plot_result=False)
-        res = np.array([s1.get_result('Al_Ka','quant').data[0],
-            s1.get_result('Zn_La','quant').data[0]])        
+        res = np.array([s1.get_result('Al','quant').data[0],
+            s1.get_result('Zn','quant').data[0]])        
         assert_true(np.allclose(res,
             np.array([ 0.610979,  0.246892])))
             
         s1 = s.deepcopy()[0]
         s1.get_kratio(plot_result=False)
         s1.quant(plot_result=False)
-        res = np.array([s1.get_result('Al_Ka','quant').data[0,0],
-            s1.get_result('Zn_La','quant').data[0,0]])        
+        res = np.array([s1.get_result('Al','quant').data[0,0],
+            s1.get_result('Zn','quant').data[0,0]])        
         assert_true(np.allclose(res,
             np.array([ 0.610979,  0.246892])))
                     
         s.get_kratio(plot_result=False)
         s.quant(plot_result=False)
-        res = np.array([s.get_result('Al_Ka','quant').data[0,0,0],
-            s.get_result('Zn_La','quant').data[0,0,0]])        
+        res = np.array([s.get_result('Al','quant').data[0,0,0],
+            s.get_result('Zn','quant').data[0,0,0]])        
         assert_true(np.allclose(res,
             np.array([ 0.610979,  0.246892])))
             

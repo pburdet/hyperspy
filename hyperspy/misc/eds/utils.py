@@ -5,7 +5,7 @@ import os
 
 from hyperspy.misc.eds.elements import elements as elements_db
 from hyperspy.misc.config_dir import config_path
-from hyperspy.io import load
+
 
     
 def _get_element_and_line(Xray_line):
@@ -460,17 +460,18 @@ def load_EDSSEMSpectrum(filenames=None,
     
 def _set_result_signal_list(mp,result):
     std = mp.Sample[result]
-    if '_' in std.mapped_parameters.title:
-        number_of_parts=len(mp.Sample.Xray_lines)
-        is_xray = True
-    else:
-        number_of_parts=len(mp.Sample.elements)
-        is_xray = False
+    #if '_' in std.mapped_parameters.title:
+    #    number_of_parts=len(mp.Sample.Xray_lines)
+    #    is_xray = True
+    #else:
+    #    number_of_parts=len(mp.Sample.elements)
+    #    is_xray = False
+    number_of_parts=std.data.shape[0]
     if result =='standard_spec':
         #Need to change
         #number_of_parts=len(mp.Sample.elements)
         l_time = std.mapped_parameters.SEM.EDS.live_time
-        number_of_parts=len(mp.Sample.Xray_lines)
+        #number_of_parts=len(mp.Sample.Xray_lines)
         temp = std.split(axis=0,number_of_parts=number_of_parts)        
     else:
         temp = std.split(axis=1,number_of_parts=number_of_parts)
@@ -482,9 +483,9 @@ def _set_result_signal_list(mp,result):
             el, li = _get_element_and_line(mp.Sample.Xray_lines[i])
             tp.mapped_parameters.title = el + '_std'
             tp.mapped_parameters.SEM.EDS.live_time = l_time[i]
-        elif is_xray:
+        elif number_of_parts==len(mp.Sample.Xray_lines):
             tp.mapped_parameters.title = result + ' ' + mp.Sample.Xray_lines[i]
-        else:
+        elif number_of_parts==len(mp.Sample.elements):
             tp.mapped_parameters.title = result + ' ' + mp.Sample.elements[i]
         std.append(tp)
     mp.Sample[result] = std
