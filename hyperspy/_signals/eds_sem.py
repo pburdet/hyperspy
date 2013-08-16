@@ -725,8 +725,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         
     def _read_result_tsv(self,foldername,plot_result,enh):
         encoding = 'latin-1'
-        mp=self.mapped_parameters
-        
+        mp=self.mapped_parameters        
         f = codecs.open(foldername+'//result.tsv', encoding = encoding,
           errors = 'replace') 
         #dim = list(self.data.shape)
@@ -764,6 +763,50 @@ class EDSSEMSpectrum(EDSSpectrum):
             else:
                 self._set_result( el, 'quant',data_quant, plot_result)        
             i += 1
+            
+    def read_enh_ouput(self,compiler=0):
+        """
+        read the iter, rho, error
+        """
+        from hyperspy import signals
+        if compiler == 0:
+            foldername = os.path.join(config_path, 'strata_quant_enh//essai')
+        else :
+            foldername = os.path.join(config_path, 
+                'strata_quant_enh'+str(compiler)+'//essai')
+        encoding = 'latin-1'
+        mp=self.mapped_parameters        
+        f = codecs.open(foldername+'//result.tsv', encoding = encoding,
+          errors = 'replace')
+          
+        Xray_lines = mp.Sample.Xray_lines
+          
+        dim = np.copy(self.get_result(Xray_lines[0],
+            'kratios').data.shape).tolist()
+        raw_data = []
+        for el in [-3,-2,-1]:
+            raw_data.append([])        
+        for line in f.readlines():
+            for i in range(3):
+                raw_data[i].append(float(line.split()[[-3,-2,-1][i]]))            
+        f.close()
+        axes_res = self.axes_manager.deepcopy()
+        axes_res.remove(-1)
+        
+        data_tot =[]
+        for i in range(3):
+            data_quant=np.array(raw_data[i]).reshape((dim[2],dim[1],
+                  dim[0])).T
+            data_quant = data_quant[::,::-1]
+            data_quant = signals.Image(data_quant)
+            data_quant.axes_manager = axes_res
+            data_tot.append(data_quant)         
+        data_tot = utils.stack(data_tot,new_axis_name='iter_rho_error')
+        data_tot = data_tot.as_image([0,1])
+        data_tot.get_dimensions_from_data()
+        return data_tot
+        
+        
         
     def _write_donnee_tsv(self, foldername):
         encoding = 'latin-1'
@@ -902,10 +945,9 @@ class EDSSEMSpectrum(EDSSpectrum):
         f.write('Itermax\t%s\r\n' % mp.enh_param['iter_max'])
         f.write('\r\n')
         f.write('HV\t%s\r\n'% mp.SEM.beam_energy)
-        f.write('TOA\t%s\r\n'% utils_eds.TOA(self))
+        f.write('TOA\t%s\r\n'% mp.SEM.EDS.elevation_angle)
         f.write('azimuth\t%s\r\n'% mp.SEM.EDS.azimuth_angle)
-        #Be carefull with that + or -
-        f.write('tilt\t%s\r\n'% -mp.SEM.tilt_stage)
+        f.write('tilt\t%s\r\n'% mp.SEM.tilt_stage)
         f.write('\r\n')
         f.write('nbelement\t%s\t%s\r\n'% (len(elements),len(Xray_lines)))
         el_str = 'Element'

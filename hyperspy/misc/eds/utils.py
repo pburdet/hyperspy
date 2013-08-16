@@ -2,10 +2,12 @@ import math
 import numpy as np
 import execnet
 import os
+import copy
 
 from hyperspy.misc.eds.elements import elements as elements_db
 from hyperspy.misc.config_dir import config_path
-
+from hyperspy import utils
+import matplotlib.pyplot as plt
 
     
 def _get_element_and_line(Xray_line):
@@ -137,15 +139,17 @@ def TOA(self,tilt_stage=None,azimuth_angle=None,elevation_angle=None):
     Parameters
     ----------
     tilt_stage: float (Degree)
-        The tilt of the stage. The sample is facing the detector when
-        positively tilted. 
+        The tilt of the stage. The sample is facing a detector at 0 azimuth 
+        when positively tilted. 
 
     azimuth_angle: float (Degree)
         The azimuth of the detector. 0 is perpendicular to the tilt 
-        axis. 
+        axis. A zero azimuth means that the tilt axis is normal to the 
+        vertical place containing the axis of detection.
 
     elevation_angle: float (Degree)
-        The elevation of the detector.
+        The elevation of the detector compared to a surface with 0 tilt.
+        90 is SEM direction (perp to the surface)
                 
     Returns
     -------
@@ -656,6 +660,145 @@ def _read_alignement_file(path_align_file='auto'):
     shiftIcumu=np.array([shiftIcumu[::,1],shiftIcumu[::,0]]).T
     
     return shiftIcumu
+    
+    
+def compare_results(specs,results,normalize=False,plot_result=True):
+    """
+    Plot different results side by side
+    
+    The results are found in 'mapped.mapped_parameters.Sample['results_name']'.
+    They need to have the same dimension
+    
+    Parameters
+    ----------
+    specs: list || list of list
+        The list (list of list) of spectra containing the results.
+        
+    results: list || list of list
+        The list (list of list) of name of the results (or a list of images).
+        
+    normalize: bool    
+        If True, each result are normalized.
+        
+    plot_result : bool
+        If True (default option), plot the result. If False, return 
+        the result.           
+    
+    """
+    if isinstance(specs[0], list):
+        check = []
+        for j, spec in enumerate(specs):
+            check_temp = []
+            for i,s in enumerate(spec):
+                if isinstance(results[j][i],str) is False:
+                    temp = results[j][i].deepcopy()
+                elif normalize:
+                    temp = s.normalize_result(results[j][i])
+                else:
+                    temp = copy.deepcopy(s.mapped_parameters.Sample[results[j][i]]) 
+                temp = utils.stack(temp)       
+                check_temp.append(temp)            
+            check.append(utils.stack(check_temp,
+                axis=temp.axes_manager.signal_axes[0].name))
+            
+        check = utils.stack(check,axis=temp.axes_manager.signal_axes[1].name)
+        
+    elif isinstance(specs[0], list) is False:
+        check = []
+        for i,s in enumerate(specs):
+            if isinstance(results[i],str) is False:
+                temp = results[i].deepcopy()
+            elif normalize:
+                temp = s.normalize_result(results[i])
+            else:
+                temp = copy.deepcopy(s.mapped_parameters.Sample[results[i]]) 
+            temp = utils.stack(temp)       
+            check.append(temp)
+            
+        check = utils.stack(check,axis=temp.axes_manager.signal_axes[0].name)
+    else:
+        raise ValueError("resutls are not a list")   
+ 
+    
+    
+    check.mapped_parameters.title = 'Compared Results'
+    if plot_result: 
+        check.plot(navigator=None)
+    else:
+        return check
+        
+        
+def _histo_data_plot(data,bins = 10):
+    """Return data ready to plot an histogram, with a step style
+    
+    Parameters
+    ----------    
+    data: np.array
+        the data to use
+        
+    bins: int
+        the number of bins
+        
+    Returns
+    -------    
+    center: np.array
+        the position of the bins
+        
+    hist: np.array
+        the number of conts in the bins
+        
+    See also
+    --------    
+    np.histogram
+    """
+    
+    hist1, bins = np.histogram(data,bins)
+    hist = np.append(np.append(np.array([0]),
+        np.array(zip(hist1,hist1)).flatten()),[0])
+    center = np.array(zip(bins ,bins )).flatten()
+    return center, hist
+    
+def plot_histogram_results(specs,element,results,bins = 10,normalize=True):
+    """
+    Plot the histrogram for different results.
+    
+    The results are found in 'mapped.mapped_parameters.Sample['results_name']'.
+        
+    Paramters
+    ---------
+    
+    specs: list
+        The list of spectra containing the results.
+        
+    results: list 
+        The list of name of the results (or a list of images).        
+        
+    bins: int
+        the number of bins
+        
+    normalize: bool
+        
+    """
+    
+    fig = plt.figure()
+    for i, spec in enumerate(specs):
+        if isinstance(results[i],str):
+            re = spec.get_result(element,results[i])
+        else:
+            re = results[i].deepcopy()
+        data = re.data.flatten()
+        center, hist1 = _histo_data_plot(data,bins)
+        if normalize:
+            hist1 = hist1 / float(hist1.sum())
+        plt.plot(center, hist1, label = re.mapped_parameters.title)
+    plt.legend()
+    fig.show()
+    
+    return fig
+
+
+
+    
     
         
 

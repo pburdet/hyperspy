@@ -19,6 +19,7 @@ from __future__ import division
 
 import numpy as np
 import matplotlib.pyplot as plt
+import copy
 
 from hyperspy._signals.spectrum import Spectrum
 from hyperspy.signal import Signal
@@ -27,6 +28,7 @@ from hyperspy.misc.eds.elements import elements as elements_db
 from hyperspy.misc.eds import utils as utils_eds
 from hyperspy.misc.utils import isiterable
 import hyperspy.components as components
+from hyperspy import utils
 
 class EDSSpectrum(Spectrum):
     _signal_type = "EDS"
@@ -800,10 +802,68 @@ class EDSSpectrum(Spectrum):
         else:
             print("%s of %s calculated" % (result, Xray_line))
             
+        res_img.get_dimensions_from_data()
+            
         if store_in_mp:
             mp.Sample[result][j] = res_img 
         else:
             return res_img 
+            
+    def normalize_result(self,result,return_element='all'):
+        """
+        Normalize the result
+        
+        The sum over all elements for any pixel is equal to one.
+        
+        Paramters
+        ---------
+        
+        result: str
+            the result to normalize
+            
+        return_element: str 
+            If 'all', all elements are return.
+        """
+        mp = self.mapped_parameters
+        res = copy.deepcopy(mp.Sample[result])
+        
+        re = utils.stack(res)
+        tot = re.sum(1)
+        for r in range(re.axes_manager.shape[1]):
+            res[r].data = (re[::,r]/tot).data  
+        
+        if return_element=='all':
+            return res
+        else:
+            for el in res:
+                if return_element in el.mapped_parameters.title:
+                    return el
+        
+    def plot_histogram_result(self,result,bins = 10):
+        """
+        Plot an histrogram of the result
+        
+        Paramters
+        ---------
+        
+        result: str
+            the result to plot
+            
+        bins: int
+            the number of bins
+        """
+        mp = self.mapped_parameters
+        res = copy.deepcopy(mp.Sample[result])
+        fig = plt.figure()
+        for i, re in enumerate(res):
+            data = re.data.flatten()
+            center, hist1 = utils_eds._histo_data_plot(data,bins)
+            plt.plot(center, hist1, label = re.mapped_parameters.title)
+        plt.legend() 
+        fig.show() 
+        
+        return fig
+        
         
         
             
