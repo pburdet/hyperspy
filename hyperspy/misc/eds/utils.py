@@ -484,7 +484,10 @@ def _set_result_signal_list(mp,result):
         tp = tp.squeeze()
         if result == 'standard_spec':
             #to change
-            el, li = _get_element_and_line(mp.Sample.Xray_lines[i])
+            if number_of_parts==len(mp.Sample.Xray_lines):
+                el, li = _get_element_and_line(mp.Sample.Xray_lines[i])
+            else:
+                el = mp.Sample.elements[i]
             tp.mapped_parameters.title = el + '_std'
             tp.mapped_parameters.SEM.EDS.live_time = l_time[i]
         elif number_of_parts==len(mp.Sample.Xray_lines):
@@ -662,7 +665,8 @@ def _read_alignement_file(path_align_file='auto'):
     return shiftIcumu
     
     
-def compare_results(specs,results,normalize=False,plot_result=True):
+def compare_results(specs,results,sum_elements=False,
+        normalize=False,plot_result=True):
     """
     Plot different results side by side
     
@@ -696,7 +700,9 @@ def compare_results(specs,results,normalize=False,plot_result=True):
                     temp = s.normalize_result(results[j][i])
                 else:
                     temp = copy.deepcopy(s.mapped_parameters.Sample[results[j][i]]) 
-                temp = utils.stack(temp)       
+                temp = utils.stack(temp)
+                if sum_elements:
+                    temp = temp.sum(1)       
                 check_temp.append(temp)            
             check.append(utils.stack(check_temp,
                 axis=temp.axes_manager.signal_axes[0].name))
@@ -712,7 +718,9 @@ def compare_results(specs,results,normalize=False,plot_result=True):
                 temp = s.normalize_result(results[i])
             else:
                 temp = copy.deepcopy(s.mapped_parameters.Sample[results[i]]) 
-            temp = utils.stack(temp)       
+            temp = utils.stack(temp) 
+            if sum_elements:
+                temp = temp.sum(1)       
             check.append(temp)
             
         check = utils.stack(check,axis=temp.axes_manager.signal_axes[0].name)
@@ -760,7 +768,7 @@ def _histo_data_plot(data,bins = 10):
     
 def plot_histogram_results(specs,element,results,bins = 10,normalize=True):
     """
-    Plot the histrogram for different results.
+    Plot the histrogram for different results for one element.
     
     The results are found in 'mapped.mapped_parameters.Sample['results_name']'.
         
@@ -769,6 +777,9 @@ def plot_histogram_results(specs,element,results,bins = 10,normalize=True):
     
     specs: list
         The list of spectra containing the results.
+        
+    element: str
+        The element to consider. 'all' return the sum over all elements.
         
     results: list 
         The list of name of the results (or a list of images).        
@@ -782,8 +793,13 @@ def plot_histogram_results(specs,element,results,bins = 10,normalize=True):
     
     fig = plt.figure()
     for i, spec in enumerate(specs):
-        if isinstance(results[i],str):
-            re = spec.get_result(element,results[i])
+        if element == 'all':
+            re = copy.deepcopy(spec.mapped_parameters.Sample[results[i]])
+            re = utils.stack(re)
+            re = re.sum(1)
+            re.mapped_parameters.title = 'Sum ' +  results[i] + ' ' + spec.mapped_parameters.title
+        elif isinstance(results[i],str):
+            re = spec.get_result(element,results[i])           
         else:
             re = results[i].deepcopy()
         data = re.data.flatten()
