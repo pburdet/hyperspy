@@ -240,6 +240,9 @@ def phase_inspector(self,bins=[20,20,20],plot_result=True):
         img.axes_manager[i].units = '-'
     img.get_dimensions_from_data()
     return img  
+    
+
+
 
     
     
@@ -802,6 +805,7 @@ def plot_histogram_results(specs,element,results,bins = 10,normalize=True):
             re = spec.get_result(element,results[i])           
         else:
             re = results[i].deepcopy()
+            re.mapped_parameters.title = 'Sum ' +  re.mapped_parameters.title
         data = re.data.flatten()
         center, hist1 = _histo_data_plot(data,bins)
         if normalize:

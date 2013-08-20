@@ -1229,7 +1229,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         
     
         
-    def plot_electron_distribution(self):
+    def plot_electron_distribution(self,elements='all',max_depth='auto'):
         """Retrieve and plot the electron distribution from 
         simulate_electron_distribution
         """
@@ -1240,7 +1240,8 @@ class EDSSEMSpectrum(EDSSpectrum):
             raise ValueError(" Simulate an electron distribution first " +
             "with simulate_electron_distribution.")
             return 0 
-        elements = mp['Sample']['elements']
+
+        elem_list = mp['Sample']['elements']
         limit_x = mp.elec_distr['limit_x'] 
         dx0 = mp.elec_distr['dx0'] 
         dx_increment  = mp.elec_distr['dx_increment']    
@@ -1250,25 +1251,31 @@ class EDSSEMSpectrum(EDSSpectrum):
         pixSize = self.axes_manager[2].scale
         pixLat = int((limit_x[1]-limit_x[0])/dx0+1)
 
-        for el, elm in enumerate(elements): 
+        for el, elm in enumerate(elem_list): 
             
-            f = plt.figure()
-            leg=[]
-            for i, distr in enumerate(stat[el]):                
-                length = int((limit_x[1]-limit_x[0])/(dx0*(dx_increment*i+1)))
-                distr = distr[int(pixLat/2.-round(length/2.)):
-                    int(pixLat/2.+int(length/2.))]
-                xdata =[]
-                for x in range(length):
-                    xdata.append(limit_x[0]+x*dx0*(dx_increment*i+1))     
-                leg.append('z slice ' + str(pixSize*i)+ ' ${\mu}m$')
-                plt.plot(xdata,distr)    
-            
-            plt.legend(leg,loc=2)
-            plt.title(elm + ': Electron depth distribution (nb traj :' 
-                + str(nb_traj) +')')
-            plt.xlabel('x position [${\mu}m$]')
-            plt.ylabel('nb electrons / sum electrons in the layer')
+            if elements=='all' or elements == elm:            
+                f = plt.figure()
+                leg=[]
+                for i, distr in enumerate(stat[el]): 
+                    if i > max_depth:
+                        break             
+                    length = int((limit_x[1]-limit_x[0])/(dx0*(dx_increment*i+1)))
+                    distr = distr[int(pixLat/2.-round(length/2.)):
+                        int(pixLat/2.+int(length/2.))]
+                    xdata =[]
+                    for x in range(length):
+                        xdata.append(limit_x[0]+x*dx0*(dx_increment*i+1))     
+                    leg.append('z slice ' + str(pixSize*i)+ ' ${\mu}m$')
+                    plt.plot(xdata,distr)    
+                
+                plt.legend(leg,loc=1)
+                plt.title(elm + ': Electron depth distribution (nb traj :' 
+                    + str(nb_traj) +')')
+                plt.xlabel('x position [${\mu}m$]')
+                plt.ylabel('nb electrons / sum electrons in the layer')
+                
+        if elements!='all':
+            return f
             
     def save(self, filename=None, overwrite=None, extension=None,
              **kwds):
@@ -1478,6 +1485,152 @@ class EDSSEMSpectrum(EDSSpectrum):
                     mp_temp.align.method = 'ref : ' + mp_ref.title
                     if crop is True:
                        res.crop_image(top, bottom, left, right) 
+                       
+    def quant_with_DTSA(self,
+        detector='Si(Li)',
+        gateway='auto'):
+        """calcul the composition from a set of kratios.
+        
+        Parameters
+        ---------- 
+        
+        detector: str
+            Give the detector name defined in DTSA-II
+            
+        gateway: execnet Gateway
+            If 'auto', generate automatically the connection to jython. 
+        """
+        mp = self.mapped_parameters
+        if hasattr(mp.Sample, 'Xray_lines'):
+            Xray_lines = mp.Sample.Xray_lines
+            xrts = []
+            elements = []
+            for Xray_line in Xray_lines:
+                el, li  = utils_eds._get_element_and_line(Xray_line)
+                elements.append(el)
+                if li == 'Ka':
+                    xrts.append(0)
+                elif li == 'La':
+                    xrts.append(12)
+                elif li == 'Ma':
+                    xrts.append(72)
+                else:
+                    raise ValueError( 'Xray_lines not translated')
+                    return 0  
+        else:
+            raise ValueError( 'Xray_lines need to be defined')
+            return 0
+        if hasattr(mp.Sample, 'kratios'):
+            kratios = []
+            for krat in mp.Sample.kratios:
+                kratios.append(float(krat.data))
+        else:
+            raise ValueError( 'kratios need to be defined')
+            return 0
+            
+        e0 = mp.SEM.beam_energy
+        tilt = np.abs(np.radians(mp.SEM.tilt_stage))
+        TOA = utils_eds.TOA(self)
+        print 'TOA ' + str(TOA)
+        
+        if gateway == 'auto':
+            gateway = get_link_to_jython()
+            
+        channel = gateway.remote_exec("""   
+            import dtsa2
+            import math
+            epq = dtsa2.epq 
+            
+            #Element and k-ratios
+            kratios = """ + str(kratios) + """
+            elements = """ + str(elements) + """
+            xrts = """ + str(xrts) + """
+            elms = []
+            for element in elements:
+                elms.append(getattr(dtsa2.epq.Element,element))
+                
+            #Microscope parameters
+            TOA = """ + str(TOA) + """
+            e0 =""" + str(e0) + """
+            tilt = """ + str(tilt) + """
+            det = dtsa2.findDetector('""" + detector + """')
+            
+            #Define spectrum properties
+            specprops = epq.SpectrumProperties()
+            specprops.setDetector(det)
+            specprops.setNumericProperty(epq.SpectrumProperties.BeamEnergy,e0)    
+            specprops.setNumericProperty(epq.SpectrumProperties.TakeOffAngle,TOA)
+            
+            specprops.setSampleShape(
+                epq.SpectrumProperties.SampleShape,
+                epq.SampleShape.Bulk([math.sin(tilt),0.0,-math.cos(tilt)]))
+        
+            #Define quantification
+            quant = epq.CompositionFromKRatios()            
+            kratiosSet =  epq.KRatioSet() 
+            for i, elm in enumerate(elms):
+                transSet = epq.XRayTransitionSet(epq.XRayTransition(elm,xrts[i]))
+                quant.addStandard(transSet, epq.Composition(elm), specprops)
+                kratiosSet.addKRatio(transSet, kratios[i])
+            
+            #Compute
+            quant.compute(kratiosSet,specprops)
+            
+            #get result
+            comp = quant.getResult()
+            a =  quant.getCorrectionAlgorithm() 
+            for i, elm in enumerate(elms):
+                channel.send(comp.weightFraction(elm, 0))
+                for i in range(3):
+                    channel.send(a.relativeZAF(comp,
+                        epq.XRayTransition(elm,xrts[i]), specprops)[i])
+                
+                
+            #print quant.getIterationCount()
+            #print quant.getDefaultMAC()
+            #print quant.getDefaultEdgeEnergy()
+            #print quant.getDefaultCorrectionAlgorithm()
+            #print quant.getDefaultTransitionEnergy()
+            #print quant.getActiveStrategy()
+            #a =  quant.getCorrectionAlgorithm() 
+            #print a
+
+            #for i, elm in enumerate(elms):
+                #print 'relative Z ' + elements[i]
+                #print a.relativeZ(comp, epq.XRayTransition(elm,xrts[i]), specprops)
+                #print 'relative A ' + elements[i]
+                #print a.relativeA(comp, epq.XRayTransition(elm,xrts[i]), specprops)
+                #print 'relative ZAF ' + elements[i]                
+                #print a.relativeZAF(comp, epq.XRayTransition(elm,xrts[i]), specprops)
+                #print 'relative Chi ' + elements[i] 
+                #print a.chi(epq.XRayTransition(elm,xrts[i]))
+                #print 'relative Chiu ' + elements[i] 
+                #print a.chiU(epq.XRayTransition(elm,xrts[i]))
+                #b= a.chiU(epq.XRayTransition(elm,xrts[i]))
+                #print 'relative Chiu variance ' + elements[i]
+                #print b.variance()
+                #print a.caveat(comp, epq.AtomicShell(elm,xrts[i]), specprops)
+
+                   
+        """)
+
+        data = []
+        for item in channel:
+            data.append(item)
+        
+        comp = []   
+        ZAF=[] 
+        for i,el in enumerate(elements):
+            ZAF.append([])
+            for j in range(4):
+                if j==0:
+                    comp.append(data[i+j])
+                else:
+                    ZAF[i].append(data[i+j])
+            
+            
+        return comp, ZAF
+        
 
             
 
