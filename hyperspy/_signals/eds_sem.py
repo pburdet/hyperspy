@@ -1509,127 +1509,188 @@ class EDSSEMSpectrum(EDSSpectrum):
                 el, li  = utils_eds._get_element_and_line(Xray_line)
                 elements.append(el)
                 if li == 'Ka':
-                    xrts.append(0)
+                    xrts.append(u'K\u03b1')
                 elif li == 'La':
-                    xrts.append(12)
+                    xrts.append(u'L\u03b1')
                 elif li == 'Ma':
-                    xrts.append(72)
+                    xrts.append(u'M\u03b1')
                 else:
                     raise ValueError( 'Xray_lines not translated')
                     return 0  
         else:
             raise ValueError( 'Xray_lines need to be defined')
             return 0
-        if hasattr(mp.Sample, 'kratios'):
-            kratios = []
-            for krat in mp.Sample.kratios:
-                kratios.append(float(krat.data))
-        else:
+        
+        if hasattr(mp.Sample, 'kratios') is False:
             raise ValueError( 'kratios need to be defined')
             return 0
             
         e0 = mp.SEM.beam_energy
         tilt = np.abs(np.radians(mp.SEM.tilt_stage))
         TOA = utils_eds.TOA(self)
-        print 'TOA ' + str(TOA)
-        
+
         if gateway == 'auto':
-            gateway = get_link_to_jython()
+            gateway = utils_eds.get_link_to_jython()
             
-        channel = gateway.remote_exec("""   
-            import dtsa2
-            import math
-            epq = dtsa2.epq 
+        dim = self.get_result(Xray_lines[0],'kratios').data.shape
             
-            #Element and k-ratios
-            kratios = """ + str(kratios) + """
-            elements = """ + str(elements) + """
-            xrts = """ + str(xrts) + """
-            elms = []
-            for element in elements:
-                elms.append(getattr(dtsa2.epq.Element,element))
-                
-            #Microscope parameters
-            TOA = """ + str(TOA) + """
-            e0 =""" + str(e0) + """
-            tilt = """ + str(tilt) + """
-            det = dtsa2.findDetector('""" + detector + """')
+        if len(dim)==0:
+            kratios = []
+            for Xray_line in Xray_lines:
+                kratios.append(float(self.get_result(Xray_line,'kratios').data))
             
-            #Define spectrum properties
-            specprops = epq.SpectrumProperties()
-            specprops.setDetector(det)
-            specprops.setNumericProperty(epq.SpectrumProperties.BeamEnergy,e0)    
-            specprops.setNumericProperty(epq.SpectrumProperties.TakeOffAngle,TOA)
-            
-            specprops.setSampleShape(
-                epq.SpectrumProperties.SampleShape,
-                epq.SampleShape.Bulk([math.sin(tilt),0.0,-math.cos(tilt)]))
+            comp, ZAF = _quant_with_dtsa(kratios,elements,xrts,TOA,
+                e0,tilt,detector,gateway)                     
+                        
+            return comp, ZAF
+        elif len(dim) ==2:
+            comp_tot=[]
+            ZAF_tot=[]
+            for y in range(dim[0]):
+                for x in range(dim[1]):
+                    kratios = []                    
+                    for krat in mp.Sample.kratios:
+                        kratios.append(float(krat[x,y].data[0]))   
+                    comp, ZAF = _quant_with_dtsa(kratios,elements,xrts,TOA,
+                        e0,tilt,detector,gateway) 
+                    ZAF_tot.append(comp)
+                    comp_tot.append(ZAF)
+                    
+            return comp_tot, ZAF_tot
+                            
+                    
+        else:
+            raise ValueError( 'Dimension for suported yet')
+            return 0
         
-            #Define quantification
-            quant = epq.CompositionFromKRatios()            
-            kratiosSet =  epq.KRatioSet() 
-            for i, elm in enumerate(elms):
-                transSet = epq.XRayTransitionSet(epq.XRayTransition(elm,xrts[i]))
-                quant.addStandard(transSet, epq.Composition(elm), specprops)
-                kratiosSet.addKRatio(transSet, kratios[i])
+def _quant_with_dtsa( kratios,elements,xrts,TOA,e0,tilt,detector,gateway):
+    channel = gateway.remote_exec("""   
+        import dtsa2
+        import math
+        epq = dtsa2.epq 
+        
+        lim_kratio=0.0001
+        
+        #Element and k-ratios
+        kratiosI = """ + str(kratios) + """
+        elmsI = """ + str(elements) + """
+        xrtsI = """ + str(xrts) + """
+        elms = []
+        kratios = []
+        xrts = []
+        for i, elm in enumerate(elmsI):
+            if kratiosI[i] > lim_kratio:
+                elms.append(getattr(epq.Element,elm))
+                kratios.append(kratiosI[i])
+                xrts.append(xrtsI[i])
+
+  
             
-            #Compute
+        #Microscope parameters
+        TOA = """ + str(TOA) + """
+        e0 =""" + str(e0) + """
+        tilt = """ + str(tilt) + """
+        det = dtsa2.findDetector('""" + detector + """')
+        
+        #Define spectrum properties
+        specprops = epq.SpectrumProperties()
+        specprops.setDetector(det)
+        specprops.setNumericProperty(epq.SpectrumProperties.BeamEnergy,e0)    
+        specprops.setNumericProperty(epq.SpectrumProperties.TakeOffAngle,TOA)
+
+        
+        specprops.setSampleShape(
+            epq.SpectrumProperties.SampleShape,
+            epq.SampleShape.Bulk([math.sin(tilt),0.0,-math.cos(tilt)]))
+    
+        #Define quantification
+        quant = epq.CompositionFromKRatios()            
+        kratiosSet =  epq.KRatioSet() 
+
+        for i, elm in enumerate(elms):
+            transSet = epq.XRayTransitionSet(elm,xrts[i])
+            quant.addStandard(transSet, epq.Composition(elm), specprops)
+            kratiosSet.addKRatio(transSet, kratios[i])
+        
+        quant.setConvergenceCriterion(0.001)
+        quant.setMaxIterations(50)
+        
+        #Compute
+        has_converged = True
+        try:
             quant.compute(kratiosSet,specprops)
-            
-            #get result
-            comp = quant.getResult()
-            a =  quant.getCorrectionAlgorithm() 
-            for i, elm in enumerate(elms):
-                channel.send(comp.weightFraction(elm, 0))
-                for i in range(3):
-                    channel.send(a.relativeZAF(comp,
-                        epq.XRayTransition(elm,xrts[i]), specprops)[i])
-                
-                
-            #print quant.getIterationCount()
-            #print quant.getDefaultMAC()
-            #print quant.getDefaultEdgeEnergy()
-            #print quant.getDefaultCorrectionAlgorithm()
-            #print quant.getDefaultTransitionEnergy()
-            #print quant.getActiveStrategy()
-            #a =  quant.getCorrectionAlgorithm() 
-            #print a
-
-            #for i, elm in enumerate(elms):
-                #print 'relative Z ' + elements[i]
-                #print a.relativeZ(comp, epq.XRayTransition(elm,xrts[i]), specprops)
-                #print 'relative A ' + elements[i]
-                #print a.relativeA(comp, epq.XRayTransition(elm,xrts[i]), specprops)
-                #print 'relative ZAF ' + elements[i]                
-                #print a.relativeZAF(comp, epq.XRayTransition(elm,xrts[i]), specprops)
-                #print 'relative Chi ' + elements[i] 
-                #print a.chi(epq.XRayTransition(elm,xrts[i]))
-                #print 'relative Chiu ' + elements[i] 
-                #print a.chiU(epq.XRayTransition(elm,xrts[i]))
-                #b= a.chiU(epq.XRayTransition(elm,xrts[i]))
-                #print 'relative Chiu variance ' + elements[i]
-                #print b.variance()
-                #print a.caveat(comp, epq.AtomicShell(elm,xrts[i]), specprops)
-
-                   
-        """)
-
-        data = []
-        for item in channel:
-            data.append(item)
+        except:
+            has_converged = False
+            print "do not converge"
         
-        comp = []   
-        ZAF=[] 
-        for i,el in enumerate(elements):
-            ZAF.append([])
-            for j in range(4):
-                if j==0:
-                    comp.append(data[i+j])
-                else:
-                    ZAF[i].append(data[i+j])
+        #get result
+        comp = quant.getResult()
+        a =  quant.getCorrectionAlgorithm() 
+        
+        for i, elm in enumerate(elmsI):
+            if has_converged == False:
+                channel.send(kratiosI[i])                
+            elif kratiosI[i] > lim_kratio:
+                elm_epq = getattr(epq.Element,elm)
+                channel.send(comp.weightFraction(elm_epq, 0))
+            else:
+                channel.send(0)
+        for i, elm in enumerate(elmsI):
+            if has_converged == False:
+                for j in range(4):
+                    channel.send(1)               
+            elif kratiosI[i] > lim_kratio:
+                elm_epq = getattr(epq.Element,elm)                
+                for j in range(4):
+                    channel.send(a.relativeZAF(comp,
+                        epq.XRayTransitionSet(elm_epq,xrtsI[i]).getWeighiestTransition(),
+                        specprops)[j])
+            else:
+                for j in range(4):
+                    channel.send(1)
+                
             
             
-        return comp, ZAF
+        #print quant.getIterationCount()
+        #print quant.getDefaultMAC()
+        #print quant.getDefaultEdgeEnergy()
+        #print quant.getDefaultCorrectionAlgorithm()
+        #print quant.getDefaultTransitionEnergy()
+        #print quant.getActiveStrategy()
+        #a =  quant.getCorrectionAlgorithm() 
+        #print a
+
+        #for i, elm in enumerate(elms):
+            #print 'relative Z ' + elements[i]
+            #print a.relativeZ(comp, epq.XRayTransition(elm,xrts[i]), specprops)
+            #print 'relative A ' + elements[i]
+            #print a.relativeA(comp, epq.XRayTransition(elm,xrts[i]), specprops)
+            #print 'relative ZAF ' + elements[i]                
+            #print a.relativeZAF(comp, epq.XRayTransition(elm,xrts[i]), specprops)
+            #print 'relative Chi ' + elements[i] 
+            #print a.chi(epq.XRayTransition(elm,xrts[i]))
+            #print 'relative Chiu ' + elements[i] 
+            #print a.chiU(epq.XRayTransition(elm,xrts[i]))
+            #b= a.chiU(epq.XRayTransition(elm,xrts[i]))
+            #print 'relative Chiu variance ' + elements[i]
+            #print b.variance()
+            #print a.caveat(comp, epq.AtomicShell(elm,xrts[i]), specprops)
+
+               
+    """)
+    
+    comp = []   
+    ZAF=[]
+    for i, item in enumerate(channel):
+        if i< len(elements):
+            comp.append(item)
+        else:
+            ZAF.append(item)
+            
+    ZAF = np.array(ZAF)
+    ZAF = np.reshape(ZAF,[len(elements),4])  
+    
+    return comp, ZAF
         
 
             
