@@ -129,6 +129,7 @@ def FWHM(FWHM_ref,E,line_ref='Mn_Ka'):
     
     
 def TOA(self,tilt_stage=None,azimuth_angle=None,elevation_angle=None):
+    #must be the main function. But another on in EDS spec
     """Calculate the take-off-angle (TOA).
     
     TOA is the angle with which the X-rays leave the surface towards 
@@ -180,6 +181,7 @@ def TOA(self,tilt_stage=None,azimuth_angle=None,elevation_angle=None):
     + math.sin(a)*math.sin(c)))
     
 def phase_inspector(self,bins=[20,20,20],plot_result=True):
+    #must go in Image
     """
     Generate an binary image of different channel
     """
@@ -252,6 +254,7 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
         density='auto',
         detector='Si(Li)',
         gateway='auto'):
+    #must create a class, EDS simulation
     """"
     Simulate a spectrum using DTSA-II (NIST-Monte)
     Parameters
@@ -430,6 +433,7 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
     return spec
 
 def get_link_to_jython():
+    #must go in IO
     """Return the execnet gateway to jython.
     """
     return execnet.makegateway(
@@ -445,6 +449,7 @@ def load_EDSSEMSpectrum(filenames=None,
          mmap=False,
          mmap_dir=None,
          **kwds):
+    #must desappear, result == spec
     """Load the EDSSEMSpectrum and the result.
     
     See also
@@ -506,6 +511,7 @@ def align_with_stackReg(img,
     align_img=False,
     return_align_img=False,
     gateway='auto'):
+    #must be in Image
     """Align a stack of images with stackReg from Imagej.
     
     store the shifts in mapped_parameters.align.shifts
@@ -670,6 +676,7 @@ def _read_alignement_file(path_align_file='auto'):
     
 def compare_results(specs,results,sum_elements=False,
         normalize=False,plot_result=True):
+    #must be the main function in Image, specs = image. EDSSpec for results
     """
     Plot different results side by side
     
@@ -770,6 +777,7 @@ def _histo_data_plot(data,bins = 10):
     return center, hist
     
 def plot_histogram_results(specs,element,results,bins = 10,normalize=True):
+    #must be the main function in Image, specs = image. EDSSpec for results
     """
     Plot the histrogram for different results for one element.
     
@@ -816,6 +824,135 @@ def plot_histogram_results(specs,element,results,bins = 10,normalize=True):
     
     return fig
 
+
+def _quant_with_dtsa( kratios,elements,xrts,TOA,e0,tilt,detector,gateway):
+    channel = gateway.remote_exec("""   
+        import dtsa2
+        import math
+        epq = dtsa2.epq 
+        
+        lim_kratio=0.0001
+        
+        #Element and k-ratios
+        kratiosI = """ + str(kratios) + """
+        elmsI = """ + str(elements) + """
+        xrtsI = """ + str(xrts) + """
+        elms = []
+        kratios = []
+        xrts = []
+        for i, elm in enumerate(elmsI):
+            if kratiosI[i] > lim_kratio:
+                elms.append(getattr(epq.Element,elm))
+                kratios.append(kratiosI[i])
+                xrts.append(xrtsI[i])
+
+  
+            
+        #Microscope parameters
+        TOA = """ + str(TOA) + """
+        e0 =""" + str(e0) + """
+        tilt = """ + str(tilt) + """
+        det = dtsa2.findDetector('""" + detector + """')
+        
+        #Define spectrum properties
+        specprops = epq.SpectrumProperties()
+        specprops.setDetector(det)
+        specprops.setNumericProperty(epq.SpectrumProperties.BeamEnergy,e0)    
+        specprops.setNumericProperty(epq.SpectrumProperties.TakeOffAngle,TOA)
+
+        
+        specprops.setSampleShape(
+            epq.SpectrumProperties.SampleShape,
+            epq.SampleShape.Bulk([math.sin(tilt),0.0,-math.cos(tilt)]))
+    
+        #Define quantification
+        quant = epq.CompositionFromKRatios()            
+        kratiosSet =  epq.KRatioSet() 
+
+        for i, elm in enumerate(elms):
+            transSet = epq.XRayTransitionSet(elm,xrts[i])
+            quant.addStandard(transSet, epq.Composition(elm), specprops)
+            kratiosSet.addKRatio(transSet, kratios[i])
+        
+        quant.setConvergenceCriterion(0.001)
+        quant.setMaxIterations(50)
+        
+        #Compute
+        has_converged = True
+        try:
+            quant.compute(kratiosSet,specprops)
+        except:
+            has_converged = False
+            print "do not converge"
+        
+        #get result
+        comp = quant.getResult()
+        a =  quant.getCorrectionAlgorithm() 
+        
+        for i, elm in enumerate(elmsI):
+            if has_converged == False:
+                channel.send(kratiosI[i])                
+            elif kratiosI[i] > lim_kratio:
+                elm_epq = getattr(epq.Element,elm)
+                channel.send(comp.weightFraction(elm_epq, 0))
+            else:
+                channel.send(0)
+        for i, elm in enumerate(elmsI):
+            if has_converged == False:
+                for j in range(4):
+                    channel.send(1)               
+            elif kratiosI[i] > lim_kratio:
+                elm_epq = getattr(epq.Element,elm)                
+                for j in range(4):
+                    channel.send(a.relativeZAF(comp,
+                        epq.XRayTransitionSet(elm_epq,xrtsI[i]).getWeighiestTransition(),
+                        specprops)[j])
+            else:
+                for j in range(4):
+                    channel.send(1)
+                
+            
+            
+        #print quant.getIterationCount()
+        #print quant.getDefaultMAC()
+        #print quant.getDefaultEdgeEnergy()
+        #print quant.getDefaultCorrectionAlgorithm()
+        #print quant.getDefaultTransitionEnergy()
+        #print quant.getActiveStrategy()
+        #a =  quant.getCorrectionAlgorithm() 
+        #print a
+
+        #for i, elm in enumerate(elms):
+            #print 'relative Z ' + elements[i]
+            #print a.relativeZ(comp, epq.XRayTransition(elm,xrts[i]), specprops)
+            #print 'relative A ' + elements[i]
+            #print a.relativeA(comp, epq.XRayTransition(elm,xrts[i]), specprops)
+            #print 'relative ZAF ' + elements[i]                
+            #print a.relativeZAF(comp, epq.XRayTransition(elm,xrts[i]), specprops)
+            #print 'relative Chi ' + elements[i] 
+            #print a.chi(epq.XRayTransition(elm,xrts[i]))
+            #print 'relative Chiu ' + elements[i] 
+            #print a.chiU(epq.XRayTransition(elm,xrts[i]))
+            #b= a.chiU(epq.XRayTransition(elm,xrts[i]))
+            #print 'relative Chiu variance ' + elements[i]
+            #print b.variance()
+            #print a.caveat(comp, epq.AtomicShell(elm,xrts[i]), specprops)
+
+               
+    """)
+    
+    comp = []   
+    ZAF=[]
+    for i, item in enumerate(channel):
+        if i< len(elements):
+            comp.append(item)
+        else:
+            ZAF.append(item)
+            
+    ZAF = np.array(ZAF)
+    ZAF = np.reshape(ZAF,[len(elements),4])  
+    
+    return comp, ZAF
 
 
     

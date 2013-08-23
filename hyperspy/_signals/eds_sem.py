@@ -1539,7 +1539,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             for Xray_line in Xray_lines:
                 kratios.append(float(self.get_result(Xray_line,'kratios').data))
             
-            comp, ZAF = _quant_with_dtsa(kratios,elements,xrts,TOA,
+            comp, ZAF = utils_eds._quant_with_dtsa(kratios,elements,xrts,TOA,
                 e0,tilt,detector,gateway)                     
                         
             return comp, ZAF
@@ -1551,10 +1551,10 @@ class EDSSEMSpectrum(EDSSpectrum):
                     kratios = []                    
                     for krat in mp.Sample.kratios:
                         kratios.append(float(krat[x,y].data[0]))   
-                    comp, ZAF = _quant_with_dtsa(kratios,elements,xrts,TOA,
+                    comp, ZAF = utils_eds._quant_with_dtsa(kratios,elements,xrts,TOA,
                         e0,tilt,detector,gateway) 
-                    ZAF_tot.append(comp)
-                    comp_tot.append(ZAF)
+                    ZAF_tot.append(ZAF)
+                    comp_tot.append(comp)
                     
             return comp_tot, ZAF_tot
                             
@@ -1562,135 +1562,91 @@ class EDSSEMSpectrum(EDSSpectrum):
         else:
             raise ValueError( 'Dimension for suported yet')
             return 0
-        
-def _quant_with_dtsa( kratios,elements,xrts,TOA,e0,tilt,detector,gateway):
-    channel = gateway.remote_exec("""   
-        import dtsa2
-        import math
-        epq = dtsa2.epq 
-        
-        lim_kratio=0.0001
-        
-        #Element and k-ratios
-        kratiosI = """ + str(kratios) + """
-        elmsI = """ + str(elements) + """
-        xrtsI = """ + str(xrts) + """
-        elms = []
-        kratios = []
-        xrts = []
-        for i, elm in enumerate(elmsI):
-            if kratiosI[i] > lim_kratio:
-                elms.append(getattr(epq.Element,elm))
-                kratios.append(kratiosI[i])
-                xrts.append(xrtsI[i])
-
-  
             
-        #Microscope parameters
-        TOA = """ + str(TOA) + """
-        e0 =""" + str(e0) + """
-        tilt = """ + str(tilt) + """
-        det = dtsa2.findDetector('""" + detector + """')
+    def plot_3D_iso_surface(self,element,result,threshold,
+            color = 'auto',
+            figure='new',
+            scale='auto'):
+        #must be the main function in Image, and here jsut to connect with result
+        """
+        Generate an iso-surface in Mayavi.
         
-        #Define spectrum properties
-        specprops = epq.SpectrumProperties()
-        specprops.setDetector(det)
-        specprops.setNumericProperty(epq.SpectrumProperties.BeamEnergy,e0)    
-        specprops.setNumericProperty(epq.SpectrumProperties.TakeOffAngle,TOA)
-
+        Parameters
+        ----------
         
-        specprops.setSampleShape(
-            epq.SpectrumProperties.SampleShape,
-            epq.SampleShape.Bulk([math.sin(tilt),0.0,-math.cos(tilt)]))
-    
-        #Define quantification
-        quant = epq.CompositionFromKRatios()            
-        kratiosSet =  epq.KRatioSet() 
-
-        for i, elm in enumerate(elms):
-            transSet = epq.XRayTransitionSet(elm,xrts[i])
-            quant.addStandard(transSet, epq.Composition(elm), specprops)
-            kratiosSet.addKRatio(transSet, kratios[i])
-        
-        quant.setConvergenceCriterion(0.001)
-        quant.setMaxIterations(50)
-        
-        #Compute
-        has_converged = True
-        try:
-            quant.compute(kratiosSet,specprops)
-        except:
-            has_converged = False
-            print "do not converge"
-        
-        #get result
-        comp = quant.getResult()
-        a =  quant.getCorrectionAlgorithm() 
-        
-        for i, elm in enumerate(elmsI):
-            if has_converged == False:
-                channel.send(kratiosI[i])                
-            elif kratiosI[i] > lim_kratio:
-                elm_epq = getattr(epq.Element,elm)
-                channel.send(comp.weightFraction(elm_epq, 0))
-            else:
-                channel.send(0)
-        for i, elm in enumerate(elmsI):
-            if has_converged == False:
-                for j in range(4):
-                    channel.send(1)               
-            elif kratiosI[i] > lim_kratio:
-                elm_epq = getattr(epq.Element,elm)                
-                for j in range(4):
-                    channel.send(a.relativeZAF(comp,
-                        epq.XRayTransitionSet(elm_epq,xrtsI[i]).getWeighiestTransition(),
-                        specprops)[j])
-            else:
-                for j in range(4):
-                    channel.send(1)
-                
+        element: str 
+            The element to select.
             
+        result: str || signals.Image
+            The name of the result, or an image in 3D.
             
-        #print quant.getIterationCount()
-        #print quant.getDefaultMAC()
-        #print quant.getDefaultEdgeEnergy()
-        #print quant.getDefaultCorrectionAlgorithm()
-        #print quant.getDefaultTransitionEnergy()
-        #print quant.getActiveStrategy()
-        #a =  quant.getCorrectionAlgorithm() 
-        #print a
-
-        #for i, elm in enumerate(elms):
-            #print 'relative Z ' + elements[i]
-            #print a.relativeZ(comp, epq.XRayTransition(elm,xrts[i]), specprops)
-            #print 'relative A ' + elements[i]
-            #print a.relativeA(comp, epq.XRayTransition(elm,xrts[i]), specprops)
-            #print 'relative ZAF ' + elements[i]                
-            #print a.relativeZAF(comp, epq.XRayTransition(elm,xrts[i]), specprops)
-            #print 'relative Chi ' + elements[i] 
-            #print a.chi(epq.XRayTransition(elm,xrts[i]))
-            #print 'relative Chiu ' + elements[i] 
-            #print a.chiU(epq.XRayTransition(elm,xrts[i]))
-            #b= a.chiU(epq.XRayTransition(elm,xrts[i]))
-            #print 'relative Chiu variance ' + elements[i]
-            #print b.variance()
-            #print a.caveat(comp, epq.AtomicShell(elm,xrts[i]), specprops)
-
-               
-    """)
-    
-    comp = []   
-    ZAF=[]
-    for i, item in enumerate(channel):
-        if i< len(elements):
-            comp.append(item)
+        threshold: float
+            Between 0 (min intensity) and 1 (max intensity).
+            If result == quant, 1 == 100%.
+        
+        Color: list
+            The color of the surface, (R,G,B). If 'auto', automatically 
+            selected.
+            
+        figure: str 
+            If 'new', generate a new scene/figure. Else, use the old one.
+        
+        scale: str || list
+            If 'auto', scale with axes_manager.scale. Else, scale with 
+            the given list (x,y,z).            
+          
+        Return
+        ------
+        
+        figure: mayavi.core.scene.Scene
+        
+        src: mayavi.sources.array_source.ArraySource
+        
+        iso: mayavi.modules.iso_surface.IsoSurface        
+            
+        """
+        from mayavi import mlab        
+        
+        if figure=='new':
+            figure = mlab.figure()
+        if isinstance(result,str):
+            img_res = self.get_result(element,result)
+        else:            
+            img_res = result.deepcopy()
+        
+        img_data = img_res.data        
+        img_data = np.rollaxis(img_data,0,3)
+        img_data = np.rollaxis(img_data,0,2)
+        src = mlab.pipeline.scalar_field(img_data)
+        src.name = img_res.mapped_parameters.title
+        
+        if 'intensities' == result or isinstance(result,str) is False:
+            threshold = img_data.max()-threshold*img_data.ptp()
+        
+        if scale=='auto':
+            scale = []
+            for i in [1,2,0]:
+                scale.append(img_res.axes_manager[i].scale)
+            src.spacing= scale
         else:
-            ZAF.append(item)
+            src.spacing = scale           
+        if color != 'auto':
+            iso = mlab.pipeline.iso_surface(src,
+                contours=[threshold, ],color =color)
+        else:
+           iso = mlab.pipeline.iso_surface(src,
+                contours=[threshold, ])
             
-    ZAF = np.array(ZAF)
-    ZAF = np.reshape(ZAF,[len(elements),4])  
+        iso.compute_normals = False
+        #if color != 'auto':
+         #   iso.actor.property.color = color
+        #iso.actor.property.opacity = 0.5        
+        return figure, src, iso
+        
+        
+
     
-    return comp, ZAF
+
         
 
             
