@@ -479,12 +479,15 @@ def _set_result_signal_list(mp,result):
     #    number_of_parts=len(mp.Sample.elements)
     #    is_xray = False
     number_of_parts=std.data.shape[0]
+    
     if result =='standard_spec':
         #Need to change
         #number_of_parts=len(mp.Sample.elements)
         l_time = std.mapped_parameters.SEM.EDS.live_time
         #number_of_parts=len(mp.Sample.Xray_lines)
-        temp = std.split(axis=0,number_of_parts=number_of_parts)        
+        temp = std.split(axis=0,number_of_parts=number_of_parts) 
+    elif len(std.data.shape) == 1:
+        temp = std.split(axis=0,number_of_parts=number_of_parts) 
     else:
         temp = std.split(axis=1,number_of_parts=number_of_parts)
     std = []
@@ -826,6 +829,7 @@ def plot_histogram_results(specs,element,results,bins = 10,normalize=True):
 
 
 def _quant_with_dtsa( kratios,elements,xrts,TOA,e0,tilt,detector,gateway):
+    print TOA
     channel = gateway.remote_exec("""   
         import dtsa2
         import math
@@ -856,9 +860,12 @@ def _quant_with_dtsa( kratios,elements,xrts,TOA,e0,tilt,detector,gateway):
         
         #Define spectrum properties
         specprops = epq.SpectrumProperties()
-        specprops.setDetector(det)
+        #specprops.setDetector(det)
         specprops.setNumericProperty(epq.SpectrumProperties.BeamEnergy,e0)    
-        specprops.setNumericProperty(epq.SpectrumProperties.TakeOffAngle,TOA)
+        #specprops.setNumericProperty(epq.SpectrumProperties.TakeOffAngle,TOA)
+        
+        specprops.setDetectorPosition(TOA, 0, 0.005, 0.005)
+        print specprops
 
         
         specprops.setSampleShape(

@@ -828,9 +828,14 @@ class EDSSpectrum(Spectrum):
         res = copy.deepcopy(mp.Sample[result])
         
         re = utils.stack(res)
-        tot = re.sum(1)
-        for r in range(re.axes_manager.shape[1]):
-            res[r].data = (re[::,r]/tot).data  
+        if len(re.data.shape):
+            tot = re.sum(0)
+            for r in range(re.axes_manager.shape[0]):
+                res[r].data = (re[r]/tot).data[0] 
+        else:
+            tot = re.sum(1)
+            for r in range(re.axes_manager.shape[1]):
+                res[r].data = (re[::,r]/tot).data  
         
         if return_element=='all':
             return res

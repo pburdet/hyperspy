@@ -603,6 +603,7 @@ class EDSSEMSpectrum(EDSSpectrum):
                 plt.annotate(Xray_lines[i],xy = (line_energies[i],
                   intensities[i]))
         fig.show()
+        return fig
         
     def save_result(self, result, filename, Xray_lines='all',
       extension='hdf5'):
@@ -1488,7 +1489,8 @@ class EDSSEMSpectrum(EDSSpectrum):
                        
     def quant_with_DTSA(self,
         detector='Si(Li)',
-        gateway='auto'):
+        gateway='auto',
+        TOA = 'auto'):
         """calcul the composition from a set of kratios.
         
         Parameters
@@ -1527,7 +1529,8 @@ class EDSSEMSpectrum(EDSSpectrum):
             
         e0 = mp.SEM.beam_energy
         tilt = np.abs(np.radians(mp.SEM.tilt_stage))
-        TOA = utils_eds.TOA(self)
+        if TOA == 'auto':
+            TOA = np.radians(utils_eds.TOA(self))
 
         if gateway == 'auto':
             gateway = utils_eds.get_link_to_jython()
