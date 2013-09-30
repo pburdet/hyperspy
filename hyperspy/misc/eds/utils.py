@@ -481,15 +481,16 @@ def _set_result_signal_list(mp,result):
     number_of_parts=std.data.shape[0]
     
     if result =='standard_spec':
-        #Need to change
-        #number_of_parts=len(mp.Sample.elements)
+        ##Need to change
+        ##number_of_parts=len(mp.Sample.elements)
         l_time = std.mapped_parameters.SEM.EDS.live_time
-        #number_of_parts=len(mp.Sample.Xray_lines)
+        ##number_of_parts=len(mp.Sample.Xray_lines)
         temp = std.split(axis=0,number_of_parts=number_of_parts) 
-    elif len(std.data.shape) == 1:
-        temp = std.split(axis=0,number_of_parts=number_of_parts) 
+    #elif len(std.data.shape) == 1:
+        #temp = std.split(axis=0,number_of_parts=number_of_parts) 
     else:
-        temp = std.split(axis=1,number_of_parts=number_of_parts)
+        #temp = std.split(axis=1,number_of_parts=number_of_parts)
+        temp = std.split(axis=-3,number_of_parts=number_of_parts)
     std = []
     for i, tp in enumerate(temp):
         tp = tp.squeeze()
@@ -587,14 +588,11 @@ def align_with_stackReg(img,
         if return_align_img:
             IJ.saveAs(imp,"Tiff",path_img_alnd[0])
         imp.close()
+        channel.send(1)
     
     """)
-    
-    for i in range(100):
-        if os.path.exists(path_align_file):               
-            break
-        else:
-            time.sleep(0.5)
+    for i, item in enumerate(channel):
+        item = item  
             
     shifts = _read_alignement_file()
     mp = img.mapped_parameters

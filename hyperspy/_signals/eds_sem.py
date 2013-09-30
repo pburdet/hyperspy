@@ -1419,7 +1419,7 @@ class EDSSEMSpectrum(EDSSpectrum):
                 shifts = shifts / scale
             else:
                 raise ValueError(
-                "The reference dimensions are not compatible with those" 
+                "The reference dimensions are not compatible with those " 
                 "of the result.")     
                 print ref_shape      
 
@@ -1456,7 +1456,7 @@ class EDSSEMSpectrum(EDSSpectrum):
                 mp_ref.add_node('align')
                 reference.align2D(shifts=shifts*scale,crop=False)                             
             elif mp_ref.align.is_aligned is False:            
-                reference.align2D(shifts=shift*scale,crop=False)
+                reference.align2D(shifts=shifts*scale,crop=False)
             mp_ref.align.is_aligned = True
             if crop :
                 if mp_ref.align.has_item('crop'):
@@ -1468,8 +1468,7 @@ class EDSSEMSpectrum(EDSSpectrum):
                     reference.crop_image(top_ref, bottom_ref,   
                         left_ref, right_ref)
                     mp_ref.align.crop = True
-
-            
+        
         for result in results:
             if hasattr(mp.Sample, result):
                 result_images = mp.Sample[result]
@@ -1485,6 +1484,17 @@ class EDSSEMSpectrum(EDSSpectrum):
                     if crop is True:
                        res.crop_image(top, bottom, left, right) 
                        
+        if mp.has_item('align') is False:
+            mp.add_node('align')
+        mp.align.crop = crop
+        mp.align.is_aligned = True
+        mp.align.shifts = shifts
+        mp.align.method = 'ref : ' + mp_ref.title
+        if crop is True:
+            self.axes_manager[1].size = res.axes_manager[2].size
+            self.axes_manager[0].size = res.axes_manager[1].size
+                       
+    
     def quant_with_DTSA(self,
         detector='Si(Li)',
         gateway='auto',
