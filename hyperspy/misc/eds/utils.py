@@ -127,6 +127,41 @@ def FWHM(FWHM_ref,E,line_ref='Mn_Ka'):
    
     return math.sqrt(FWHM_e)/1000
     
+def atomic_to_weight(elements,compositions):
+    """Convert atomic percent in weigth percent
+    """
+    tot = 0
+    for i, element in enumerate(elements):
+        tot = tot + compositions[i]*elements_db[element]['A']
+    weight_compositions = []
+    for i, element in enumerate(elements): 
+        weight_compositions.append(compositions[i]*elements_db[element]['A']/tot)
+        
+    return weight_compositions
+    
+def weigth_to_atomic(elements,compositions):
+    """Convert weigth percent in atomic percent
+    """
+    tot = 0
+    for i, element in enumerate(elements):
+        tot = tot + compositions[i]/elements_db[element]['A']
+    atomic_compositions = []
+    for i, element in enumerate(elements): 
+        atomic_compositions.append(compositions[i]/elements_db[element]['A']/tot)
+        
+    return atomic_compositions       
+    
+    
+def get_density(elements,compositions):
+    """Return the density from a list of elements    
+    """
+    density = 0
+    weights = atomic_to_weight(elements,compositions)
+    for i, element in enumerate(elements):
+        density = density + elements_db[element]['density']*weights[i]
+
+    return density
+    
     
 def TOA(self,tilt_stage=None,azimuth_angle=None,elevation_angle=None):
     #must be the main function. But another on in EDS spec
@@ -243,10 +278,6 @@ def phase_inspector(self,bins=[20,20,20],plot_result=True):
     img.get_dimensions_from_data()
     return img  
     
-
-
-
-    
     
 def simulate_one_spectrum(nTraj,dose=100,mp='gui',
         elements='auto',
@@ -255,6 +286,7 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
         detector='Si(Li)',
         gateway='auto'):
     #must create a class, EDS simulation
+    #to be retested, det still here
     """"
     Simulate a spectrum using DTSA-II (NIST-Monte)
     Parameters
@@ -290,66 +322,81 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
    
     """
     from hyperspy import signals
-    if mp == 'gui':
-        spec = signals.EDSSEMSpectrum(np.zeros(1024))
-        spec.set_microscope_parameters()
-        mp = spec.mapped_parameters
-        dic = mp.as_dictionary()
+    spec = signals.EDSSEMSpectrum(np.zeros(1024))
+    if mp == 'gui':        
+        spec.set_microscope_parameters()        
         if elements == 'auto':
-            raise ValueError( 'Elements need to be set with gui option')
+            raise ValueError( 'Elements need to be set (set_elements) ' +  
+             'with gui option')
             return 0
         else:
-            spec.set_elements(elements)  
-    dic = mp.as_dictionary()
-    if hasattr(mp.Sample, 'Xray_lines'):
-        dic['Sample']['Xray_lines'] = list(dic['Sample']['Xray_lines'])
+            spec.set_elements(elements) 
+            spec.set_lines() 
+        mp = spec.mapped_parameters        
+    else :
+        spec.mapped_parameters = mp.deepcopy()
+        mp = spec.mapped_parameters
         
-    if hasattr(mp.Sample, 'elements'):
-        dic['Sample']['elements'] = list(dic['Sample']['elements'])
-    else:
-        print 'Elements needs to be defined'
-        return 0
+    if elements == 'auto':        
+        if hasattr(mp.Sample, 'elements'):
+            elements = list(mp.Sample.elements)
+        else:
+            raise ValueError( 'Elements need to be set (set_elements)')   
         
-    if density == 'auto':
-        density = 7.0
-        
-    if composition == 'auto':
+    if composition == 'auto':        
         composition = []
-        for elm in dic['Sample']['elements']:
-            composition.append(1./len(dic['Sample']['elements']))         
+        if hasattr(mp.Sample, 'quant'):
+            for elm in elements:
+                composition.append(float(spec.get_result(elm,'quant').data))
+        else:       
+            for elm in elements:
+                composition.append(1./len(elements))
+            
+    if density == 'auto':
+        density = get_density(elements, composition)
         
-
-    
+    e0 = mp.SEM.beam_energy
+    tilt = np.radians(mp.SEM.tilt_stage)
+    ltime = mp.SEM.EDS.live_time
+    takeOffAngle = np.radians(TOA(spec))
+        
     if gateway == 'auto':
         gateway = get_link_to_jython()
-    channel = gateway.remote_exec("""   
+    channel = gateway.remote_exec("""
         import dtsa2
         import math
         epq = dtsa2.epq 
         epu = dtsa2.epu
         nm = dtsa2.nm
-       
-        param = """ + str(dic) + """
-
-        elements = param[u'Sample'][u'elements']
+        elements = """ + str(elements) + """
         elms = []
         for element in elements:
             elms.append(getattr(dtsa2.epq.Element,element))
         density = """ + str(density) + """
         composition = """ + str(composition) + """
-        e0 = param[u'SEM'][u'beam_energy']
-        tiltD = -1*param[u'SEM'][u'tilt_stage']
-        live_time = param[u'SEM'][u'EDS'][u'live_time']
-
-        nTraj = """ + str(nTraj) + """
-        dose = """ + str(dose) + """        
-
-        tilt = math.radians(tiltD) # tilt angle radian
-
-        det = dtsa2.findDetector('""" + detector + """')
-        origin = epu.Math2.multiply(1.0e-3, epq.SpectrumUtils.getSamplePosition(det.getProperties()))
+        e0 =  """ + str(e0) + """ 
+        dose =  """ + str(dose) + """
+        tilt = """ + str(tilt) + """ 
+        tiltD = tilt
+        if tilt < 0:
+            #tilt cannot be negative
+            tiltD = -tiltD
+        live_time = """ + str(ltime) + """
+        TOA = """ + str(takeOffAngle) + """
+        nTraj = """ + str(nTraj) + """          
+        
+        #Position of detector and sample (WD in km, d-to-crystal in m)
+        prop = epq.SpectrumProperties()
+        prop.setDetectorPosition(TOA+tiltD, 0, 0.05, 2e-5) 
+        posi = prop.getArrayProperty(epq.SpectrumProperties.DetectorPosition)
+        posi = [posi[0]/1000,posi[1]/1000,posi[2]/1000]
+        origin = [0.0,0.0,2e-5]
         z0 = origin[2]
-
+        
+        det = dtsa2.findDetector('""" + detector + """')  
+        prop = det.getDetectorProperties()
+        prop.setPosition(posi)
+        
         el = 0
         if len(elms) == 1:
             mat=epq.MaterialFactory.createPureElement(elms[el])
@@ -373,7 +420,6 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
         brem=nm.BremsstrahlungEventListener(monteb,det)
         monteb.addActionListener(brem)
         # Reset the detector and run the electrons
-        det.reset()
         monteb.runMultipleTrajectories(nTraj)
         # Get the spectrum and assign properties
         specb=det.getSpectrum(dose*1.0e-9 / (nTraj * epq.PhysicalConstants.ElectronCharge) )
@@ -414,13 +460,8 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
         else:
             datas.append(item)
         
-    try:
-        spec
-    except:
-        spec = signals.EDSSEMSpectrum(np.array(datas))
-        spec.mapped_parameters = mp
-    else:    
-        spec.data = np.array(datas)
+
+    spec.data = np.array(datas)
     spec.get_dimensions_from_data() 
     
     spec.mapped_parameters.SEM.EDS.energy_resolution_MnKa = reso
@@ -431,6 +472,215 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
     spec.mapped_parameters.title = 'Simulated spectrum'
 
     return spec
+    
+def simulate_Xray_depth_distribution(nTraj,bins=120,mp='gui',
+        elements='auto',
+        Xray_lines='auto',
+        composition='auto',
+        density='auto',
+        detector='Si(Li)',
+        gateway='auto'):
+    #must create a class, EDS simulation
+    """"
+    Simulate the X-ray depth distribution using DTSA-II (NIST-Monte)
+    
+    Parameters
+    ----------
+    
+    nTraj: int
+        number of electron trajectories
+        
+    bins: int
+        number of bins in the z direction
+        
+    mp: dict
+        Microscope parameters. If 'gui' raise a general interface.
+        
+    elements: list of str | 'auto'
+        Set the elements. If auto, look in mp.Sample if elements are defined.
+        auto cannot be used with 'gui' option.
+    
+    Xray_lines: list of str | 'auto'
+        Set the elements. If auto, look in mp.Sample if elements are defined.
+        
+    composition: list of str | 'auto'
+        Give the composition. If auto, get the values in quant (if a 
+        spectrum). Or equal repartition between elements.
+        
+    detector: str
+        Give the detector name defined in DTSA-II
+        
+    gateway: execnet Gateway
+        If 'auto', generate automatically the connection to jython. 
+        
+    Return
+    ------
+    
+    A signals.Spectrum. Depth (nm) as signal axis. Generated/emitted and 
+    Xray-lines as navigation axis.
+        
+    Note
+    ----
+    
+    For further details on DTSA-II please refer to 
+    http://www.cstl.nist.gov/div837/837.02/epq/dtsa2/index.html
+   
+    """
+    from hyperspy import signals
+    spec = signals.EDSSEMSpectrum(np.zeros(1024))
+    if mp == 'gui':        
+        spec.set_microscope_parameters()        
+        if elements == 'auto':
+            raise ValueError( 'Elements need to be set (set_elements) ' +  
+             'with gui option')
+            return 0
+        else:
+            spec.set_elements(elements) 
+            spec.set_lines() 
+        mp = spec.mapped_parameters        
+    else :
+        spec.mapped_parameters = mp.deepcopy()
+        mp = spec.mapped_parameters
+        
+    if elements == 'auto':        
+        if hasattr(mp.Sample, 'elements'):
+            elements = list(mp.Sample.elements)
+        else:
+            raise ValueError( 'Elements need to be set (set_elements)')   
+            
+    if Xray_lines == 'auto':
+        if hasattr(mp.Sample, 'Xray_lines'):
+            Xray_lines = list(mp.Sample.Xray_lines)
+        else:
+            raise ValueError( 'Xray_lines need to be set (set_lines)')
+        
+    if composition == 'auto':        
+        composition = []
+        if hasattr(mp.Sample, 'quant'):
+            for elm in elements:
+                composition.append(float(spec.get_result(elm,'quant').data))
+        else:       
+            for elm in elements:
+                composition.append(1./len(elements))
+            
+    if density == 'auto':
+        density = get_density(elements, composition)
+        
+    e0 = mp.SEM.beam_energy
+    tilt = np.radians(mp.SEM.tilt_stage)
+    ltime = mp.SEM.EDS.live_time
+    takeOffAngle = np.radians(TOA(spec))
+ 
+        
+    if gateway == 'auto':
+        gateway = get_link_to_jython()
+    channel = gateway.remote_exec("""   
+        import dtsa2
+        import math
+        epq = dtsa2.epq 
+        epu = dtsa2.epu
+        nm = dtsa2.nm
+        elements = """ + str(elements) + """
+        Xray_lines = """ + str(Xray_lines) + """ 
+        elms = []
+        for element in elements:
+            elms.append(getattr(dtsa2.epq.Element,element))
+        density = """ + str(density) + """
+        composition = """ + str(composition) + """
+        e0 =  """ + str(e0) + """ 
+        tilt = """ + str(tilt) + """ 
+        tiltD = tilt
+        if tilt < 0:
+            #tilt cannot be negative
+            tiltD = -tiltD
+        live_time = """ + str(ltime) + """
+        TOA = """ + str(takeOffAngle) + """
+        nTraj = """ + str(nTraj) + """          
+        
+        #Position of detector and sample (WD in km, d-to-crystal in m)
+        prop = epq.SpectrumProperties()
+        prop.setDetectorPosition(TOA+tiltD, 0, 0.05, 5e-6) 
+        posi = prop.getArrayProperty(epq.SpectrumProperties.DetectorPosition)
+        posi = [posi[0]/1000,posi[1]/1000,posi[2]/1000]
+        origin = [0.0,0.0,5e-6]
+        z0 = origin[2]   
+        
+        el = 0
+        if len(elms) == 1:
+            mat=epq.MaterialFactory.createPureElement(elms[el])
+        else:            
+            mat = epq.Material(epq.Composition(elms,composition ),
+                                    epq.ToSI.gPerCC(density))
+
+        # Create a simulator and initialize it
+        monteb = nm.MonteCarloSS()
+        monteb.setBeamEnergy(epq.ToSI.keV(e0))
+
+        # top substrat
+        monteb.addSubRegion(monteb.getChamber(), mat,      
+            nm.MultiPlaneShape.createSubstrate([math.sin(tilt),
+            0.0,-math.cos(tilt)], origin) )
+            
+        # Add event listeners to model characteristic radiation
+        xrel=nm.XRayEventListener2(monteb,posi)
+        monteb.addActionListener(xrel)
+        
+        dim=epq.ElectronRange.KanayaAndOkayama1972.compute(mat,
+            epq.ToSI.keV(e0)) / mat.getDensity()
+        prz = nm.PhiRhoZ(xrel, z0 - 0 * dim, z0 + 1 * dim, """ + str(bins) + """)
+        xrel.addActionListener(prz)
+
+        # Reset the detector and run the electrons
+        monteb.runMultipleTrajectories(nTraj)
+        
+        for Xray_line in Xray_lines:        
+            lim = Xray_line.find('_')
+            el = getattr(dtsa2.epq.Element,Xray_line[:lim])            
+            li = Xray_line[lim+1:]
+            if li == 'Ka':
+                transSet = epq.XRayTransition(el,0)
+            elif li == 'La':
+                transSet = epq.XRayTransition(el,12)
+            elif li == 'Ma':
+                transSet = epq.XRayTransition(el,72)      
+            
+            res = prz.getGenerated(transSet) 
+            for re in res:
+                channel.send(re)
+            res = prz.getEmitted(transSet) 
+            for re in res:
+                channel.send(re)
+                
+        channel.send(dim)
+               
+    """)
+
+    datas = []
+    for i, item in enumerate(channel):
+        datas.append(item)
+        
+    dim = datas[-1]        
+    datas = np.reshape(datas[:-1],(len(Xray_lines),2,bins))
+    datas = np.rollaxis(datas,1,0)
+        
+    frz = signals.Spectrum(np.array(datas))
+    frz.mapped_parameters.add_node('Sample')
+    frz.mapped_parameters.Sample.elements = elements
+    frz.mapped_parameters.Sample.composition = composition
+    frz.mapped_parameters.Sample.Xray_lines = Xray_lines 
+    
+    frz.mapped_parameters.SEM = mp.SEM
+
+    frz.axes_manager[0].name = 'Generated|Emitted'
+    frz.axes_manager[1].name = 'Xray_lines'
+    #frz.axes_manager[1].units = 'keV'
+    frz.axes_manager[2].name = 'Depth'
+    frz.axes_manager[2].units = 'nm'
+    frz.axes_manager[2].scale = dim / bins * 1000000000
+    frz.mapped_parameters.title = 'Simulated Depth distribution'
+
+    return frz
+
 
 def get_link_to_jython():
     #must go in IO
@@ -486,8 +736,8 @@ def _set_result_signal_list(mp,result):
         l_time = std.mapped_parameters.SEM.EDS.live_time
         ##number_of_parts=len(mp.Sample.Xray_lines)
         temp = std.split(axis=0,number_of_parts=number_of_parts) 
-    #elif len(std.data.shape) == 1:
-        #temp = std.split(axis=0,number_of_parts=number_of_parts) 
+    elif len(std.data.shape) == 1:
+        temp = std.split(axis=0,number_of_parts=number_of_parts) 
     else:
         #temp = std.split(axis=1,number_of_parts=number_of_parts)
         temp = std.split(axis=-3,number_of_parts=number_of_parts)
@@ -827,7 +1077,8 @@ def plot_histogram_results(specs,element,results,bins = 10,normalize=True):
 
 
 def _quant_with_dtsa( kratios,elements,xrts,TOA,e0,tilt,detector,gateway):
-    print TOA
+    #tilt as it should. tiltD always positive. elev = toa+tiltd. wd 5*e-6
+    #modification done, not tested
     channel = gateway.remote_exec("""   
         import dtsa2
         import math
@@ -854,15 +1105,18 @@ def _quant_with_dtsa( kratios,elements,xrts,TOA,e0,tilt,detector,gateway):
         TOA = """ + str(TOA) + """
         e0 =""" + str(e0) + """
         tilt = """ + str(tilt) + """
+        tiltD = tilt
+        if tilt < 0:
+            #tilt cannot be negative
+            tiltD = -tiltD
         det = dtsa2.findDetector('""" + detector + """')
         
         #Define spectrum properties
         specprops = epq.SpectrumProperties()
-        #specprops.setDetector(det)
-        specprops.setNumericProperty(epq.SpectrumProperties.BeamEnergy,e0)    
-        #specprops.setNumericProperty(epq.SpectrumProperties.TakeOffAngle,TOA)
+        specprops.setNumericProperty(epq.SpectrumProperties.BeamEnergy,e0)   
+
         
-        specprops.setDetectorPosition(TOA, 0, 0.005, 0.005)
+        specprops.setDetectorPosition(TOA+tiltD, 0, 0.005, 5e-6)
         print specprops
 
         

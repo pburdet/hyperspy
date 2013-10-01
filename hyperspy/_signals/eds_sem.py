@@ -1536,7 +1536,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             return 0
             
         e0 = mp.SEM.beam_energy
-        tilt = np.abs(np.radians(mp.SEM.tilt_stage))
+        tilt = np.radians(mp.SEM.tilt_stage)
         if TOA == 'auto':
             TOA = np.radians(utils_eds.TOA(self))
 
