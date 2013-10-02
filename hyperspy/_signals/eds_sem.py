@@ -1595,7 +1595,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             Between 0 (min intensity) and 1 (max intensity).
             If result == quant, 1 == 100%.
         
-        Color: list
+        color: list
             The color of the surface, (R,G,B). If 'auto', automatically 
             selected.
             

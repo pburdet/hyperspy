@@ -3,19 +3,45 @@ import numpy as np
 import execnet
 import os
 import copy
+import matplotlib.mlab as mlab
+import matplotlib.pyplot as plt
 
 from hyperspy.misc.eds.elements import elements as elements_db
 from hyperspy.misc.config_dir import config_path
 from hyperspy import utils
-import matplotlib.pyplot as plt
+
 
     
 def _get_element_and_line(Xray_line):
     lim = Xray_line.find('_')
     return Xray_line[:lim], Xray_line[lim+1:]    
     
+def get_index_from_names(self,axis_names,index_name,axis_name_in_mp=True):
+    """Get the index of an axis that is link to a list of names.
+    
+    Parameters
+    ----------
+    
+    axis_names: list of str | str
+        the list name corresponding to the axis
+        
+    index_name: str
+        The name of the index to find
+        
+    axis_name_in_mp: bool
+        if axis_name is in mapped_parameters.Sample.
+        
+    """
+    if axis_name_in_mp==True:
+        axis_names = self.mapped_parameters.Sample[axis_names]
+    
+    for i, name in enumerate(axis_names):
+        if name == index_name:
+            return i
+
 def xray_range(Xray_line,beam_energy,rho=None):
-    '''Return the Anderson-Hasler X-ray range.
+    '''Return the Anderson-Hasler X-ray range. The maximum range of X-ray
+    generation.
     
     Parameters
     ----------    
@@ -644,10 +670,10 @@ def simulate_Xray_depth_distribution(nTraj,bins=120,mp='gui',
             elif li == 'Ma':
                 transSet = epq.XRayTransition(el,72)      
             
-            res = prz.getGenerated(transSet) 
+            res = prz.getGeneratedIntensity(transSet) 
             for re in res:
                 channel.send(re)
-            res = prz.getEmitted(transSet) 
+            res = prz.getEmittedIntensity(transSet) 
             for re in res:
                 channel.send(re)
                 
@@ -926,7 +952,7 @@ def _read_alignement_file(path_align_file='auto'):
     
     
 def compare_results(specs,results,sum_elements=False,
-        normalize=False,plot_result=True):
+        normalize=False,plot_result=True,expand=False):
     #must be the main function in Image, specs = image. EDSSpec for results
     """
     Plot different results side by side
@@ -936,21 +962,39 @@ def compare_results(specs,results,sum_elements=False,
     
     Parameters
     ----------
-    specs: list || list of list
+    specs: list || list of list || spec
         The list (list of list) of spectra containing the results.
         
-    results: list || list of list
-        The list (list of list) of name of the results (or a list of images).
+    results: list || list of list || str
+        The list (list of list) of name of the results (or a list of specs).
         
     normalize: bool    
         If True, each result are normalized.
         
     plot_result : bool
         If True (default option), plot the result. If False, return 
-        the result.           
+        the result.
+        
+    expand : bool
+        if results and specs have different shape, expand in a matrix/lines.
     
-    """
+    """ 
+    if expand == True:
+        specs = copy.deepcopy(specs)
+        if isinstance(specs, list):
+            results = [results]*len(specs)
+            for i, spec in enumerate(specs):
+                specs[i] = [specs[i]]*len(results[0])
+        else:
+            if isinstance(results[0], list):
+                specs = [[specs]*len(results[0])]*len(results)
+            else:
+                specs = [specs]*len(results)
+    
+        
     if isinstance(specs[0], list):
+        if isinstance(results,list) is False:
+            results = [[results]*len(specs[0])]*len(specs) 
         check = []
         for j, spec in enumerate(specs):
             check_temp = []
@@ -969,8 +1013,12 @@ def compare_results(specs,results,sum_elements=False,
                 axis=temp.axes_manager.signal_axes[0].name))
             
         check = utils.stack(check,axis=temp.axes_manager.signal_axes[1].name)
+        check.axes_manager[-2].name += ' + results'
+        check.axes_manager[-1].name += ' + specs'
         
-    elif isinstance(specs[0], list) is False:
+    elif isinstance(specs, list):
+        if isinstance(results,list) is False:
+            results = [results]*len(specs)
         check = []
         for i,s in enumerate(specs):
             if isinstance(results[i],str) is False:
@@ -986,7 +1034,7 @@ def compare_results(specs,results,sum_elements=False,
             
         check = utils.stack(check,axis=temp.axes_manager.signal_axes[0].name)
     else:
-        raise ValueError("resutls are not a list")   
+        raise ValueError("specs is not a list")   
  
     
     
@@ -1043,7 +1091,7 @@ def plot_histogram_results(specs,element,results,bins = 10,normalize=True):
     element: str
         The element to consider. 'all' return the sum over all elements.
         
-    results: list 
+    results: list || str
         The list of name of the results (or a list of images).        
         
     bins: int
@@ -1052,7 +1100,11 @@ def plot_histogram_results(specs,element,results,bins = 10,normalize=True):
     normalize: bool
         
     """
-    
+    if isinstance(results,list) is False:
+        results = [results]*len(specs)
+    elif isinstance(specs,list) is False:
+        specs = copy.deepcopy(specs)
+        specs = [specs]*len(results)
     fig = plt.figure()
     for i, spec in enumerate(specs):
         if element == 'all':
@@ -1072,6 +1124,77 @@ def plot_histogram_results(specs,element,results,bins = 10,normalize=True):
         plt.plot(center, hist1, label = re.mapped_parameters.title)
     plt.legend()
     fig.show()
+    
+    return fig
+    
+def compare_signal(specs,
+    indexes,
+    legend_labels='auto',
+    colors='auto',
+    line_styles='auto'):
+    """Compare the signal from different indexes or|and from different
+    spectra.
+    
+    Parameters
+    ----------
+    
+    specs: list | spectrum
+        A list of spectra or a spectrum
+    
+    indexes: list
+        The list of indexes to compares
+        
+    legend_labels: 'auto' | list | None
+        If legend_labels is auto, then the indexes are used.
+        
+    colors: list
+        If 'auto', automatically selected, eg: ('red','blue')
+        
+    line_styles: list
+        If 'auto', continuous lines, eg: ('-','--','steps','-.',':')
+        
+    Returns
+    -------
+    
+    figure
+        
+    """
+    
+    if isinstance(indexes,list) is False:
+        line_styles = [line_styles]* len(specs)           
+    
+    if colors == 'auto':
+        colors = ['red','blue','green','orange','violet','magenta',
+        'orange','violet','black','yellow',' pink']
+    elif isinstance(colors,list) is False:
+        colors = [colors]* len(indexes)
+    if line_styles == 'auto':
+        line_styles = ['-']* len(indexes)
+    elif isinstance(line_styles,list) is False:
+        line_styles = [line_styles]* len(indexes)
+
+    fig = plt.figure()
+    if legend_labels == 'auto': 
+        legend_labels = []
+        for index in indexes:  legend_labels.append(str(index))
+    for i, index in enumerate(indexes):
+        if isinstance(specs,list):
+            tmp = specs[i]
+        else :
+            tmp = specs
+        for ind in index: tmp = tmp[ind]
+
+        maxx = len(tmp.data)*tmp.axes_manager[0].scale-tmp.axes_manager[0].offset
+        xdata = mlab.frange(tmp.axes_manager[0].offset,maxx,
+                            tmp.axes_manager[0].scale,npts=len(tmp.data))
+        plt.plot(xdata,tmp.data, color = colors[i],ls=line_styles[i])
+    plt.ylabel('Intensity')
+
+    plt.xlabel(str(tmp.axes_manager[0].name + ' (' + tmp.axes_manager[0].units + ')'))
+    
+    if legend_labels is not None:
+        plt.legend(legend_labels) 
+    fig.show() 
     
     return fig
 
