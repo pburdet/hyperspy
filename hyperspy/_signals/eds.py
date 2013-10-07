@@ -588,21 +588,59 @@ class EDSSpectrum(Spectrum):
                 intensities.append(img)
         return intensities
 
-    def running_sum(self) :
+    def running_sum(self,shape_convo='square',corner=-1) :
+        #cross not tested
         """
         Apply a running sum on the data.
+        
+        Parameters
+        ----------
+        
+        shape_convo: 'square'|'cross'
+            Define the shape to convolve with
+        
+        corner : -1 || 1
+            For square, running sum induce a shift of the images towards 
+            one of the corner: if -1, towards top left, if 1 towards 
+            bottom right.
+            For 'cross', if -1 vertical/horizontal cross, if 1 from corner
+            to corner.
         
         """
         dim = self.data.shape
         data_s = np.zeros_like(self.data)        
         data_s = np.insert(data_s, 0, 0,axis=-3)
-        data_s = np.insert(data_s, 0, 0,axis=-2)
-        end_mirrors = [[0,0],[-1,0],[0,-1],[-1,-1]]
-        
-        for end_mirror in end_mirrors:  
-            tmp_s=np.insert(self.data, end_mirror[0], self.data[...,end_mirror[0],:,:],axis=-3)
-            data_s += np.insert(tmp_s, end_mirror[1], tmp_s[...,end_mirror[1],:],axis=-2)
-        data_s = data_s[...,1::,:,:][...,1::,:]
+        data_s = np.insert(data_s, 0, 0,axis=-2)    
+        if shape_convo == 'square':
+            end_mirrors = [[0,0],[-1,0],[0,-1],[-1,-1]]
+            for end_mirror in end_mirrors:  
+                tmp_s=np.insert(self.data, end_mirror[0], self.data[...,end_mirror[0],:,:],axis=-3)
+                data_s += np.insert(tmp_s, end_mirror[1], tmp_s[...,end_mirror[1],:],axis=-2)
+            if corner == -1:
+                data_s = data_s[...,1:,:,:][...,1:,:]
+            else :
+                data_s = data_s[...,:-1,:,:][...,:-1,:]
+                
+            
+            
+        elif shape_convo == 'cross':
+            data_s = np.insert(data_s, 0, 0,axis=-3)
+            data_s = np.insert(data_s, 0, 0,axis=-2)
+            if corner == -1:
+                end_mirrors = [[0,-1,0,-1],[-1,-1,0,-1],[0,0,0,-1],[0,-1,0,0],[0,-1,-1,-1]]
+            elif corner == 1:
+                end_mirrors = [[0,-1,0,-1],[0,0,0,0],[-1,-1,0,0],[0,0,-1,-1],[-1,-1,-1,-1]]
+            else:
+                end_mirrors = [[0,-1,0,-1],[-1,-1,0,-1],[0,0,0,-1],[0,-1,0,0], 
+                [0,-1,-1,-1],[0,0,0,0],[-1,-1,0,0],[0,0,-1,-1],[-1,-1,-1,-1]]
+                
+            for end_mirror in end_mirrors:  
+                tmp_s=np.insert(self.data, end_mirror[0], self.data[...,end_mirror[0],:,:],axis=-3)
+                tmp_s=np.insert(tmp_s, end_mirror[1], self.data[...,end_mirror[0],:,:],axis=-3)
+                tmp_s=np.insert(tmp_s, end_mirror[2], self.data[...,end_mirror[0],:,:],axis=-2)
+                data_s += np.insert(tmp_s, end_mirror[3], tmp_s[...,end_mirror[1],:],axis=-2)
+            data_s = data_s[...,1:-2,:,:][...,1:-2,:]
+
         
         if hasattr(self.mapped_parameters, 'SEM'):            
             mp = self.mapped_parameters.SEM
