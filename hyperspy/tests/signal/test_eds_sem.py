@@ -289,7 +289,11 @@ class Test_simulation:
         
     def test_simu_1_spec(self):
         s = self.signal
-        utils_eds.simulate_one_spectrum(10,mp=s.mapped_parameters)
+        gateway= utils_eds.get_link_to_jython()
+        utils_eds.simulate_one_spectrum(nTraj=10,
+            mp=s.mapped_parameters,gateway=gateway)
+        utils_eds.simulate_Xray_depth_distribution(10,
+            mp=s.mapped_parameters,gateway=gateway)
         
 class Test_electron_distribution:    
     def setUp(self):

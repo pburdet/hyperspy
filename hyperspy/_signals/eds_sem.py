@@ -1022,6 +1022,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         detector='Si(Li)',
         plot_result=False,
         gateway='auto'):
+        #works on the angle. Define always the same..
         """"
         Simulate a the electron distribution in each layer z using DTSA-II
         
@@ -1057,14 +1058,17 @@ class EDSSEMSpectrum(EDSSpectrum):
         """              
         
         mp = self.mapped_parameters     
-        dic = self.deepcopy().mapped_parameters.as_dictionary()           
+        #dic = self.deepcopy().mapped_parameters.as_dictionary()           
         if hasattr(mp.Sample, 'elements') is False:
             raise ValueError( 'Elements needs to be defined')
             return 0
             
-        elements = list(dic['Sample']['elements'])
-        e0 = dic['SEM']['beam_energy']
-        tilt = dic['SEM']['tilt_stage']
+        #elements = list(dic['Sample']['elements'])
+        #e0 = dic['SEM']['beam_energy']
+        #tilt = dic['SEM']['tilt_stage']
+        elements = list(mp.Sample.elements)
+        e0 = mp.SEM.beam_energy
+        tilt = np.radians(mp.SEM.tilt_stage)
             
      
         #Units!! 
@@ -1109,7 +1113,12 @@ class EDSSEMSpectrum(EDSSpectrum):
             for element in elements:
                 elms.append(getattr(dtsa2.epq.Element,element))
             e0 = """ + str(e0) + """
-            tiltD = -""" + str(tilt) + """
+            #needs to be changed 
+            tilt = -""" + str(tilt) + """
+            #tiltD = tilt
+            #if tilt < 0:
+                #tilt cannot be negative
+                #tiltD = -tiltD
             
             nTraj = """ + str(nb_traj) + """
             IncrementF = """ + str(dx_increment) + """
@@ -1117,7 +1126,6 @@ class EDSSEMSpectrum(EDSSpectrum):
             pixLat = """ + str(pixLat) + """
             dev = """ + str(dev) + """
             pixTot = pixLat[0]*pixLat[1]
-            tilt = math.radians(tiltD) # tilt angle radian
 
             det = dtsa2.findDetector('""" + detector + """')
             origin = epu.Math2.multiply(1.0e-3,

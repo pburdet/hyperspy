@@ -334,6 +334,9 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
     composition: list of string
         Give the composition. If auto, equally parted
         
+    density: list of float
+        Set the density. If 'auto', obtain from the compositions.
+        
     detector: str
         Give the detector name defined in DTSA-II
         
@@ -367,7 +370,10 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
         if hasattr(mp.Sample, 'elements'):
             elements = list(mp.Sample.elements)
         else:
-            raise ValueError( 'Elements need to be set (set_elements)')   
+            raise ValueError( 'Elements need to be set (set_elements)') 
+            return 0  
+    else: 
+        mp.Sample.elements = elements
         
     if composition == 'auto':        
         composition = []
@@ -377,9 +383,11 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
         else:       
             for elm in elements:
                 composition.append(1./len(elements))
+    mp.Sample.composition = composition
             
     if density == 'auto':
         density = get_density(elements, composition)
+    mp.Sample.density = density
         
     e0 = mp.SEM.beam_energy
     tilt = np.radians(mp.SEM.tilt_stage)
@@ -446,6 +454,7 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
         brem=nm.BremsstrahlungEventListener(monteb,det)
         monteb.addActionListener(brem)
         # Reset the detector and run the electrons
+        det.reset()
         monteb.runMultipleTrajectories(nTraj)
         # Get the spectrum and assign properties
         specb=det.getSpectrum(dose*1.0e-9 / (nTraj * epq.PhysicalConstants.ElectronCharge) )
@@ -455,8 +464,8 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
         propsb.setNumericProperty(epq.SpectrumProperties.LiveTime, dose)
         propsb.setNumericProperty(epq.SpectrumProperties.FaradayBegin,1.0)
         propsb.setNumericProperty(epq.SpectrumProperties.BeamEnergy,e0)
-        noisyb=epq.SpectrumUtils.addNoiseToSpectrum(specb,live_time)
-        dtsa2.display(noisyb)
+        #noisyb=epq.SpectrumUtils.addNoiseToSpectrum(specb,live_time)
+        #dtsa2.display(noisyb)
         
         a = det.calibration.getProperties()
         
@@ -471,7 +480,7 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
         channel.send(offset)
         channel.send(resolution)
         for i in range(channelMax):
-            channel.send(noisyb.getCounts(i))
+            channel.send(specb.getCounts(i))
                
     """)
 
@@ -494,8 +503,12 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
     spec.axes_manager[0].scale = scale / 1000
     spec.axes_manager[0].offset = offset
     spec.axes_manager[0].name = 'Energy'
-    spec.axes_manager[0].unit = 'keV'
+    spec.axes_manager[0].units = 'keV'
     spec.mapped_parameters.title = 'Simulated spectrum'
+    
+    spec.mapped_parameters.add_node('simulation')
+    spec.mapped_parameters.simulation.nTraj = nTraj 
+    mp.signal_origin = "simulation"
 
     return spec
     
@@ -507,6 +520,7 @@ def simulate_Xray_depth_distribution(nTraj,bins=120,mp='gui',
         detector='Si(Li)',
         gateway='auto'):
     #must create a class, EDS simulation
+    #check if all param well stored
     """"
     Simulate the X-ray depth distribution using DTSA-II (NIST-Monte)
     
@@ -529,9 +543,12 @@ def simulate_Xray_depth_distribution(nTraj,bins=120,mp='gui',
     Xray_lines: list of str | 'auto'
         Set the elements. If auto, look in mp.Sample if elements are defined.
         
-    composition: list of str | 'auto'
-        Give the composition. If auto, get the values in quant (if a 
+    composition: list of flaot | 'auto'
+        Set the composition. If auto, get the values in quant (if a 
         spectrum). Or equal repartition between elements.
+        
+    density: list of float
+        Set the density. If 'auto', obtain from the compositions.
         
     detector: str
         Give the detector name defined in DTSA-II
@@ -657,6 +674,7 @@ def simulate_Xray_depth_distribution(nTraj,bins=120,mp='gui',
         xrel.addActionListener(prz)
 
         # Reset the detector and run the electrons
+        #det.reset()
         monteb.runMultipleTrajectories(nTraj)
         
         for Xray_line in Xray_lines:        
@@ -690,12 +708,14 @@ def simulate_Xray_depth_distribution(nTraj,bins=120,mp='gui',
     datas = np.rollaxis(datas,1,0)
         
     frz = signals.Spectrum(np.array(datas))
-    frz.mapped_parameters.add_node('Sample')
-    frz.mapped_parameters.Sample.elements = elements
-    frz.mapped_parameters.Sample.composition = composition
-    frz.mapped_parameters.Sample.Xray_lines = Xray_lines 
+    mp = frz.mapped_parameters
+    mp.add_node('Sample')
+    mp.Sample.elements = elements
+    mp.Sample.composition = composition
+    mp.Sample.Xray_lines = Xray_lines 
+    mp.Sample.density = density
     
-    frz.mapped_parameters.SEM = mp.SEM
+    mp.SEM = mp.SEM
 
     frz.axes_manager[0].name = 'Generated|Emitted'
     frz.axes_manager[1].name = 'Xray_lines'
@@ -703,7 +723,12 @@ def simulate_Xray_depth_distribution(nTraj,bins=120,mp='gui',
     frz.axes_manager[2].name = 'Depth'
     frz.axes_manager[2].units = 'nm'
     frz.axes_manager[2].scale = dim / bins * 1000000000
-    frz.mapped_parameters.title = 'Simulated Depth distribution'
+    mp.title = 'Simulated Depth distribution'
+    
+    mp.add_node('simulation')
+    mp.simulation.nTraj = nTraj  
+    mp.signal_origin = "simulation"
+    mp.simulation.software = 'NistMonte' 
 
     return frz
 
@@ -1159,9 +1184,10 @@ def compare_signal(specs,
     figure
         
     """
+
     
-    if isinstance(indexes,list) is False:
-        line_styles = [line_styles]* len(specs)           
+    if isinstance(indexes[0],list) is False:        
+        indexes = [indexes]*len(specs)
     
     if colors == 'auto':
         colors = ['red','blue','green','orange','violet','magenta',
@@ -1184,7 +1210,7 @@ def compare_signal(specs,
             tmp = specs
         for ind in index: tmp = tmp[ind]
 
-        maxx = len(tmp.data)*tmp.axes_manager[0].scale-tmp.axes_manager[0].offset
+        maxx = (len(tmp.data)-1)*tmp.axes_manager[0].scale+tmp.axes_manager[0].offset
         xdata = mlab.frange(tmp.axes_manager[0].offset,maxx,
                             tmp.axes_manager[0].scale,npts=len(tmp.data))
         plt.plot(xdata,tmp.data, color = colors[i],ls=line_styles[i])
@@ -1335,6 +1361,286 @@ def _quant_with_dtsa( kratios,elements,xrts,TOA,e0,tilt,detector,gateway):
     ZAF = np.reshape(ZAF,[len(elements),4])  
     
     return comp, ZAF
+    
+def simulate_linescan(nTraj,
+    compositions,
+    min_max,
+    lscan_scale,
+    lscan_axis='x',
+    elements = 'auto',    
+    density = 'auto',
+    mp='gui',
+    detector='Si(Li)',
+    gateway='auto'):
+    """Simulate a linescan accross a boundary between two materials
+    
+    Implemented for linescan along z. Spectra simulated using DTSA-II 
+    (NIST-Monte)
+    
+    Parameters
+    ----------
+    
+    nTraj: int
+        number of electron trajectories   
+        
+    compositions: list of list of float
+        Give the composition of each material (right/left or top/bottom).
+         (eg. [[0.33,0.33,0.33],[1,0,0]) 
+            
+    min_max: list of float
+        The start and the end of the linesscan, zero being the interface.
+        Given in [mum].  
+         
+    lscan_scale: float
+        the distance between two spectrum. Given in [mum]. 
+        
+    lscan_axis: 'x'|'y'|'z'
+        the orientation of the linescan. The interface is perpendiculait to
+        the axis
+        
+    elements: list of str
+        All elements present. If auto, look in mp.Sample if elements are defined.
+        auto cannot be used with 'gui' option.
+        
+    density: list of float
+        The density of each material. If 'auto', obtain from the compositions.
+        
+    mp: dict
+        Microscope parameters. If 'gui' raise a general interface.
+        
+    detector: str
+        Give the detector name defined in DTSA-II. 'Si(Li)' is the default one
+        
+    gateway: execnet Gateway
+        If 'auto', generate automatically the connection to jython. 
+        
+    Note
+    ----
+    
+    For further details on DTSA-II please refer to 
+    http://www.cstl.nist.gov/div837/837.02/epq/dtsa2/index.html
+    """
+    from hyperspy import signals
+    spec = signals.EDSSEMSpectrum(np.zeros(1024))
+    if mp == 'gui':        
+        spec.set_microscope_parameters()        
+        if elements == 'auto':
+            raise ValueError( 'Elements need to be set (set_elements) ' +  
+             'with gui option')
+            return 0
+        else:
+            spec.set_elements(elements) 
+            spec.set_lines() 
+        mp = spec.mapped_parameters        
+    else :
+        spec.mapped_parameters = mp.deepcopy()
+        mp = spec.mapped_parameters
+        
+    if elements == 'auto':        
+        if hasattr(mp.Sample, 'elements'):
+            elements = list(mp.Sample.elements)
+        else:
+            raise ValueError( 'Elements need to be set (set_elements)')  
+            return 0
+    else: 
+        mp.Sample.elements = elements
+            
+    if density == 'auto':
+        density = []
+        for composition in compositions:
+            density.append(get_density(elements, composition))
+            
+    mp.Sample.composition = compositions
+    mp.Sample.density = density
+        
+    e0 = mp.SEM.beam_energy
+    tilt = np.radians(mp.SEM.tilt_stage)
+    ltime = mp.SEM.EDS.live_time
+    takeOffAngle = np.radians(TOA(spec))    
+    
+    def simu_film(interface_xyz):
+        channel = gateway.remote_exec("""
+            import dtsa2
+            import math
+            epq = dtsa2.epq 
+            epu = dtsa2.epu
+            nm = dtsa2.nm
+            elements = """ + str(elements) + """
+            elms = []
+            for element in elements:
+                elms.append(getattr(dtsa2.epq.Element,element))
+            density = """ + str(density) + """
+            composition = """ + str(compositions) + """
+            e0 =  """ + str(e0) + """ 
+            tilt = """ + str(tilt) + """ 
+            tiltD = tilt
+            if tilt < 0:
+                #tilt cannot be negative
+                tiltD = -tiltD
+            live_time = """ + str(ltime) + """
+            TOA = """ + str(takeOffAngle) + """
+            nTraj = """ + str(nTraj) + """ 
+            dose = 100
+            
+            #Position of detector and sample (WD in km, d-to-crystal in m)
+            prop = epq.SpectrumProperties()
+            prop.setDetectorPosition(TOA+tiltD, 0, 0.05, 2e-5) 
+            posi = prop.getArrayProperty(epq.SpectrumProperties.DetectorPosition)
+            posi = [posi[0]/1000,posi[1]/1000,posi[2]/1000]
+            origin = [0.0,0.0,2e-5]
+            z0 = origin[2]
+            
+            det = dtsa2.findDetector('""" + detector + """')  
+            prop = det.getDetectorProperties()
+            prop.setPosition(posi)
+            
+            el = []
+            for i in range(2):
+                el.append([j for j, x in enumerate(composition[i]) if x > 0])
+                
+            if len(el[0])==1:
+                subMat=epq.MaterialFactory.createPureElement(elms[el[0][0]])
+            else:
+                subMat =  epq.Material(epq.Composition(elms,composition[0] ),
+                                        epq.ToSI.gPerCC(density[0]))
+            if len(el[1])==1:
+                filmMat=epq.MaterialFactory.createPureElement(elms[el[1][0]])
+            else:
+                filmMat = epq.Material(epq.Composition(elms,composition[1] ),
+                                        epq.ToSI.gPerCC(density[1]))
+        
+            # Create a simulator and initialize it
+            monteb = nm.MonteCarloSS()
+            monteb.setBeamEnergy(epq.ToSI.keV(e0))
+        
+            # Create a first layer of film
+            interface_xyz =""" + str(interface_xyz*1e-6) + """
+            lscan_axis = '""" + lscan_axis + """'
+            
+            big_d = 1e-3
+   
+            if lscan_axis != 'z': 
+                if lscan_axis == 'x':            
+                    center0= [0.0,big_d/2-interface_xyz,z0]
+                    center1 = [0.0,-big_d/2-interface_xyz,z0]
+                elif lscan_axis == 'y':            
+                    center0= [big_d/2-interface_xyz,0.0,z0]
+                    center1 = [-big_d/2-interface_xyz,0.0,z0]            
+                sub0 = nm.MultiPlaneShape.createBlock([big_d]*3, 
+                    center1,0.0,0.0,0.0)
+                block = nm.MultiPlaneShape.createBlock([big_d]*3, 
+                    center0,0.0,0.0,0.0)            
+                monteb.addSubRegion(monteb.getChamber(), filmMat,block)
+                monteb.addSubRegion(monteb.getChamber(), subMat,sub0)
+            elif lscan_axis == 'z':
+                center0=epu.Math2.plus(origin,[0.0,0.0,-interface_xyz/2])               
+                sub0 = nm.MultiPlaneShape.createSubstrate([0.0,0.0,-1.0], origin)
+                block = nm.MultiPlaneShape.createFilm([0.0,0.0,-1.0],
+                    center0, interface_xyz)
+                sub = monteb.addSubRegion(monteb.getChamber(), subMat,sub0)
+                if interface_xyz!=0:
+                    monteb.addSubRegion(sub,filmMat,block)
+            
+            monteb.rotate([0,0,z0-big_d/2], 0.0,-tilt,0.0)
+                
+                
+            # Add event listeners to model characteristic radiation
+            xrel=nm.XRayEventListener2(monteb,det)
+            monteb.addActionListener(xrel)
+        
+            # Add event listeners to model bBremsstrahlung
+            brem=nm.BremsstrahlungEventListener(monteb,det)
+            monteb.addActionListener(brem)
+            # Reset the detector and run the electrons
+            det.reset()
+            monteb.runMultipleTrajectories(nTraj)
+            # Get the spectrum and assign properties
+            specb=det.getSpectrum(dose*1.0e-9 / (nTraj * epq.PhysicalConstants.ElectronCharge) )
+            propsb=specb.getProperties()
+            propsb.setNumericProperty(epq.SpectrumProperties.LiveTime, dose)
+            propsb.setNumericProperty(epq.SpectrumProperties.FaradayBegin,1.0)
+            propsb.setNumericProperty(epq.SpectrumProperties.BeamEnergy,e0)
+            #noisyb=epq.SpectrumUtils.addNoiseToSpectrum(specb,live_time)
+            #dtsa2.display(noisyb)
+            
+            a = det.calibration.getProperties()
+            
+            channelWidth = det.calibration.getChannelWidth()
+            offset = det.calibration.getZeroOffset()
+            resolution = a.getPropertyByName('Resolution')
+            if e0 < 15.0 :
+                channelMax = 1024
+            else:
+                channelMax = 2048
+            channel.send(channelWidth)
+            channel.send(offset)
+            channel.send(resolution)
+            for i in range(channelMax):
+                channel.send(specb.getCounts(i))
+        """)
+        
+        datas = []
+        for i, item in enumerate(channel):
+            if i == 0:
+                scale = item
+            elif i==1:
+                offset = item
+            elif i==2:
+                reso = item
+            else:
+                datas.append(item) 
+        return datas, scale, offset, reso
+        
+        
+    spec_datas = []
+    for thck in mlab.frange(min_max[0],min_max[1],lscan_scale): 
+        if thck <0 and lscan_axis == 'z':
+            tmp, scale, offset, reso = simu_film(0)
+        else:
+            tmp, scale, offset, reso  = simu_film(thck)
+        spec_datas.append(tmp)
+    spec = signals.EDSSEMSpectrum(np.array(spec_datas))    
+    spec.mapped_parameters = mp   
+     
+    mp.SEM.EDS.energy_resolution_MnKa = reso
+    spec.axes_manager[-1].scale = scale / 1000
+    spec.axes_manager[-1].offset = offset
+    spec.axes_manager[-1].name = 'Energy'
+    spec.axes_manager[-1].units = 'keV'
+    spec.axes_manager[0].scale = lscan_scale
+    spec.axes_manager[0].offset = min_max[0]
+    spec.axes_manager[0].name = 'Scan'
+    spec.axes_manager[0].units = '${\mu}m$'
+    spec.mapped_parameters.title = 'Simulated linescan along ' + lscan_axis 
+    mp.add_node('simulation')
+    mp.simulation.nTraj = nTraj 
+    mp.simulation.software = 'NistMonte'  
+    
+    mp.signal_origin = "simulation"
+    
+    
+    return spec    
+    
+    #big_d = 1e-1
+    
+    #if lscan_axis == 'z':
+        #centerFilm=epu.Math2.plus(origin,[0.0,0.0,-interface_xyz/2])   
+        #layer=monteb.addSubRegion(sub, filmMat,      
+              #nm.MultiPlaneShape.createFilm([math.sin(tilt),
+              #0.0,-math.cos(tilt)], centerFilm, interface_xyz) ) 
+    #elif lscan_axis == 'x':            
+        #center0=epu.Math2.plus(origin,[math.sin(tilt)*big_d/2,
+               #big_d/2-interface_xyz,-math.cos(tilt)*big_d/2.00000000000001])
+        #block = nm.MultiPlaneShape.createBlock([big_d]*3, center0,0.0,-tilt,0.0)
+        #subblock = monteb.addSubRegion(sub, filmMat,block)
+    #elif lscan_axis == 'y': 
+        #two = 2.00000000000001
+        #center0=epu.Math2.plus(origin,
+            #[math.sin(tilt)*big_d/2+(big_d/2-interface_xyz)*math.cos(tilt),
+            #0.0,-math.cos(tilt)*big_d/two+(big_d/2-interface_xyz)*math.sin(tilt)])
+        #block = nm.MultiPlaneShape.createBlock([big_d]*3, center0,0.0,-tilt,0.0)
+        #subblock = monteb.addSubRegion(sub, filmMat,block)
+
 
 
     
