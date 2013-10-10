@@ -17,6 +17,7 @@
 # along with  Hyperspy.  If not, see <http://www.gnu.org/licenses/>.
 
 import warnings
+import numpy as np
 
 from hyperspy.exceptions import DataDimensionError
 from hyperspy.signal import Signal
@@ -120,3 +121,103 @@ class Spectrum(Signal):
         im.mapped_parameters.record_by = "image"
         im._assign_subclass()
         return im
+        
+    def _set_result_dimension(self, result, label_name, result_name):
+        """Set the result of a process on the signal axis to the right 
+        dimension
+        
+        The result has the same dimension minus the signal axis.
+        
+        Parameters
+        ----------
+        
+        result: np.array | signal
+            If array, the axes_manager of self are used.
+            
+        label_name: str
+            The label related to the signal  (eg. `Al_Ka`)
+        
+        result_name: str
+            The label of the process used (eg. `Intensity`)
+        
+        """      
+        from hyperspy import signals  
+
+        if isinstance(result,Signal) is False:
+            result = Signal(np.array(result))
+            if self.axes_manager.navigation_dimension != 0:
+                axes_res = self.axes_manager.deepcopy()
+                axes_res.remove(-1)
+                result.axes_manager = axes_res
+            print result
+        
+        if self.axes_manager.navigation_dimension >= 2:
+            result = result.as_image([0,1])
+        elif self.axes_manager.navigation_dimension == 1:
+            result.axes_manager.set_signal_dimension(1)
+        elif self.axes_manager.navigation_dimension == 0:
+            if len(result.axes_manager.shape) == 1:
+                result.data = result.data[0]
+        print result
+        
+        mp = self.mapped_parameters
+        res_mp = result.mapped_parameters
+        if hasattr(mp, 'SEM'):
+            res_mp.SEM = mp.SEM
+        if hasattr(mp, 'TEM'):
+            res_mp.TEM = mp.TEM
+  
+                
+        res_mp.title = result_name + ' ' + label_name
+        res_mp.signal_type = mp.signal_type
+        #res_mp.signal_origin = 'processed' New type of origin?
+        if hasattr(res_mp, 'Sample'):
+            #to avoid memory overload in loop
+            del result.mapped_parameters.Sample
+        
+        
+        return result
+        
+                
+        
+    def store_result(self, result, list_name, label_name, result_name):
+        """
+        Store the result into in 'mapped_parameters.Sample'
+        
+        Parameters
+        ----------
+        
+        result: np.array | signal
+            If array, the axes_manager of self are used.
+            
+        labels_list: str
+            The name of the list in 'mapped_parameters.Sample' where label_name 
+            are stored (eg. 'elements', 'Xray_lines')
+            
+        label_name: str
+            The label related to the signal  (eg. `Al_Ka`)
+        
+        result_name: str
+            The label of the process used (eg. `Intensity`)
+            
+        """
+        mp = self.mapped_parameters 
+        labels_list = list(mp.Sample[list_name])
+        
+
+        if not hasattr(mp.Sample, result_name) :           
+            mp.Sample[result_name] = list(np.zeros(len(labels_list)))
+      
+  
+        try:
+            index = labels_list.index(label_name)
+        except ValueError:
+            raise ValueError("label_name is not contains in labels_list")
+            return 0
+        
+        result = self._set_result_dimension(result, label_name, result_name)
+        mp.Sample[result_name][index] = result 
+        
+        return result
+
+

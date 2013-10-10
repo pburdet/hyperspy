@@ -364,7 +364,8 @@ class EDSSpectrum(Spectrum):
                             plot_result=False,
                             integration_window_factor=2.,
                             only_one=True,
-                            only_lines=("Ka", "La", "Ma"),):
+                            only_lines=("Ka", "La", "Ma"),
+                            store_result=False):
         """Return the intensity map of selected Xray lines.
         
         The intensity maps are computed by integrating the spectrum over the 
@@ -401,6 +402,10 @@ class EDSSpectrum(Spectrum):
             above an overvoltage of 2 (< beam energy / 2).
         only_lines : {None, list of strings}
             If not None, use only the given lines.
+        store_result: bool
+            If True and if Xray_lines correspond to 
+            `mapped.parameters.Sample.elements.Xray_lines`, store the 
+            result in `mapped.parameters.Sample.elements.Intensity`.
             
         Returns
         -------
@@ -418,23 +423,23 @@ class EDSSpectrum(Spectrum):
         set_elements, add_elements.
         
         """
-
+        mp=self.mapped_parameters
         if Xray_lines is None:
-            if 'Sample.Xray_lines' in self.mapped_parameters:
-                Xray_lines = self.mapped_parameters.Sample.Xray_lines
-            elif 'Sample.elements' in self.mapped_parameters:
+            if 'Sample.Xray_lines' in mp:
+                Xray_lines = mp.Sample.Xray_lines
+            elif 'Sample.elements' in mp:
                 Xray_lines = self._get_lines_from_elements(
-                        self.mapped_parameters.Sample.elements,
+                        mp.Sample.elements,
                         only_one=only_one,
                         only_lines=only_lines)
             else:
                 raise ValueError(
                     "Not X-ray line, set them with `add_elements`")
                             
-        if self.mapped_parameters.signal_type == 'EDS_SEM':
-            FWHM_MnKa = self.mapped_parameters.SEM.EDS.energy_resolution_MnKa
-        elif self.mapped_parameters.signal_type == 'EDS_TEM':
-            FWHM_MnKa = self.mapped_parameters.TEM.EDS.energy_resolution_MnKa
+        if mp.signal_type == 'EDS_SEM':
+            FWHM_MnKa = mp.SEM.EDS.energy_resolution_MnKa
+        elif mp.signal_type == 'EDS_TEM':
+            FWHM_MnKa = mp.TEM.EDS.energy_resolution_MnKa
         else:
             raise NotImplementedError(
                 "This method only works for EDS_TEM or EDS_SEM signals. "
@@ -451,16 +456,12 @@ class EDSSpectrum(Spectrum):
             det = integration_window_factor * line_FWHM / 2.
             img = self[...,line_energy - det:line_energy + det
                     ].integrate_simpson(-1)
-            img.mapped_parameters.title = (
-                'Intensity of %s at %.2f %s from %s' % 
-                (Xray_line,
-                 line_energy,
-                 self.axes_manager.signal_axes[0].units,
-                 self.mapped_parameters.title)) 
-            if img.axes_manager.navigation_dimension >= 2:
-                img = img.as_image([0,1])
-            elif img.axes_manager.navigation_dimension == 1:
-                img.axes_manager.set_signal_dimension(1)
+                    
+            test_list = [c for c in Xray_lines if c not in mp.Sample.Xray_lines]
+            if store_result and len(test_list)==0  :
+                img = self.store_result(img, 'Xray_lines', Xray_line, 'Intensity')
+            else:
+                img = self._set_result_dimension(img, Xray_line, 'Intensity')            
             if plot_result:
                 if img.axes_manager.signal_dimension != 0:
                     img.plot()
@@ -470,5 +471,6 @@ class EDSSpectrum(Spectrum):
                        line_energy,
                        self.axes_manager.signal_axes[0].units,
                        img.data))
-            intensities.append(img)
+            intensities.append(img)       
+            
         return intensities
