@@ -464,8 +464,8 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
         propsb.setNumericProperty(epq.SpectrumProperties.LiveTime, dose)
         propsb.setNumericProperty(epq.SpectrumProperties.FaradayBegin,1.0)
         propsb.setNumericProperty(epq.SpectrumProperties.BeamEnergy,e0)
-        #noisyb=epq.SpectrumUtils.addNoiseToSpectrum(specb,live_time)
-        #dtsa2.display(noisyb)
+        noisyb=epq.SpectrumUtils.addNoiseToSpectrum(specb,live_time)
+        dtsa2.display(noisyb)
         
         a = det.calibration.getProperties()
         
@@ -1138,10 +1138,11 @@ def plot_histogram_results(specs,element,results,bins = 10,normalize=True):
             re = re.sum(1)
             re.mapped_parameters.title = 'Sum ' +  results[i] + ' ' + spec.mapped_parameters.title
         elif isinstance(results[i],str):
-            re = spec.get_result(element,results[i])           
+            re = spec.get_result(element,results[i])   
+            re.mapped_parameters.title = element + ' ' +  results[i] + ' ' +  spec.mapped_parameters.title
         else:
             re = results[i].deepcopy()
-            re.mapped_parameters.title = 'Sum ' +  re.mapped_parameters.title
+            re.mapped_parameters.title = element + ' ' +  results[i] + ' ' +  spec.mapped_parameters.title
         data = re.data.flatten()
         center, hist1 = _histo_data_plot(data,bins)
         if normalize:
@@ -1153,7 +1154,7 @@ def plot_histogram_results(specs,element,results,bins = 10,normalize=True):
     return fig
     
 def compare_signal(specs,
-    indexes,
+    indexes=None,
     legend_labels='auto',
     colors='auto',
     line_styles='auto'):
@@ -1166,8 +1167,10 @@ def compare_signal(specs,
     specs: list | spectrum
         A list of spectra or a spectrum
     
-    indexes: list
-        The list of indexes to compares
+    indexes: list | None
+        The list of indexes to compares. If None, specs is a list of 
+        1D spectra that are ploted together
+        
         
     legend_labels: 'auto' | list | None
         If legend_labels is auto, then the indexes are used.
@@ -1185,30 +1188,40 @@ def compare_signal(specs,
         
     """
 
-    
-    if isinstance(indexes[0],list) is False:        
-        indexes = [indexes]*len(specs)
-    
+    if indexes == None:
+        nb_signals = len(specs)
+    elif isinstance(indexes[0],list) is False and isinstance(indexes[0],tuple) is False:     
+        nb_signals = len(specs)
+        indexes = [indexes]*nb_signals
+    else :
+        nb_signals=len(indexes)
+            
     if colors == 'auto':
         colors = ['red','blue','green','orange','violet','magenta',
         'orange','violet','black','yellow',' pink']
     elif isinstance(colors,list) is False:
-        colors = [colors]* len(indexes)
+        colors = [colors]* nb_signals
     if line_styles == 'auto':
-        line_styles = ['-']* len(indexes)
+        line_styles = ['-']* nb_signals
     elif isinstance(line_styles,list) is False:
-        line_styles = [line_styles]* len(indexes)
+        line_styles = [line_styles]* nb_signals
 
     fig = plt.figure()
     if legend_labels == 'auto': 
         legend_labels = []
-        for index in indexes:  legend_labels.append(str(index))
-    for i, index in enumerate(indexes):
-        if isinstance(specs,list):
+        if isinstance(specs,list) or isinstance(specs,tuple):
+            for spec in specs: legend_labels.append(spec.mapped_parameters.title)
+        else:
+            for index in indexes:  legend_labels.append(str(index))
+    #for i, index in enumerate(indexes):
+    for i in range(nb_signals):
+        if isinstance(specs,list) or isinstance(specs,tuple):
             tmp = specs[i]
         else :
             tmp = specs
-        for ind in index: tmp = tmp[ind]
+            
+        if indexes != None:
+            for ind in indexes[i]: tmp = tmp[ind]
 
         maxx = (len(tmp.data)-1)*tmp.axes_manager[0].scale+tmp.axes_manager[0].offset
         xdata = mlab.frange(tmp.axes_manager[0].offset,maxx,
@@ -1256,7 +1269,7 @@ def _quant_with_dtsa( kratios,elements,xrts,TOA,e0,tilt,detector,gateway):
         tilt = """ + str(tilt) + """
         tiltD = tilt
         if tilt < 0:
-            #tilt cannot be negative
+            #tilt of detector cannot be negative
             tiltD = -tiltD
         det = dtsa2.findDetector('""" + detector + """')
         
@@ -1265,8 +1278,8 @@ def _quant_with_dtsa( kratios,elements,xrts,TOA,e0,tilt,detector,gateway):
         specprops.setNumericProperty(epq.SpectrumProperties.BeamEnergy,e0)   
 
         
-        specprops.setDetectorPosition(TOA+tiltD, 0, 0.005, 5e-6)
-        print specprops
+        specprops.setDetectorPosition(TOA+tiltD, 0, 0.005, 2e-5)
+        #print specprops
 
         
         specprops.setSampleShape(

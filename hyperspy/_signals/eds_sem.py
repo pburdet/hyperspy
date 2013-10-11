@@ -1547,6 +1547,8 @@ class EDSSEMSpectrum(EDSSpectrum):
         tilt = np.radians(mp.SEM.tilt_stage)
         if TOA == 'auto':
             TOA = np.radians(utils_eds.TOA(self))
+        else:
+            TOA = np.radians(TOA)
 
         if gateway == 'auto':
             gateway = utils_eds.get_link_to_jython()
