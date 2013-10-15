@@ -392,7 +392,9 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
     e0 = mp.SEM.beam_energy
     tilt = np.radians(mp.SEM.tilt_stage)
     ltime = mp.SEM.EDS.live_time
-    takeOffAngle = np.radians(TOA(spec))
+    elevation =np.radians(mp.SEM.EDS.elevation_angle)
+    azim = np.radians(90-mp.SEM.EDS.azimuth_angle)
+
         
     if gateway == 'auto':
         gateway = get_link_to_jython()
@@ -416,12 +418,14 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
             #tilt cannot be negative
             tiltD = -tiltD
         live_time = """ + str(ltime) + """
-        TOA = """ + str(takeOffAngle) + """
+        elevation = """ + str(elevation) + """
+        azim = """ + str(azim) + """
+
         nTraj = """ + str(nTraj) + """          
         
         #Position of detector and sample (WD in km, d-to-crystal in m)
         prop = epq.SpectrumProperties()
-        prop.setDetectorPosition(TOA+tiltD, 0, 0.05, 2e-5) 
+        prop.setDetectorPosition(elevation, azim, 0.05, 2e-5) 
         posi = prop.getArrayProperty(epq.SpectrumProperties.DetectorPosition)
         posi = [posi[0]/1000,posi[1]/1000,posi[2]/1000]
         origin = [0.0,0.0,2e-5]
@@ -445,7 +449,7 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
 
         # top substrat
         monteb.addSubRegion(monteb.getChamber(), mat,      
-                                  nm.MultiPlaneShape.createSubstrate([math.sin(tilt),0.0,-math.cos(tilt)], origin) )
+            nm.MultiPlaneShape.createSubstrate([0.0,math.sin(tilt),-math.cos(tilt)], origin) )
         # Add event listeners to model characteristic radiation
         xrel=nm.XRayEventListener2(monteb,det)
         monteb.addActionListener(xrel)
@@ -508,7 +512,7 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
     
     spec.mapped_parameters.add_node('simulation')
     spec.mapped_parameters.simulation.nTraj = nTraj 
-    mp.signal_origin = "simulation"
+    #mp.signal_origin = "simulation"
 
     return spec
     
@@ -521,6 +525,7 @@ def simulate_Xray_depth_distribution(nTraj,bins=120,mp='gui',
         gateway='auto'):
     #must create a class, EDS simulation
     #check if all param well stored
+    #dim*cos(tilt)
     """"
     Simulate the X-ray depth distribution using DTSA-II (NIST-Monte)
     
@@ -612,7 +617,8 @@ def simulate_Xray_depth_distribution(nTraj,bins=120,mp='gui',
     e0 = mp.SEM.beam_energy
     tilt = np.radians(mp.SEM.tilt_stage)
     ltime = mp.SEM.EDS.live_time
-    takeOffAngle = np.radians(TOA(spec))
+    elevation =np.radians(mp.SEM.EDS.elevation_angle)
+    azim = np.radians(90-mp.SEM.EDS.azimuth_angle)
  
         
     if gateway == 'auto':
@@ -632,17 +638,14 @@ def simulate_Xray_depth_distribution(nTraj,bins=120,mp='gui',
         composition = """ + str(composition) + """
         e0 =  """ + str(e0) + """ 
         tilt = """ + str(tilt) + """ 
-        tiltD = tilt
-        if tilt < 0:
-            #tilt cannot be negative
-            tiltD = -tiltD
+        elevation = """ + str(elevation) + """
+        azim = """ + str(azim) + """
         live_time = """ + str(ltime) + """
-        TOA = """ + str(takeOffAngle) + """
         nTraj = """ + str(nTraj) + """          
         
         #Position of detector and sample (WD in km, d-to-crystal in m)
         prop = epq.SpectrumProperties()
-        prop.setDetectorPosition(TOA+tiltD, 0, 0.05, 5e-6) 
+        prop.setDetectorPosition(elevation, azim, 0.005, 2e-5)
         posi = prop.getArrayProperty(epq.SpectrumProperties.DetectorPosition)
         posi = [posi[0]/1000,posi[1]/1000,posi[2]/1000]
         origin = [0.0,0.0,5e-6]
@@ -661,8 +664,8 @@ def simulate_Xray_depth_distribution(nTraj,bins=120,mp='gui',
 
         # top substrat
         monteb.addSubRegion(monteb.getChamber(), mat,      
-            nm.MultiPlaneShape.createSubstrate([math.sin(tilt),
-            0.0,-math.cos(tilt)], origin) )
+            nm.MultiPlaneShape.createSubstrate([0.0,math.sin(tilt),
+                -math.cos(tilt)], origin) )
             
         # Add event listeners to model characteristic radiation
         xrel=nm.XRayEventListener2(monteb,posi)
@@ -727,7 +730,7 @@ def simulate_Xray_depth_distribution(nTraj,bins=120,mp='gui',
     
     mp.add_node('simulation')
     mp.simulation.nTraj = nTraj  
-    mp.signal_origin = "simulation"
+    #mp.signal_origin = "simulation"
     mp.simulation.software = 'NistMonte' 
 
     return frz
@@ -1238,142 +1241,7 @@ def compare_signal(specs,
     return fig
 
 
-def _quant_with_dtsa( kratios,elements,xrts,TOA,e0,tilt,detector,gateway):
-    #tilt as it should. tiltD always positive. elev = toa+tiltd. wd 5*e-6
-    #modification done, not tested
-    channel = gateway.remote_exec("""   
-        import dtsa2
-        import math
-        epq = dtsa2.epq 
-        
-        lim_kratio=0.0001
-        
-        #Element and k-ratios
-        kratiosI = """ + str(kratios) + """
-        elmsI = """ + str(elements) + """
-        xrtsI = """ + str(xrts) + """
-        elms = []
-        kratios = []
-        xrts = []
-        for i, elm in enumerate(elmsI):
-            if kratiosI[i] > lim_kratio:
-                elms.append(getattr(epq.Element,elm))
-                kratios.append(kratiosI[i])
-                xrts.append(xrtsI[i])
 
-  
-            
-        #Microscope parameters
-        TOA = """ + str(TOA) + """
-        e0 =""" + str(e0) + """
-        tilt = """ + str(tilt) + """
-        tiltD = tilt
-        if tilt < 0:
-            #tilt of detector cannot be negative
-            tiltD = -tiltD
-        det = dtsa2.findDetector('""" + detector + """')
-        
-        #Define spectrum properties
-        specprops = epq.SpectrumProperties()
-        specprops.setNumericProperty(epq.SpectrumProperties.BeamEnergy,e0)   
-
-        
-        specprops.setDetectorPosition(TOA+tiltD, 0, 0.005, 2e-5)
-        #print specprops
-
-        
-        specprops.setSampleShape(
-            epq.SpectrumProperties.SampleShape,
-            epq.SampleShape.Bulk([math.sin(tilt),0.0,-math.cos(tilt)]))
-    
-        #Define quantification
-        quant = epq.CompositionFromKRatios()            
-        kratiosSet =  epq.KRatioSet() 
-
-        for i, elm in enumerate(elms):
-            transSet = epq.XRayTransitionSet(elm,xrts[i])
-            quant.addStandard(transSet, epq.Composition(elm), specprops)
-            kratiosSet.addKRatio(transSet, kratios[i])
-        
-        quant.setConvergenceCriterion(0.001)
-        quant.setMaxIterations(50)
-        
-        #Compute
-        has_converged = True
-        try:
-            quant.compute(kratiosSet,specprops)
-        except:
-            has_converged = False
-            print "do not converge"
-        
-        #get result
-        comp = quant.getResult()
-        a =  quant.getCorrectionAlgorithm() 
-        
-        for i, elm in enumerate(elmsI):
-            if has_converged == False:
-                channel.send(kratiosI[i])                
-            elif kratiosI[i] > lim_kratio:
-                elm_epq = getattr(epq.Element,elm)
-                channel.send(comp.weightFraction(elm_epq, 0))
-            else:
-                channel.send(0)
-        for i, elm in enumerate(elmsI):
-            if has_converged == False:
-                for j in range(4):
-                    channel.send(1)               
-            elif kratiosI[i] > lim_kratio:
-                elm_epq = getattr(epq.Element,elm)                
-                for j in range(4):
-                    channel.send(a.relativeZAF(comp,
-                        epq.XRayTransitionSet(elm_epq,xrtsI[i]).getWeighiestTransition(),
-                        specprops)[j])
-            else:
-                for j in range(4):
-                    channel.send(1)
-                
-            
-            
-        #print quant.getIterationCount()
-        #print quant.getDefaultMAC()
-        #print quant.getDefaultEdgeEnergy()
-        #print quant.getDefaultCorrectionAlgorithm()
-        #print quant.getDefaultTransitionEnergy()
-        #print quant.getActiveStrategy()
-        #a =  quant.getCorrectionAlgorithm() 
-        #print a
-
-        #for i, elm in enumerate(elms):
-            #print 'relative Z ' + elements[i]
-            #print a.relativeZ(comp, epq.XRayTransition(elm,xrts[i]), specprops)
-            #print 'relative A ' + elements[i]
-            #print a.relativeA(comp, epq.XRayTransition(elm,xrts[i]), specprops)
-            #print 'relative ZAF ' + elements[i]                
-            #print a.relativeZAF(comp, epq.XRayTransition(elm,xrts[i]), specprops)
-            #print 'relative Chi ' + elements[i] 
-            #print a.chi(epq.XRayTransition(elm,xrts[i]))
-            #print 'relative Chiu ' + elements[i] 
-            #print a.chiU(epq.XRayTransition(elm,xrts[i]))
-            #b= a.chiU(epq.XRayTransition(elm,xrts[i]))
-            #print 'relative Chiu variance ' + elements[i]
-            #print b.variance()
-            #print a.caveat(comp, epq.AtomicShell(elm,xrts[i]), specprops)
-
-               
-    """)
-    
-    comp = []   
-    ZAF=[]
-    for i, item in enumerate(channel):
-        if i< len(elements):
-            comp.append(item)
-        else:
-            ZAF.append(item)
-            
-    ZAF = np.array(ZAF)
-    ZAF = np.reshape(ZAF,[len(elements),4])  
-    
-    return comp, ZAF
     
 def simulate_linescan(nTraj,
     compositions,
@@ -1469,7 +1337,8 @@ def simulate_linescan(nTraj,
     e0 = mp.SEM.beam_energy
     tilt = np.radians(mp.SEM.tilt_stage)
     ltime = mp.SEM.EDS.live_time
-    takeOffAngle = np.radians(TOA(spec))    
+    elevation =np.radians(mp.SEM.EDS.elevation_angle)
+    azim = np.radians(90-mp.SEM.EDS.azimuth_angle)
     
     def simu_film(interface_xyz):
         channel = gateway.remote_exec("""
@@ -1486,18 +1355,16 @@ def simulate_linescan(nTraj,
             composition = """ + str(compositions) + """
             e0 =  """ + str(e0) + """ 
             tilt = """ + str(tilt) + """ 
-            tiltD = tilt
-            if tilt < 0:
-                #tilt cannot be negative
-                tiltD = -tiltD
             live_time = """ + str(ltime) + """
-            TOA = """ + str(takeOffAngle) + """
+            elevation = """ + str(elevation) + """
+            azim = """ + str(azim) + """
+
             nTraj = """ + str(nTraj) + """ 
             dose = 100
             
             #Position of detector and sample (WD in km, d-to-crystal in m)
             prop = epq.SpectrumProperties()
-            prop.setDetectorPosition(TOA+tiltD, 0, 0.05, 2e-5) 
+            prop.setDetectorPosition(elevation, azim, 0.005, 2e-5)
             posi = prop.getArrayProperty(epq.SpectrumProperties.DetectorPosition)
             posi = [posi[0]/1000,posi[1]/1000,posi[2]/1000]
             origin = [0.0,0.0,2e-5]
@@ -1512,14 +1379,15 @@ def simulate_linescan(nTraj,
                 el.append([j for j, x in enumerate(composition[i]) if x > 0])
                 
             if len(el[0])==1:
-                subMat=epq.MaterialFactory.createPureElement(elms[el[0][0]])
+                filmMat=epq.MaterialFactory.createPureElement(elms[el[0][0]])
             else:
-                subMat =  epq.Material(epq.Composition(elms,composition[0] ),
+                filmMat = epq.Material(epq.Composition(elms,composition[0] ),
                                         epq.ToSI.gPerCC(density[0]))
+                
             if len(el[1])==1:
-                filmMat=epq.MaterialFactory.createPureElement(elms[el[1][0]])
+                subMat=epq.MaterialFactory.createPureElement(elms[el[1][0]])
             else:
-                filmMat = epq.Material(epq.Composition(elms,composition[1] ),
+                subMat =  epq.Material(epq.Composition(elms,composition[1] ),
                                         epq.ToSI.gPerCC(density[1]))
         
             # Create a simulator and initialize it
@@ -1534,17 +1402,17 @@ def simulate_linescan(nTraj,
    
             if lscan_axis != 'z': 
                 if lscan_axis == 'x':            
-                    center0= [0.0,big_d/2-interface_xyz,z0]
-                    center1 = [0.0,-big_d/2-interface_xyz,z0]
-                elif lscan_axis == 'y':            
                     center0= [big_d/2-interface_xyz,0.0,z0]
-                    center1 = [-big_d/2-interface_xyz,0.0,z0]            
+                    center1 = [-big_d/2-interface_xyz,0.0,z0]
+                elif lscan_axis == 'y':            
+                    center0= [0.0,big_d/2-interface_xyz,z0]
+                    center1 = [0.0,-big_d/2-interface_xyz,z0]            
                 sub0 = nm.MultiPlaneShape.createBlock([big_d]*3, 
                     center1,0.0,0.0,0.0)
                 block = nm.MultiPlaneShape.createBlock([big_d]*3, 
                     center0,0.0,0.0,0.0)            
-                monteb.addSubRegion(monteb.getChamber(), filmMat,block)
-                monteb.addSubRegion(monteb.getChamber(), subMat,sub0)
+                monteb.addSubRegion(monteb.getChamber(), subMat,block)
+                monteb.addSubRegion(monteb.getChamber(), filmMat,sub0)
             elif lscan_axis == 'z':
                 center0=epu.Math2.plus(origin,[0.0,0.0,-interface_xyz/2])               
                 sub0 = nm.MultiPlaneShape.createSubstrate([0.0,0.0,-1.0], origin)
@@ -1554,7 +1422,7 @@ def simulate_linescan(nTraj,
                 if interface_xyz!=0:
                     monteb.addSubRegion(sub,filmMat,block)
             
-            monteb.rotate([0,0,z0-big_d/2], 0.0,-tilt,0.0)
+            monteb.rotate([0,0,z0-big_d/2], -tilt,0.0,0.0)
                 
                 
             # Add event listeners to model characteristic radiation
@@ -1629,30 +1497,10 @@ def simulate_linescan(nTraj,
     mp.simulation.nTraj = nTraj 
     mp.simulation.software = 'NistMonte'  
     
-    mp.signal_origin = "simulation"
+    #mp.signal_origin = "simulation"
     
     
     return spec    
-    
-    #big_d = 1e-1
-    
-    #if lscan_axis == 'z':
-        #centerFilm=epu.Math2.plus(origin,[0.0,0.0,-interface_xyz/2])   
-        #layer=monteb.addSubRegion(sub, filmMat,      
-              #nm.MultiPlaneShape.createFilm([math.sin(tilt),
-              #0.0,-math.cos(tilt)], centerFilm, interface_xyz) ) 
-    #elif lscan_axis == 'x':            
-        #center0=epu.Math2.plus(origin,[math.sin(tilt)*big_d/2,
-               #big_d/2-interface_xyz,-math.cos(tilt)*big_d/2.00000000000001])
-        #block = nm.MultiPlaneShape.createBlock([big_d]*3, center0,0.0,-tilt,0.0)
-        #subblock = monteb.addSubRegion(sub, filmMat,block)
-    #elif lscan_axis == 'y': 
-        #two = 2.00000000000001
-        #center0=epu.Math2.plus(origin,
-            #[math.sin(tilt)*big_d/2+(big_d/2-interface_xyz)*math.cos(tilt),
-            #0.0,-math.cos(tilt)*big_d/two+(big_d/2-interface_xyz)*math.sin(tilt)])
-        #block = nm.MultiPlaneShape.createBlock([big_d]*3, center0,0.0,-tilt,0.0)
-        #subblock = monteb.addSubRegion(sub, filmMat,block)
 
 
 

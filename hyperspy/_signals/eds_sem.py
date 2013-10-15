@@ -879,9 +879,9 @@ class EDSSEMSpectrum(EDSSpectrum):
         f.write('Itermax\t49\r\n')
         f.write('\r\n')
         f.write('HV\t%s\r\n'% mp.SEM.beam_energy)
-        f.write('TOA\t%s\r\n'% utils_eds.TOA(self))
+        f.write('Elevation\t%s\r\n'% mp.SEM.EDS.elevation_angle)
         f.write('azimuth\t%s\r\n'% mp.SEM.EDS.azimuth_angle)
-        f.write('tilt\t%s\r\n'% -mp.SEM.tilt_stage)
+        f.write('tilt\t%s\r\n'% mp.SEM.tilt_stage)
         f.write('\r\n')
         f.write('nbelement\t%s\r\n'% len(Xray_lines))
         elements = 'Element'
@@ -944,7 +944,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         f.write('Itermax\t%s\r\n' % mp.enh_param['iter_max'])
         f.write('\r\n')
         f.write('HV\t%s\r\n'% mp.SEM.beam_energy)
-        f.write('TOA\t%s\r\n'% mp.SEM.EDS.elevation_angle)
+        f.write('Elevation\t%s\r\n'% mp.SEM.EDS.elevation_angle)
         f.write('azimuth\t%s\r\n'% mp.SEM.EDS.azimuth_angle)
         f.write('tilt\t%s\r\n'% mp.SEM.tilt_stage)
         f.write('\r\n')
@@ -1505,8 +1505,7 @@ class EDSSEMSpectrum(EDSSpectrum):
     
     def quant_with_DTSA(self,
         detector='Si(Li)',
-        gateway='auto',
-        TOA = 'auto'):
+        gateway='auto'):
         """calcul the composition from a set of kratios.
         
         Parameters
@@ -1545,23 +1544,120 @@ class EDSSEMSpectrum(EDSSpectrum):
             
         e0 = mp.SEM.beam_energy
         tilt = np.radians(mp.SEM.tilt_stage)
-        if TOA == 'auto':
-            TOA = np.radians(utils_eds.TOA(self))
-        else:
-            TOA = np.radians(TOA)
+        elevation =np.radians(mp.SEM.EDS.elevation_angle)
+        azim = np.radians(90-mp.SEM.EDS.azimuth_angle)
+        
 
         if gateway == 'auto':
             gateway = utils_eds.get_link_to_jython()
             
         dim = self.get_result(Xray_lines[0],'kratios').data.shape
+        
+        def _quant_with_dtsa(kratios):
+            channel = gateway.remote_exec("""   
+                import dtsa2
+                import math
+                epq = dtsa2.epq 
+                
+                lim_kratio=0.0001
+                
+                #Element and k-ratios
+                kratiosI = """ + str(kratios) + """
+                elmsI = """ + str(elements) + """
+                xrtsI = """ + str(xrts) + """
+                elms = []
+                kratios = []
+                xrts = []
+                for i, elm in enumerate(elmsI):
+                    if kratiosI[i] > lim_kratio:
+                        elms.append(getattr(epq.Element,elm))
+                        kratios.append(kratiosI[i])
+                        xrts.append(xrtsI[i]) 
+                    
+                #Microscope parameters
+                e0 =""" + str(e0) + """
+                tilt = """ + str(tilt) + """
+                elevation = """ + str(elevation) + """
+                azim = """ + str(azim) + """
+                
+                det = dtsa2.findDetector('""" + detector + """')
+                
+                #Define spectrum properties
+                specprops = epq.SpectrumProperties()
+                specprops.setNumericProperty(epq.SpectrumProperties.BeamEnergy,e0)           	
+                specprops.setDetectorPosition(elevation, azim, 0.005, 2e-5)
+                
+                specprops.setSampleShape(
+                    epq.SpectrumProperties.SampleShape,
+                    epq.SampleShape.Bulk([0.0,math.sin(tilt),-math.cos(tilt)]))
+            
+                #Define quantification
+                quant = epq.CompositionFromKRatios()            
+                kratiosSet =  epq.KRatioSet() 
+
+                for i, elm in enumerate(elms):
+                    transSet = epq.XRayTransitionSet(elm,xrts[i])
+                    quant.addStandard(transSet, epq.Composition(elm), specprops)
+                    kratiosSet.addKRatio(transSet, kratios[i])
+                
+                quant.setConvergenceCriterion(0.001)
+                quant.setMaxIterations(50)
+                
+                #Compute
+                has_converged = True
+                quant.compute(kratiosSet,specprops)
+                #try:
+                #    quant.compute(kratiosSet,specprops)
+                #except:
+                #    has_converged = False
+                #    print "do not converge"
+                
+                #get result
+                comp = quant.getResult()
+                a =  quant.getCorrectionAlgorithm() 
+                
+                for i, elm in enumerate(elmsI):
+                    if has_converged == False:
+                        channel.send(kratiosI[i])                
+                    elif kratiosI[i] > lim_kratio:
+                        elm_epq = getattr(epq.Element,elm)
+                        channel.send(comp.weightFraction(elm_epq, 0))
+                    else:
+                        channel.send(0)
+                for i, elm in enumerate(elmsI):
+                    if has_converged == False:
+                        for j in range(4):
+                            channel.send(1)               
+                    elif kratiosI[i] > lim_kratio:
+                        elm_epq = getattr(epq.Element,elm)                
+                        for j in range(4):
+                            channel.send(a.relativeZAF(comp,
+                                epq.XRayTransitionSet(elm_epq,xrtsI[i]).getWeighiestTransition(),
+                                specprops)[j])
+                    else:
+                        for j in range(4):
+                            channel.send(1)
+            """)
+            
+            comp = []   
+            ZAF=[]
+            for i, item in enumerate(channel):
+                if i< len(elements):
+                    comp.append(item)
+                else:
+                    ZAF.append(item)
+                    
+            ZAF = np.array(ZAF)
+            ZAF = np.reshape(ZAF,[len(elements),4])  
+            
+            return comp, ZAF
             
         if len(dim)==0:
             kratios = []
             for Xray_line in Xray_lines:
                 kratios.append(float(self.get_result(Xray_line,'kratios').data))
             
-            comp, ZAF = utils_eds._quant_with_dtsa(kratios,elements,xrts,TOA,
-                e0,tilt,detector,gateway)                     
+            comp, ZAF = _quant_with_dtsa(kratios)                     
                         
             return comp, ZAF
         elif len(dim) ==2:
@@ -1572,8 +1668,7 @@ class EDSSEMSpectrum(EDSSpectrum):
                     kratios = []                    
                     for krat in mp.Sample.kratios:
                         kratios.append(float(krat[x,y].data[0]))   
-                    comp, ZAF = utils_eds._quant_with_dtsa(kratios,elements,xrts,TOA,
-                        e0,tilt,detector,gateway) 
+                    comp, ZAF = _quant_with_dtsa(kratios) 
                     ZAF_tot.append(ZAF)
                     comp_tot.append(comp)
                     
