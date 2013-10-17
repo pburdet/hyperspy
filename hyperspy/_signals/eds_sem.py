@@ -677,7 +677,12 @@ class EDSSEMSpectrum(EDSSpectrum):
         compiler: (0|1|2)
             use different the same script in another folder 
             ('.hyperspy/stratquant1' or '.hyperspy/stratquant') for processing
-            in parallel.        
+            in parallel.    
+            
+        Return
+        ------
+        
+        A signal containing the mass fraction (composition) unnormalized.
         
         See also
         --------

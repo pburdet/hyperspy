@@ -179,7 +179,18 @@ def weigth_to_atomic(elements,compositions):
     
     
 def get_density(elements,compositions):
-    """Return the density from a list of elements    
+    """Return the density from the sample composition
+    
+    Parameters
+    ----------
+    elements: list of str
+        A list of element abbreviations, e.g. ['Al','Zn']
+    Composition: list of float
+        The atomic composition of the sample.
+        
+    Returns
+    -------
+    The density in g/cm3
     """
     density = 0
     weights = atomic_to_weight(elements,compositions)
@@ -307,7 +318,7 @@ def phase_inspector(self,bins=[20,20,20],plot_result=True):
     
 def simulate_one_spectrum(nTraj,dose=100,mp='gui',
         elements='auto',
-        composition='auto',
+        compo_at='auto',
         density='auto',
         detector='Si(Li)',
         gateway='auto'):
@@ -331,11 +342,11 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
         Set the elements. If auto, look in mp.Sample if elements are defined.
         auto cannot be used with 'gui' option.
         
-    composition: list of string
-        Give the composition. If auto, equally parted
+    compo_at: list of string
+        Give the composition (atomic). If auto, equally parted
         
     density: list of float
-        Set the density. If 'auto', obtain from the compositions.
+        Set the density. If 'auto', obtain from the compo_at.
         
     detector: str
         Give the detector name defined in DTSA-II
@@ -375,25 +386,32 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
     else: 
         mp.Sample.elements = elements
         
-    if composition == 'auto':        
-        composition = []
-        if hasattr(mp.Sample, 'quant'):
-            for elm in elements:
-                composition.append(float(spec.get_result(elm,'quant').data))
-        else:       
-            for elm in elements:
-                composition.append(1./len(elements))
-    mp.Sample.composition = composition
+    if compo_at == 'auto':        
+        compo_at = []
+        #Not tested. atm vs w
+        #if hasattr(mp.Sample, 'quant'):
+        #    for elm in elements:
+        #        compo_at.append(float(spec.get_result(elm,'quant').data))
+        #else:       
+        for elm in elements:
+            compo_at.append(1./len(elements))
+    mp.Sample.compo_at = compo_at
             
     if density == 'auto':
-        density = get_density(elements, composition)
+        density = get_density(elements, compo_at)
     mp.Sample.density = density
         
     e0 = mp.SEM.beam_energy
     tilt = np.radians(mp.SEM.tilt_stage)
+    #tilt = np.radians(abs(mp.SEM.tilt_stage))
     ltime = mp.SEM.EDS.live_time
     elevation =np.radians(mp.SEM.EDS.elevation_angle)
     azim = np.radians(90-mp.SEM.EDS.azimuth_angle)
+    if mp.SEM.EDS.azimuth_angle==90:
+        azim =0
+    TOangle = np.radians(TOA(spec))
+    #print TOA(spec)
+    compo_wt = atomic_to_weight(elements,compo_at)
 
         
     if gateway == 'auto':
@@ -409,7 +427,7 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
         for element in elements:
             elms.append(getattr(dtsa2.epq.Element,element))
         density = """ + str(density) + """
-        composition = """ + str(composition) + """
+        compo_wt = """ + str(compo_wt) + """
         e0 =  """ + str(e0) + """ 
         dose =  """ + str(dose) + """
         tilt = """ + str(tilt) + """ 
@@ -420,14 +438,20 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
         live_time = """ + str(ltime) + """
         elevation = """ + str(elevation) + """
         azim = """ + str(azim) + """
+        TOA = """ + str(TOangle) + """
 
         nTraj = """ + str(nTraj) + """          
         
         #Position of detector and sample (WD in km, d-to-crystal in m)
         prop = epq.SpectrumProperties()
-        prop.setDetectorPosition(elevation, azim, 0.05, 2e-5) 
+        
+        prop.setDetectorPosition(elevation, azim, 0.005, 2e-5)
+        #if tilt < 0:
+        #    prop.setDetectorPosition(TOA, 0.0, 0.005, 2e-5)
+        #else : 
+        #    prop.setDetectorPosition(TOA, 0.0, 0.005, 2e-5)
         posi = prop.getArrayProperty(epq.SpectrumProperties.DetectorPosition)
-        posi = [posi[0]/1000,posi[1]/1000,posi[2]/1000]
+        posi = [posi[0]/1000.,posi[1]/1000.,posi[2]/1000.]
         origin = [0.0,0.0,2e-5]
         z0 = origin[2]
         
@@ -439,21 +463,22 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
         if len(elms) == 1:
             mat=epq.MaterialFactory.createPureElement(elms[el])
         else:            
-            mat = epq.Material(epq.Composition(elms,composition ),
+            mat = epq.Material(epq.Composition(elms,compo_wt ),
                                     epq.ToSI.gPerCC(density))
-
+        
 
         # Create a simulator and initialize it
         monteb = nm.MonteCarloSS()
         monteb.setBeamEnergy(epq.ToSI.keV(e0))
-
+        
         # top substrat
         monteb.addSubRegion(monteb.getChamber(), mat,      
-            nm.MultiPlaneShape.createSubstrate([0.0,math.sin(tilt),-math.cos(tilt)], origin) )
+            nm.MultiPlaneShape.createSubstrate([0.0,0.0,-1.0], origin) )
         # Add event listeners to model characteristic radiation
+        monteb.rotate([0,0,z0], -tilt,0.0,0.0)
         xrel=nm.XRayEventListener2(monteb,det)
         monteb.addActionListener(xrel)
-
+        
         # Add event listeners to model bBremsstrahlung
         brem=nm.BremsstrahlungEventListener(monteb,det)
         monteb.addActionListener(brem)
@@ -468,9 +493,8 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
         propsb.setNumericProperty(epq.SpectrumProperties.LiveTime, dose)
         propsb.setNumericProperty(epq.SpectrumProperties.FaradayBegin,1.0)
         propsb.setNumericProperty(epq.SpectrumProperties.BeamEnergy,e0)
-        noisyb=epq.SpectrumUtils.addNoiseToSpectrum(specb,live_time)
-        dtsa2.display(noisyb)
-        
+        #noisyb=epq.SpectrumUtils.addNoiseToSpectrum(specb,live_time)
+        #dtsa2.display(noisyb)
         a = det.calibration.getProperties()
         
         channelWidth = det.calibration.getChannelWidth()
@@ -519,7 +543,7 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
 def simulate_Xray_depth_distribution(nTraj,bins=120,mp='gui',
         elements='auto',
         Xray_lines='auto',
-        composition='auto',
+        compo_at='auto',
         density='auto',
         detector='Si(Li)',
         gateway='auto'):
@@ -548,12 +572,12 @@ def simulate_Xray_depth_distribution(nTraj,bins=120,mp='gui',
     Xray_lines: list of str | 'auto'
         Set the elements. If auto, look in mp.Sample if elements are defined.
         
-    composition: list of flaot | 'auto'
-        Set the composition. If auto, get the values in quant (if a 
+    compo_at: list of flaot | 'auto'
+        Set the atomic fraction (composition). If auto, get the values in quant (if a 
         spectrum). Or equal repartition between elements.
         
     density: list of float
-        Set the density. If 'auto', obtain from the compositions.
+        Set the density. If 'auto', obtain from the compo_at.
         
     detector: str
         Give the detector name defined in DTSA-II
@@ -602,23 +626,24 @@ def simulate_Xray_depth_distribution(nTraj,bins=120,mp='gui',
         else:
             raise ValueError( 'Xray_lines need to be set (set_lines)')
         
-    if composition == 'auto':        
-        composition = []
-        if hasattr(mp.Sample, 'quant'):
-            for elm in elements:
-                composition.append(float(spec.get_result(elm,'quant').data))
-        else:       
-            for elm in elements:
-                composition.append(1./len(elements))
+    if compo_at == 'auto':        
+        compo_at = []
+        #if hasattr(mp.Sample, 'quant'):
+        #    for elm in elements:
+        #        compo_at.append(float(spec.get_result(elm,'quant').data))
+        #else:       
+        for elm in elements:
+            compo_at.append(1./len(elements))
             
     if density == 'auto':
-        density = get_density(elements, composition)
+        density = get_density(elements, compo_at)
         
     e0 = mp.SEM.beam_energy
     tilt = np.radians(mp.SEM.tilt_stage)
     ltime = mp.SEM.EDS.live_time
     elevation =np.radians(mp.SEM.EDS.elevation_angle)
     azim = np.radians(90-mp.SEM.EDS.azimuth_angle)
+    compo_wt = atomic_to_weight(elements,compo_at)
  
         
     if gateway == 'auto':
@@ -635,7 +660,7 @@ def simulate_Xray_depth_distribution(nTraj,bins=120,mp='gui',
         for element in elements:
             elms.append(getattr(dtsa2.epq.Element,element))
         density = """ + str(density) + """
-        composition = """ + str(composition) + """
+        compo_wt = """ + str(compo_wt) + """
         e0 =  """ + str(e0) + """ 
         tilt = """ + str(tilt) + """ 
         elevation = """ + str(elevation) + """
@@ -655,7 +680,7 @@ def simulate_Xray_depth_distribution(nTraj,bins=120,mp='gui',
         if len(elms) == 1:
             mat=epq.MaterialFactory.createPureElement(elms[el])
         else:            
-            mat = epq.Material(epq.Composition(elms,composition ),
+            mat = epq.Material(epq.Composition(elms,compo_wt ),
                                     epq.ToSI.gPerCC(density))
 
         # Create a simulator and initialize it
@@ -664,8 +689,9 @@ def simulate_Xray_depth_distribution(nTraj,bins=120,mp='gui',
 
         # top substrat
         monteb.addSubRegion(monteb.getChamber(), mat,      
-            nm.MultiPlaneShape.createSubstrate([0.0,math.sin(tilt),
-                -math.cos(tilt)], origin) )
+            nm.MultiPlaneShape.createSubstrate([0.0,0.0,-1.0], origin) )
+                
+        monteb.rotate([0.0,0.0,z0], -tilt,0.0,0.0)
             
         # Add event listeners to model characteristic radiation
         xrel=nm.XRayEventListener2(monteb,posi)
@@ -714,7 +740,7 @@ def simulate_Xray_depth_distribution(nTraj,bins=120,mp='gui',
     mp = frz.mapped_parameters
     mp.add_node('Sample')
     mp.Sample.elements = elements
-    mp.Sample.composition = composition
+    mp.Sample.compo_at = compo_at
     mp.Sample.Xray_lines = Xray_lines 
     mp.Sample.density = density
     
@@ -1244,7 +1270,7 @@ def compare_signal(specs,
 
     
 def simulate_linescan(nTraj,
-    compositions,
+    compos_at,
     min_max,
     lscan_scale,
     lscan_axis='x',
@@ -1264,8 +1290,8 @@ def simulate_linescan(nTraj,
     nTraj: int
         number of electron trajectories   
         
-    compositions: list of list of float
-        Give the composition of each material (right/left or top/bottom).
+    compos_at: list of list of float
+        Give the atomic fraction of each material (right/left or top/bottom).
          (eg. [[0.33,0.33,0.33],[1,0,0]) 
             
     min_max: list of float
@@ -1328,10 +1354,10 @@ def simulate_linescan(nTraj,
             
     if density == 'auto':
         density = []
-        for composition in compositions:
-            density.append(get_density(elements, composition))
+        for compo_at in compos_at:
+            density.append(get_density(elements, compo_at))
             
-    mp.Sample.composition = compositions
+    mp.Sample.compo_at = compo_at
     mp.Sample.density = density
         
     e0 = mp.SEM.beam_energy
@@ -1339,6 +1365,9 @@ def simulate_linescan(nTraj,
     ltime = mp.SEM.EDS.live_time
     elevation =np.radians(mp.SEM.EDS.elevation_angle)
     azim = np.radians(90-mp.SEM.EDS.azimuth_angle)
+    compos_wt = []
+    for compo_at in compos_at:
+        compos_wt.append(atomic_to_weight(elements,compo_at))
     
     def simu_film(interface_xyz):
         channel = gateway.remote_exec("""
@@ -1352,7 +1381,7 @@ def simulate_linescan(nTraj,
             for element in elements:
                 elms.append(getattr(dtsa2.epq.Element,element))
             density = """ + str(density) + """
-            composition = """ + str(compositions) + """
+            compos_wt = """ + str(compos_wt) + """
             e0 =  """ + str(e0) + """ 
             tilt = """ + str(tilt) + """ 
             live_time = """ + str(ltime) + """
@@ -1366,7 +1395,7 @@ def simulate_linescan(nTraj,
             prop = epq.SpectrumProperties()
             prop.setDetectorPosition(elevation, azim, 0.005, 2e-5)
             posi = prop.getArrayProperty(epq.SpectrumProperties.DetectorPosition)
-            posi = [posi[0]/1000,posi[1]/1000,posi[2]/1000]
+            posi = [posi[0]/1000.,posi[1]/1000.,posi[2]/1000.]
             origin = [0.0,0.0,2e-5]
             z0 = origin[2]
             
@@ -1376,18 +1405,18 @@ def simulate_linescan(nTraj,
             
             el = []
             for i in range(2):
-                el.append([j for j, x in enumerate(composition[i]) if x > 0])
+                el.append([j for j, x in enumerate(compos_wt[i]) if x > 0])
                 
             if len(el[0])==1:
                 filmMat=epq.MaterialFactory.createPureElement(elms[el[0][0]])
             else:
-                filmMat = epq.Material(epq.Composition(elms,composition[0] ),
+                filmMat = epq.Material(epq.Composition(elms,compos_wt[0] ),
                                         epq.ToSI.gPerCC(density[0]))
                 
             if len(el[1])==1:
                 subMat=epq.MaterialFactory.createPureElement(elms[el[1][0]])
             else:
-                subMat =  epq.Material(epq.Composition(elms,composition[1] ),
+                subMat =  epq.Material(epq.Composition(elms,compos_wt[1] ),
                                         epq.ToSI.gPerCC(density[1]))
         
             # Create a simulator and initialize it
