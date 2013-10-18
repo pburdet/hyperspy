@@ -407,8 +407,8 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
     ltime = mp.SEM.EDS.live_time
     elevation =np.radians(mp.SEM.EDS.elevation_angle)
     azim = np.radians(90-mp.SEM.EDS.azimuth_angle)
-    if mp.SEM.EDS.azimuth_angle==90:
-        azim =0
+    #if mp.SEM.EDS.azimuth_angle==90:
+    #    tilt = np.radians(abs(mp.SEM.tilt_stage))
     TOangle = np.radians(TOA(spec))
     #print TOA(spec)
     compo_wt = atomic_to_weight(elements,compo_at)
@@ -473,9 +473,9 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
         
         # top substrat
         monteb.addSubRegion(monteb.getChamber(), mat,      
-            nm.MultiPlaneShape.createSubstrate([0.0,0.0,-1.0], origin) )
+            nm.MultiPlaneShape.createSubstrate([0.0,math.sin(tilt),-math.cos(tilt)], origin) )
         # Add event listeners to model characteristic radiation
-        monteb.rotate([0,0,z0], -tilt,0.0,0.0)
+        #monteb.rotate([0,0,z0], -tilt,0.0,0.0)
         xrel=nm.XRayEventListener2(monteb,det)
         monteb.addActionListener(xrel)
         
