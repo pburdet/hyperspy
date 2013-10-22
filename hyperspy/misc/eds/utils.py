@@ -1171,7 +1171,8 @@ def plot_histogram_results(specs,element,results,bins = 10,normalize=True):
             re.mapped_parameters.title = element + ' ' +  results[i] + ' ' +  spec.mapped_parameters.title
         else:
             re = results[i].deepcopy()
-            re.mapped_parameters.title = element + ' ' +  results[i] + ' ' +  spec.mapped_parameters.title
+            re.mapped_parameters.title = (element + ' ' +  
+                re.mapped_parameters.title + ' ' +  spec.mapped_parameters.title)
         data = re.data.flatten()
         center, hist1 = _histo_data_plot(data,bins)
         if normalize:
@@ -1228,6 +1229,8 @@ def compare_signal(specs,
     if colors == 'auto':
         colors = ['red','blue','green','orange','violet','magenta',
         'orange','violet','black','yellow',' pink']
+        colors+=colors
+        colors+=colors
     elif isinstance(colors,list) is False:
         colors = [colors]* nb_signals
     if line_styles == 'auto':
@@ -1530,6 +1533,34 @@ def simulate_linescan(nTraj,
     
     
     return spec    
+    
+def crop_indexes_from_shift(shift):
+    """Get the crops index from shift
+    
+    Return
+    ------
+    top, bottom,left, right
+    
+    See also
+    -------    
+    align2D    
+    """
+    
+    shifts = -shifts
+    bottom, top = (int(np.floor(shifts[:,0].min())) if 
+                            shifts[:,0].min() < 0 else None,
+                   int(np.ceil(shifts[:,0].max())) if 
+                            shifts[:,0].max() > 0 else 0)
+    right, left = (int(np.floor(shifts[:,1].min())) if 
+                            shifts[:,1].min() < 0 else None,
+                   int(np.ceil(shifts[:,1].max())) if 
+                            shifts[:,1].max() > 0 else 0)
+    return top, bottom, left, right
+    
+
+    
+    
+    
 
 
 
