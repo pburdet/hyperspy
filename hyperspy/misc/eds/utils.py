@@ -1228,7 +1228,7 @@ def compare_signal(specs,
             
     if colors == 'auto':
         colors = ['red','blue','green','orange','violet','magenta',
-        'orange','violet','black','yellow',' pink']
+        'orange','violet','black','yellow','pink']
         colors+=colors
         colors+=colors
     elif isinstance(colors,list) is False:
@@ -1371,7 +1371,8 @@ def simulate_linescan(nTraj,
     compos_wt = []
     for compo_at in compos_at:
         compos_wt.append(atomic_to_weight(elements,compo_at))
-    
+    if gateway == 'auto':
+        gateway = get_link_to_jython()
     def simu_film(interface_xyz):
         channel = gateway.remote_exec("""
             import dtsa2
@@ -1445,17 +1446,18 @@ def simulate_linescan(nTraj,
                     center0,0.0,0.0,0.0)            
                 monteb.addSubRegion(monteb.getChamber(), subMat,block)
                 monteb.addSubRegion(monteb.getChamber(), filmMat,sub0)
+                monteb.rotate([0,0,z0-big_d/2], -tilt,0.0,0.0)
             elif lscan_axis == 'z':
                 center0=epu.Math2.plus(origin,[0.0,0.0,-interface_xyz/2])               
-                sub0 = nm.MultiPlaneShape.createSubstrate([0.0,0.0,-1.0], origin)
-                block = nm.MultiPlaneShape.createFilm([0.0,0.0,-1.0],
+                #sub0 = nm.MultiPlaneShape.createSubstrate([0.0,0.0,-1.0], origin)
+                #block = nm.MultiPlaneShape.createFilm([0.0,0.0,-1.0],
+                #    center0, interface_xyz)
+                sub0 = nm.MultiPlaneShape.createSubstrate([0.0,math.sin(tilt),-math.cos(tilt)], origin)
+                block = nm.MultiPlaneShape.createFilm([0.0,math.sin(tilt),-math.cos(tilt)],
                     center0, interface_xyz)
                 sub = monteb.addSubRegion(monteb.getChamber(), subMat,sub0)
                 if interface_xyz!=0:
                     monteb.addSubRegion(sub,filmMat,block)
-            
-            monteb.rotate([0,0,z0-big_d/2], -tilt,0.0,0.0)
-                
                 
             # Add event listeners to model characteristic radiation
             xrel=nm.XRayEventListener2(monteb,det)

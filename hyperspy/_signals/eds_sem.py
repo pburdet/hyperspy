@@ -281,10 +281,14 @@ class EDSSEMSpectrum(EDSSpectrum):
             test_file_exist=False           
             for std in std_tot:    
                 mp_std = std.mapped_parameters
-                if element + "." in mp_std.original_filename:
+                if hasattr(mp,'original_filename'):
+                    filename = mp_std.original_filename
+                else :
+                    filename = mp_std.title
+                if element + "." in filename or element + '_std' == filename:
                     test_file_exist=True
                     print("Standard file for %s : %s" % (element, 
-                      mp_std.original_filename))
+                      filename))
                     mp_std.title = element+"_std"
                     mp.Sample.standard_spec.append(std)
             if test_file_exist == False:
