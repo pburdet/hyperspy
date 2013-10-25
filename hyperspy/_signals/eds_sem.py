@@ -413,14 +413,22 @@ class EDSSEMSpectrum(EDSSpectrum):
         
         if deconvolution is not None: 
             for deconvo in deconvolution:
-                self._deconvolve_kratio(deconvo[0],deconvo[1],deconvo[2],
-                  plot_result)
+                if len(deconvo)==3:
+                    self._deconvolve_kratio(deconvo[0],deconvo[1],deconvo[2],
+                    plot_result=plot_result)
+                else:
+                    self._deconvolve_kratio(deconvo[0],deconvo[1],
+                    deconvo[2],top_hat_applied=deconvo[3],plot_result=plot_result)
                 for Xray_line in deconvo[0]:
                     Xray_lines.remove(Xray_line)
         if len(Xray_lines) > 0:     
             self._get_kratio(Xray_lines,plot_result)
     
-    def _deconvolve_kratio(self,Xray_lines,elements,width_energy,\
+    def _deconvolve_kratio(self,
+        Xray_lines,
+        elements,
+        width_energy,
+        top_hat_applied=True,
         plot_result=True):
         """
         Calculate the k-ratio, applying a fit on a larger region with 
@@ -430,16 +438,21 @@ class EDSSEMSpectrum(EDSSpectrum):
         from hyperspy.hspy import create_model 
         line_energy = np.mean(width_energy)
         width_windows=[line_energy-width_energy[0],width_energy[1]-line_energy]
-        
-        m = create_model(self.top_hat(line_energy, width_windows))
+        if top_hat_applied:
+            m = create_model(self.top_hat(line_energy, width_windows))
+        else:
+            m = create_model(self[...,width_energy[0]:width_energy[1]])
         mp = self.mapped_parameters 
       
         diff_ltime =[]
         fps = []
         for element in elements:
             std = self.get_result(element,'standard_spec')
-            fp = components.ScalableFixedPattern(std.top_hat(line_energy,
-              width_windows))
+            if top_hat_applied:
+                fp = components.ScalableFixedPattern(std.top_hat(line_energy,
+                    width_windows))
+            else:
+                fp = components.ScalableFixedPattern(std[width_energy[0]:width_energy[1]])
             fp.set_parameters_not_free(['offset','xscale','shift'])
             fps.append(fp)    
             m.append(fps[-1])
@@ -820,6 +833,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         encoding = 'latin-1'
         mp=self.mapped_parameters
         Xray_lines = mp.Sample.Xray_lines
+        elements = mp.Sample.elements#
         f = codecs.open(foldername+'//donnee.tsv', 'w', 
           encoding = encoding,errors = 'ignore')
         dim = np.copy(self.get_result(Xray_lines[0],
@@ -853,9 +867,12 @@ class EDSSEMSpectrum(EDSSpectrum):
                 for y in range(dim[1]):
                     f.write("%s_%s\r\n" % (x+1,y+1))
                     for z in range(dim[0]):
+                        #for elm in elements: # Inverse order line
+                        #    for Xray_line in Xray_lines[::-1]:  #      
+                        #        if elm + '_' in Xray_line:#
+                        #            f.write("%s\t" % self.get_result(elm + Xray_line[2::],
                         for Xray_line in Xray_lines:
-                            f.write("%s\t" % self.get_result(Xray_line,
-                              'kratios').data[z,y,x])
+                            f.write("%s\t" % self.get_result(Xray_line,'kratios').data[z,y,x])
                         f.write('\r\n')
         f.close()       
         
@@ -883,8 +900,8 @@ class EDSSEMSpectrum(EDSSpectrum):
         #f.write('pixelsize_z\t%s' % self.axes_manager[0].scale*1000)
         f.write('pixelsize_z\t100\r\n')
         f.write('nblayermax\t5\r\n')
-        f.write('Limitkratio0\t0.001\r\n')
-        f.write('Limitcompsame\t0.01\r\n')
+        f.write('Limitkratio0\t0.00001\r\n')
+        f.write('Limitcompsame\t0.00001\r\n')
         f.write('Itermax\t49\r\n')
         f.write('\r\n')
         f.write('HV\t%s\r\n'% mp.SEM.beam_energy)
@@ -966,6 +983,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             z_el = z_el + '\t' + str(elements_db[elm]['Z'])
             i=0
             line_el = line_el +'\t'
+            #for Xray_line in Xray_lines[::-1]:   #Inverse order line     
             for Xray_line in Xray_lines:        
                 if elm + '_' in Xray_line:
                     tmp, line = utils_eds._get_element_and_line(Xray_line) 

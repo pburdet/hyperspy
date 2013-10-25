@@ -1228,7 +1228,7 @@ def compare_signal(specs,
             
     if colors == 'auto':
         colors = ['red','blue','green','orange','violet','magenta',
-        'orange','violet','black','yellow','pink']
+        'cyan','violet','black','yellow','pink']
         colors+=colors
         colors+=colors
     elif isinstance(colors,list) is False:
@@ -1452,12 +1452,19 @@ def simulate_linescan(nTraj,
                 #sub0 = nm.MultiPlaneShape.createSubstrate([0.0,0.0,-1.0], origin)
                 #block = nm.MultiPlaneShape.createFilm([0.0,0.0,-1.0],
                 #    center0, interface_xyz)
-                sub0 = nm.MultiPlaneShape.createSubstrate([0.0,math.sin(tilt),-math.cos(tilt)], origin)
+                sub0 = nm.MultiPlaneShape.createSubstrate([0.0,
+                    math.sin(tilt),-math.cos(tilt)],origin)
                 block = nm.MultiPlaneShape.createFilm([0.0,math.sin(tilt),-math.cos(tilt)],
                     center0, interface_xyz)
-                sub = monteb.addSubRegion(monteb.getChamber(), subMat,sub0)
                 if interface_xyz!=0:
-                    monteb.addSubRegion(sub,filmMat,block)
+                    film = monteb.addSubRegion(monteb.getChamber(),filmMat,block)
+                    sub = monteb.addSubRegion(monteb.getChamber(), 
+                        subMat,nm.ShapeDifference(sub0,block))
+                        #subMat,sub0)
+                    #film = monteb.addSubRegion(sub,filmMat,block)
+                else:
+                    sub = monteb.addSubRegion(monteb.getChamber(), subMat,sub0)
+                
                 
             # Add event listeners to model characteristic radiation
             xrel=nm.XRayEventListener2(monteb,det)
