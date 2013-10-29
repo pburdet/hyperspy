@@ -1129,7 +1129,12 @@ def _histo_data_plot(data,bins = 10):
     center = np.array(zip(bins ,bins )).flatten()
     return center, hist
     
-def plot_histogram_results(specs,element,results,bins = 10,normalize=True):
+def plot_histogram_results(specs,
+    element,
+    results,
+    bins = 10,
+    normalizeI=False,
+    normalizex=False):
     #must be the main function in Image, specs = image. EDSSpec for results
     """
     Plot the histrogram for different results for one element.
@@ -1167,21 +1172,26 @@ def plot_histogram_results(specs,element,results,bins = 10,normalize=True):
             re = re.sum(1)
             re.mapped_parameters.title = 'Sum ' +  results[i] + ' ' + spec.mapped_parameters.title
         elif isinstance(results[i],str):
-            re = spec.get_result(element,results[i])   
+            if normalizex:
+                re = spec.normalize_result(results[i])[list(spec.mapped_parameters.Sample.elements).index(element)]
+            else:
+                re = spec.get_result(element,results[i]) 
             re.mapped_parameters.title = element + ' ' +  results[i] + ' ' +  spec.mapped_parameters.title
         else:
             re = results[i].deepcopy()
+            print 'Normalise x not available yet'
             re.mapped_parameters.title = (element + ' ' +  
                 re.mapped_parameters.title + ' ' +  spec.mapped_parameters.title)
         data = re.data.flatten()
         center, hist1 = _histo_data_plot(data,bins)
-        if normalize:
+        if normalizeI:
             hist1 = hist1 / float(hist1.sum())
         plt.plot(center, hist1, label = re.mapped_parameters.title)
     plt.legend()
     fig.show()
     
     return fig
+
     
 def compare_signal(specs,
     indexes=None,
