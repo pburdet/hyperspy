@@ -1576,6 +1576,77 @@ def crop_indexes_from_shift(shift):
                             shifts[:,1].max() > 0 else 0)
     return top, bottom, left, right
     
+def plot_orthoview(image,
+    index,
+    plot_index=False,
+    space=2,
+    plot_result=True):
+    """
+    Plot an orthogonal view of a 3D images
+    
+    Parameters
+    ---------
+    
+    image: signals.Image
+        An image in 3D.
+        
+    index: list
+        The position [x,y,z] of the view.
+        
+    line_index: bool
+        Plot the line indicating the index position.
+        
+    space: int
+        the spacing between the images in pixel.
+        
+    plot_result: bool
+        if False, return the image.
+    """
+    from hyperspy import signals
+    image = image.deepcopy()
+    dim = image.axes_manager.shape
+    if len(dim)!=3:
+        raise ValueError('Needs a 3D image')   
+    
+    scalez = image.axes_manager[0].scale
+    scalex = image.axes_manager[1].scale
+    if scalez > scalex:
+        scale_fact= int(scalez / scalex)                
+        image.data = np.repeat(image.data,int(scalez / scalex),axis=0)
+        image.get_dimensions_from_data()
+        dim = image.axes_manager.shape
+
+    map_color = plt.get_cmap()
+    if map_color.name == 'RdYlBu_r':
+        mean_img= image.mean(0).mean(0).mean(0).data
+    else:
+        mean_img= image.max(0).max(0).max(0).data*0.88
+    a=image[index[2]*scale_fact].deepcopy()
+    b= image[::,index[0]].as_image([0,1]).deepcopy()
+    c = image[::,::,index[1]].as_image([1,0]).deepcopy()
+    if plot_index:
+        #a.data[index[0]] = np.ones(dim[1])*mean_img
+        #a.data[::,index[1]] = np.ones(dim[2])*mean_img   
+        a.data[::,index[0]] = np.ones(dim[2])*mean_img
+        a.data[index[1]] = np.ones(dim[1])*mean_img       
+        b.data[::,index[2]*scale_fact] = np.ones(dim[2])*mean_img
+        b.data[index[1]] = np.ones(dim[0])*mean_img        
+        c.data[index[2]*scale_fact] = np.ones(dim[1])*mean_img
+        c.data[::,index[0]] = np.ones(dim[0])*mean_img
+        
+    im= utils.stack([a,
+        signals.Image(np.ones([dim[2],space])*mean_img),b],axis=0)
+    im2= utils.stack([c,
+        signals.Image(np.ones([dim[0],dim[0]+space])*mean_img)],axis=0)
+    im = utils.stack([im,
+        signals.Image(np.ones([space,dim[1]+dim[0]+space])*mean_img),im2],axis=1)
+    
+    if plot_result:
+        fig = im.plot()
+        return fig 
+    else:
+        return im
+    
 
     
     

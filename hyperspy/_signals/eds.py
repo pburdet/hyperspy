@@ -908,7 +908,40 @@ class EDSSpectrum(Spectrum):
         
         return fig
         
-    
+    def plot_orthoview_result(self,
+        element,
+        result,
+        index,
+        plot_index=False,
+        space=2,
+        plot_result=True):
+
+        """
+        Plot an orthogonal view of a 3D images
+        
+        Parameters
+        ----------
+        
+        element: str
+            The element to get.
+        
+        result: str
+            The result to get  
+            
+        index: list
+            The position [x,y,z] of the view.
+            
+        plot_index: bool
+            Plot the line indicating the index position.
+            
+        space: int
+            the spacing between the images in pixel.
+        """
+        
+        fig = utils_eds.plot_orthoview(self.get_result(element,result),
+            index,plot_index,space,plot_result)
+        return fig
+        
     
         
         
