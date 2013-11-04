@@ -533,7 +533,10 @@ class EDSSEMSpectrum(EDSSpectrum):
         
             
     def check_kratio(self,Xray_lines,width_energy='auto',
-      top_hat_applied=False, plot_all_standard=False):
+        top_hat_applied=False,
+        plot_all_standard=False,
+        plot_legend=True,
+        new_figure=True):
         """
         Compare the spectrum to the sum of the standard spectra scaled 
         in y with the k-ratios. The residual is ploted as well.
@@ -574,7 +577,8 @@ class EDSSEMSpectrum(EDSSpectrum):
             -line_energy]
             
         mp = self.mapped_parameters
-        fig = plt.figure()
+        if new_figure:
+            fig = plt.figure()
         if top_hat_applied:
             self_data = self.top_hat(line_energy, width_windows).data
         else:
@@ -612,13 +616,15 @@ class EDSSEMSpectrum(EDSSpectrum):
         plt.plot(self_data-spec_sum)
         leg_plot.append("Sum")
         leg_plot.append("Residual")
-        plt.legend(leg_plot)
+        if plot_legend:
+            plt.legend(leg_plot)
         print("Tot residual: %s" % np.abs(self_data-spec_sum).sum())
         for i in range(len(line_energies)):
                 plt.annotate(Xray_lines[i],xy = (line_energies[i],
                   intensities[i]))
-        fig.show()
-        return fig
+        if new_figure:
+            fig.show()
+            return fig
         
     def save_result(self, result, filename, Xray_lines='all',
       extension='hdf5'):
@@ -1786,6 +1792,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         #iso.actor.property.opacity = 0.5        
         return figure, src, iso
         
+    
         
 
     

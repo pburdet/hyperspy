@@ -838,8 +838,8 @@ class EDSSpectrum(Spectrum):
                 print("%s of %s : %s" % (result, Xray_line, data_res))
             else:
                 res_img.plot(None)
-        else:
-            print("%s of %s calculated" % (result, Xray_line))
+        #else:
+        #    print("%s of %s calculated" % (result, Xray_line))
             
         res_img.get_dimensions_from_data()
             
@@ -914,7 +914,8 @@ class EDSSpectrum(Spectrum):
         index,
         plot_index=False,
         space=2,
-        plot_result=True):
+        plot_result=True,
+        normalize=False):
 
         """
         Plot an orthogonal view of a 3D images
@@ -937,10 +938,24 @@ class EDSSpectrum(Spectrum):
         space: int
             the spacing between the images in pixel.
         """
-        
-        fig = utils_eds.plot_orthoview(self.get_result(element,result),
+        if element=='all':
+            res_element = copy.deepcopy(self.mapped_parameters.Sample[result])
+            res_element = utils.stack(res_element).sum(1) 
+        elif normalize:
+            self.deepcopy()
+            res_element = self.normalize_result(result,return_element=element)
+        else:
+            res_element = self.get_result(element,result)
+        fig = utils_eds.plot_orthoview(res_element,
             index,plot_index,space,plot_result)
+
         return fig
+        
+    def add_poissonian_noise(self, **kwargs):
+        """Add Poissonian noise to the data"""
+        original_type = self.data.dtype
+        self.data = np.random.poisson(self.data, **kwargs).astype(
+                                      original_type)
         
     
         
