@@ -287,8 +287,8 @@ class EDSSEMSpectrum(EDSSpectrum):
                     filename = mp_std.title
                 if element + "." in filename or element + '_std' == filename:
                     test_file_exist=True
-                    print("Standard file for %s : %s" % (element, 
-                      filename))
+                    #print("Standard file for %s : %s" % (element, 
+                    #  filename))
                     mp_std.title = element+"_std"
                     mp.Sample.standard_spec.append(std)
             if test_file_exist == False:

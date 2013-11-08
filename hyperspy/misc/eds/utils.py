@@ -363,15 +363,16 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
     """
     from hyperspy import signals
     spec = signals.EDSSEMSpectrum(np.zeros(1024))
-    if mp == 'gui':        
-        spec.set_microscope_parameters()        
+    
+    if mp == 'gui':             
         if elements == 'auto':
             raise ValueError( 'Elements need to be set (set_elements) ' +  
              'with gui option')
             return 0
         else:
+            spec.set_microscope_parameters()      
             spec.set_elements(elements) 
-            spec.set_lines() 
+            spec.add_lines() 
         mp = spec.mapped_parameters        
     else :
         spec.mapped_parameters = mp.deepcopy()
@@ -1134,7 +1135,8 @@ def plot_histogram_results(specs,
     results,
     bins = 10,
     normalizeI=False,
-    normalizex=False):
+    normalizex=False,
+    plot_legend=True):
     #must be the main function in Image, specs = image. EDSSpec for results
     """
     Plot the histrogram for different results for one element.
@@ -1179,7 +1181,7 @@ def plot_histogram_results(specs,
             re.mapped_parameters.title = element + ' ' +  results[i] + ' ' +  spec.mapped_parameters.title
         else:
             re = results[i].deepcopy()
-            print 'Normalise x not available yet'
+            #print 'Normalise x not available yet'
             re.mapped_parameters.title = (element + ' ' +  
                 re.mapped_parameters.title + ' ' +  spec.mapped_parameters.title)
         data = re.data.flatten()
@@ -1187,7 +1189,8 @@ def plot_histogram_results(specs,
         if normalizeI:
             hist1 = hist1 / float(hist1.sum())
         plt.plot(center, hist1, label = re.mapped_parameters.title)
-    plt.legend()
+    if plot_legend:
+        plt.legend()
     fig.show()
     
     return fig

@@ -264,10 +264,10 @@ class EDSSpectrum(Spectrum):
                 if subshell in elements_db[element]['Xray_energy']:
                     lines_len = len(Xray_lines)
                     Xray_lines.add(line)
-                    if lines_len != len(Xray_lines):
-                        print("%s line added," % line)
-                    else:
-                        print("%s line already in." % line)
+                    #if lines_len != len(Xray_lines):
+                    #    print("%s line added," % line)
+                    #else:
+                    #    print("%s line already in." % line)
                     if (elements_db[element]['Xray_energy'][subshell] > 
                             end_energy):
                       print("Warning: %s %s is above the data energy range." 
