@@ -863,14 +863,19 @@ class EDSSpectrum(Spectrum):
         return_element: str 
             If 'all', all elements are return.
         """
+        #look at dim...
         mp = self.mapped_parameters
         res = copy.deepcopy(mp.Sample[result])
         
         re = utils.stack(res)
-        if len(re.data.shape)<4:
+        if re.axes_manager.signal_dimension==0:
+            tot = re.sum(1)
+            for r in range(re.axes_manager.shape[1]):
+                res[r].data = (re[::,r]/tot).data             
+        elif re.axes_manager.signal_dimension==1:
             tot = re.sum(0)
             for r in range(re.axes_manager.shape[0]):
-                res[r].data = (re[r]/tot).data[0] 
+                res[r].data = (re[r]/tot).data 
         else:
             tot = re.sum(1)
             for r in range(re.axes_manager.shape[1]):

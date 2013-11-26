@@ -1631,9 +1631,9 @@ def plot_orthoview(image,
         #a.data[index[0]] = np.ones(dim[1])*mean_img
         #a.data[::,index[1]] = np.ones(dim[2])*mean_img   
         a.data[::,index[0]] = np.ones(dim[2])*mean_img
-        a.data[index[1]] = np.ones(dim[1])*mean_img       
-        b.data[::,index[2]*scale_fact] = np.ones(dim[2])*mean_img
-        b.data[index[1]] = np.ones(dim[0])*mean_img        
+        a.data[index[1]] = np.ones(dim[1])*mean_img   
+        b.data[index[1]] = np.ones(dim[0])*mean_img          
+        b.data[::,index[2]*scale_fact] = np.ones(dim[2])*mean_img          
         c.data[index[2]*scale_fact] = np.ones(dim[1])*mean_img
         c.data[::,index[0]] = np.ones(dim[0])*mean_img
         
@@ -1643,6 +1643,9 @@ def plot_orthoview(image,
         signals.Image(np.ones([dim[0],dim[0]+space])*mean_img)],axis=0)
     im = utils.stack([im,
         signals.Image(np.ones([space,dim[1]+dim[0]+space])*mean_img),im2],axis=1)
+    #Why I need to do that
+    im.axes_manager[0].offset=0
+    im.axes_manager[0].offset=0
     
     if plot_result:
         fig = im.plot()
