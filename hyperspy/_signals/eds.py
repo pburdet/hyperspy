@@ -636,8 +636,8 @@ class EDSSpectrum(Spectrum):
                 
             for end_mirror in end_mirrors:  
                 tmp_s=np.insert(self.data, end_mirror[0], self.data[...,end_mirror[0],:,:],axis=-3)
-                tmp_s=np.insert(tmp_s, end_mirror[1], self.data[...,end_mirror[0],:,:],axis=-3)
-                tmp_s=np.insert(tmp_s, end_mirror[2], self.data[...,end_mirror[0],:,:],axis=-2)
+                tmp_s=np.insert(tmp_s, end_mirror[1], tmp_s[...,end_mirror[0],:,:],axis=-3)
+                tmp_s=np.insert(tmp_s, end_mirror[2], tmp_s[...,end_mirror[1],:],axis=-2)
                 data_s += np.insert(tmp_s, end_mirror[3], tmp_s[...,end_mirror[1],:],axis=-2)
             data_s = data_s[...,1:-2,:,:][...,1:-2,:]
 
