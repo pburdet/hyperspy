@@ -1652,6 +1652,7 @@ def plot_orthoview(image,
         return fig 
     else:
         return im
+        
     
 
     

@@ -3454,6 +3454,8 @@ class Signal(MVA,
         For further information see the documentation of numpy.fft.fft, 
         numpy.fft.fft2 or numpy.fft.fftn
         """
+        #from hyperspy.signal import FourierTransformSignal
+        from hyperspy._signals.fourier_transform_signal import FourierTransformSignal
         
         dim=len(self.axes_manager.shape)
         if dim==1:
@@ -3466,8 +3468,9 @@ class Signal(MVA,
             im_fft=Signal(np.fft.fft2(self.data,s=s,axes=axes))
         else:
             im_fft=Signal(np.fft.fftn(self.data,s=s,axes=axes))
-        im_fft.set_signal_origin('fourier_transform')    
-        
+
+        #im_fft.set_signal_origin('fourier_transform')   
+        im_fft=FourierTransformSignal(im_fft.data) 
         if self.axes_manager.signal_dimension==2:
             im_fft.axes_manager.set_signal_dimension(2)
         #scale, to be verified

@@ -19,13 +19,15 @@
 import numpy as np
 
 from hyperspy.signal import Signal
+from hyperspy import utils
 
 class FourierTransformSignal(Signal):
-    _signal_origin = "fourier_transform"
+    #_signal_origin = "fourier_transform"
     
     
-    def __init__(self, *args, **kw):
-        super(FourierTransformSignal,self).__init__(*args, **kw)
+    def __init__(self, *args, **kwargs):
+        #super(FourierTransformSignal,self).__init__(*args, **kw)
+        Signal.__init__(self, *args, **kwargs)
 
         
     def ifft(self, s=None, axes=None):
@@ -91,4 +93,66 @@ class FourierTransformSignal(Signal):
             im_ifft.axes_manager[i].scale=1/self.axes_manager[i].scale
 
         return im_ifft
+        
+    def power_spectrum(self):
+        """Compute the power spectrum
+        """
+        self.data = np.abs(self.data)
+    
+    def mirror_center(self):
+        """Translate the center into the middle
+        
+        1D,2D,3D
+        """
+        n=self.axes_manager.shape
+        n=np.divide(n,2)
+        #dim=len(self.axes_manager.shape)
+        tmp = self.deepcopy()
+        if len(n)==1:
+            imgn=utils.stack([tmp[n[0]:],tmp[:n[0]]],axis=0)    
+        elif len(n)==2:
+            x1=utils.stack([tmp[:n[0],n[1]:],tmp[:n[0],:n[1]]],axis=1)
+            x2=utils.stack([tmp[n[0]:,n[1]:],tmp[n[0]:,:n[1]]],axis=1)
+            imgn=utils.stack([x2,x1],axis=0)        
+        elif len(n)==3:        
+            x1=utils.stack([tmp[:n[0],n[1]:,:n[2]],
+                tmp[:n[0],:n[1],:n[2]]],axis=1)
+            x2=utils.stack([tmp[n[0]:,n[1]:,:n[2]],
+                tmp[n[0]:,:n[1],:n[2]]],axis=1)
+            x3=utils.stack([tmp[:n[0],n[1]:,n[2]:],
+                tmp[:n[0],:n[1],n[2]:]],axis=1)
+            x4=utils.stack([tmp[n[0]:,n[1]:,n[2]:],
+                tmp[n[0]:,:n[1],n[2]:]],axis=1)
+            y1=utils.stack([x3,x1],axis=2)
+            y2=utils.stack([x4,x2],axis=2)
+            imgn=utils.stack([y2,y1],axis=0)
+        else:
+            print 'dimension not supported'            
+
+        return imgn
+  
+        
+        
+    def rtransform(data,dim,norm=True,n=1): 
+        """Radial projection
+        
+        3D
+        """ 
+        part1=ones((dim-1,dim-1,dim-1))*power(frange(-(dim-1)/2+0.5,(dim-1)/2-0.5),2)
+        dist_mat = power(part1+part1.T+array(map(transpose,part1)),0.5)
+        #dist_mat = power(part1+part1.T,0.5)
+        #bins = frange(0.,dist_mat[-1,-1,-1],dist_mat[-1,-1,-1]/dim)
+        bins = power(frange(0.,power(dist_mat[-1,-1,-1],1.25)/n,
+                            power(dist_mat[-1,-1,-1],1.25)/dim*1.5/n),0.8)
+        #bins = power(frange(0.,sqrt(dist_mat[-1,-1,-1]),sqrt(dist_mat[-1,-1,-1])/dim),2)
+        #bins = power(frange(0.,square(dist_mat[-1,-1,-1])+1,square(dist_mat[-1,-1,-1])/dim),0.5)    
+        ydat=[]
+        for i in range(len(bins)-1):
+            mask_tmp=(dist_mat < bins[i+1]) * (dist_mat > bins[i])
+            tmp=data[mask_tmp]
+            if norm:
+                ydat.append(sum(tmp)/count_nonzero(tmp))
+            else:
+                ydat.append(sum(tmp))
+        return ydat, bins[:-1]
 
