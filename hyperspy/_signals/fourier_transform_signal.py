@@ -17,6 +17,7 @@
 # along with  Hyperspy.  If not, see <http://www.gnu.org/licenses/>.
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 from hyperspy.signal import Signal
 from hyperspy import utils
@@ -133,26 +134,46 @@ class FourierTransformSignal(Signal):
   
         
         
-    def rtransform(data,dim,norm=True,n=1): 
+    def rtransform(self,n_dim=1,n_power=1,norm=True): 
         """Radial projection
         
-        3D
+        for square fft
+        
+        Parameters
+        ----------
+        
+        n_dim: float
+            ratio between number of number of bin and fft dimension
+            
+        n_power: float
+            power law of the bins
+        
+        norm:
+            divide the content of each bin by the number of pixel
+        
         """ 
-        part1=ones((dim-1,dim-1,dim-1))*power(frange(-(dim-1)/2+0.5,(dim-1)/2-0.5),2)
-        dist_mat = power(part1+part1.T+array(map(transpose,part1)),0.5)
-        #dist_mat = power(part1+part1.T,0.5)
-        #bins = frange(0.,dist_mat[-1,-1,-1],dist_mat[-1,-1,-1]/dim)
-        bins = power(frange(0.,power(dist_mat[-1,-1,-1],1.25)/n,
-                            power(dist_mat[-1,-1,-1],1.25)/dim*1.5/n),0.8)
-        #bins = power(frange(0.,sqrt(dist_mat[-1,-1,-1]),sqrt(dist_mat[-1,-1,-1])/dim),2)
-        #bins = power(frange(0.,square(dist_mat[-1,-1,-1])+1,square(dist_mat[-1,-1,-1])/dim),0.5)    
+        dim=self.axes_manager.shape[0]
+        if len(self.axes_manager.shape)==2:
+            part1=np.ones((dim,dim))*np.power(plt.mlab.frange(-(dim)/2+0.5,(dim)/2-0.5),2)
+            dist_mat = np.power(part1+part1.T,0.5)
+            bins = np.power(plt.mlab.frange(0.,np.power(dist_mat[-1,-1],1/n_power),
+                np.power(dist_mat[-1,-1],1/n_power)/dim*1.5/n_dim),n_power)
+        elif len(self.axes_manager.shape)==3:
+            part1=np.ones((dim,dim,dim))*np.power(plt.mlab.frange(-(dim)/2+0.5,(dim)/2-0.5),2)
+            dist_mat = np.power(part1+part1.T+np.array(map(np.transpose,part1)),0.5)
+            bins = np.power(plt.mlab.frange(0.,np.power(dist_mat[-1,-1,-1],1/n_power),
+                np.power(dist_mat[-1,-1,-1],1/n_power)/dim*1.5/n_dim),n_power)
         ydat=[]
         for i in range(len(bins)-1):
             mask_tmp=(dist_mat < bins[i+1]) * (dist_mat > bins[i])
-            tmp=data[mask_tmp]
+            tmp=self.data[mask_tmp]
             if norm:
-                ydat.append(sum(tmp)/count_nonzero(tmp))
+                nonzero=np.count_nonzero(tmp)
+                if nonzero==0:
+                    ydat.append(sum(tmp))
+                else:
+                    ydat.append(sum(tmp)/np.count_nonzero(tmp))
             else:
                 ydat.append(sum(tmp))
-        return ydat, bins[:-1]
+        return bins[:-1], ydat
 
