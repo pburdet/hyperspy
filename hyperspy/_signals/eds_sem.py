@@ -672,7 +672,7 @@ class EDSSEMSpectrum(EDSSpectrum):
               extension = extension, overwrite = True) 
     
     
-    def quant(self,plot_result=True,enh=False,enh_param=[0, 0.001,0.01,49],
+    def quant(self,plot_result=True,enh=False,enh_param=[0, 0.001,0.01,49,1],
         compiler=0):        
         """
         Quantify using stratagem, a commercial software. A licence is 
@@ -741,6 +741,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             mp.enh_param['limit_kratio_0'] = enh_param[1]
             mp.enh_param['limit_comp_same'] = enh_param[2]
             mp.enh_param['iter_max'] = enh_param[3]
+            mp.enh_param['extra_param'] = enh_param[4]
             self._write_nbData_ehn_tsv(foldername + 'essai')
         else: 
             raise ValueError("Ehnanced quantification needs 3D data.")
@@ -967,7 +968,7 @@ class EDSSEMSpectrum(EDSSpectrum):
                 if sum(distr) != 0:
                     distres[el].append([x/sum(distr) for x in distr])
             
-        f.write("v2_\t%s\t2\t0.1\r\n" % mp.enh_param['method'])
+        f.write("v2_\t%s\t%s\t0.1\r\n" % (mp.enh_param['method'],mp.enh_param['extra_param']))
         f.write("nbpixel_xyz\t%s\t%s\t%s\r\n" % (dim[0],dim[1],dim[2]))
         f.write('pixelsize_xyz\t%s\t%s\t%s\r\n' % (scale[0],scale[1],scale[2]))
         f.write('nblayermax\t%s\r\n' % max(distr_dic.max_slice_z))
