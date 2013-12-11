@@ -5,10 +5,15 @@ import os
 import copy
 import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
+from astroML.density_estimation import histogram
+from astroML.density_estimation import bayesian_blocks
 
 from hyperspy.misc.eds.elements import elements as elements_db
 from hyperspy.misc.config_dir import config_path
 from hyperspy import utils
+from hyperspy.io import load
+import hyperspy.components as components
+
 
 
     
@@ -1100,44 +1105,45 @@ def compare_results(specs,results,sum_elements=False,
         return check
         
         
-def _histo_data_plot(data,bins = 10):
-    """Return data ready to plot an histogram, with a step style
+#def _histo_data_plot(data,bins = 10):
+    #"""Return data ready to plot an histogram, with a step style
     
-    Parameters
-    ----------    
-    data: np.array
-        the data to use
+    #Parameters
+    #----------    
+    #data: np.array
+        #the data to use
         
-    bins: int
-        the number of bins
+    #bins: int
+        #the number of bins
         
-    Returns
-    -------    
-    center: np.array
-        the position of the bins
+    #Returns
+    #-------    
+    #center: np.array
+        #the position of the bins
         
-    hist: np.array
-        the number of conts in the bins
+    #hist: np.array
+        #the number of conts in the bins
         
-    See also
-    --------    
-    np.histogram
-    """
+    #See also
+    #--------    
+    #np.histogram
+    #"""
     
-    hist1, bins = np.histogram(data,bins)
-    hist = np.append(np.append(np.array([0]),
-        np.array(zip(hist1,hist1)).flatten()),[0])
-    center = np.array(zip(bins ,bins )).flatten()
-    return center, hist
+    #hist1, bins = np.histogram(data,bins)
+    #hist = np.append(np.append(np.array([0]),
+        #np.array(zip(hist1,hist1)).flatten()),[0])
+    #center = np.array(zip(bins ,bins )).flatten()
+    #return center, hist
     
-def plot_histogram_results(specs,
+def compare_histograms_results(specs,
     element,
     results,
     bins = 10,
     normalizeI=False,
     normalizex=False,
-    plot_legend=True):
-    #must be the main function in Image, specs = image. EDSSpec for results
+    legend_labels='auto',
+    colors='auto',
+    line_styles='auto'):
     """
     Plot the histrogram for different results for one element.
     
@@ -1158,15 +1164,32 @@ def plot_histogram_results(specs,
     bins: int
         the number of bins
         
-    normalize: bool
+    normalizeI: bool
+        nomralize the intensity
+        
+    normalizex: bool
+        nomralize over all the results
+    
+    legend_labels: 'auto' | list | None
+        If legend_labels is auto, then the indexes are used.
+        
+    colors: list
+        If 'auto', automatically selected, eg: ('red','blue')
+        
+    line_styles: list
+        If 'auto', continuous lines, eg: ('-','--','steps','-.',':')
         
     """
+    specs = copy.deepcopy(specs)
     if isinstance(results,list) is False:
         results = [results]*len(specs)
-    elif isinstance(specs,list) is False:
-        specs = copy.deepcopy(specs)
+    elif isinstance(specs,list) is False:        
         specs = [specs]*len(results)
-    fig = plt.figure()
+    else:
+        dim_results = len(results)        
+        results = np.repeat(results,len(specs))
+        specs = specs*dim_results
+    hists=[]
     for i, spec in enumerate(specs):
         if element == 'all':
             re = copy.deepcopy(spec.mapped_parameters.Sample[results[i]])
@@ -1184,16 +1207,44 @@ def plot_histogram_results(specs,
             #print 'Normalise x not available yet'
             re.mapped_parameters.title = (element + ' ' +  
                 re.mapped_parameters.title + ' ' +  spec.mapped_parameters.title)
-        data = re.data.flatten()
-        center, hist1 = _histo_data_plot(data,bins)
+        #data = re.data.flatten()
+        #center, hist1 = _histo_data_plot(data,bins)
+        hist_tmp = get_histogram(re,bins)
         if normalizeI:
-            hist1 = hist1 / float(hist1.sum())
-        plt.plot(center, hist1, label = re.mapped_parameters.title)
-    if plot_legend:
-        plt.legend()
-    fig.show()
+            hist_tmp = hist_tmp / float(hist_tmp.sum(0).data)
+        hists.append(hist_tmp)
+        
+    compare_signal(hists,legend_labels=legend_labels,colors=colors,
+        line_styles=line_styles)
     
-    return fig
+    
+def compare_histograms(imgs,bins=10,
+    legend_labels='auto',
+    colors='auto',
+    line_styles='auto'):
+    """Compare the histogram of the list of image
+    
+    Parameters
+    ----------
+    
+    bins: int
+        the number of bins (channel)
+        
+    legend_labels: 'auto' | list | None
+        If legend_labels is auto, then the indexes are used.
+        
+    colors: list
+        If 'auto', automatically selected, eg: ('red','blue')
+        
+    line_styles: list
+        If 'auto', continuous lines, eg: ('-','--','steps','-.',':')
+        
+    """
+    hists=[]
+    for img in imgs:
+        hists.append(get_histogram(img,bins))
+    compare_signal(hists,legend_labels=legend_labels,colors=colors,
+        line_styles=line_styles)   
 
     
 def compare_signal(specs,
@@ -1273,8 +1324,8 @@ def compare_signal(specs,
                             tmp.axes_manager[0].scale,npts=len(tmp.data))
         plt.plot(xdata,tmp.data, color = colors[i],ls=line_styles[i])
     plt.ylabel('Intensity')
-
-    plt.xlabel(str(tmp.axes_manager[0].name + ' (' + tmp.axes_manager[0].units + ')'))
+     
+    plt.xlabel(str(tmp.axes_manager[0].name) + ' (' + str(tmp.axes_manager[0].units) + ')')
     
     if legend_labels is not None:
         plt.legend(legend_labels) 
@@ -1556,7 +1607,7 @@ def simulate_linescan(nTraj,
     
     return spec    
     
-def crop_indexes_from_shift(shift):
+def crop_indexes_from_shift(shifts):
     """Get the crops index from shift
     
     Return
@@ -1577,6 +1628,7 @@ def crop_indexes_from_shift(shift):
                             shifts[:,1].min() < 0 else None,
                    int(np.ceil(shifts[:,1].max())) if 
                             shifts[:,1].max() > 0 else 0)
+    shifts = -shifts
     return top, bottom, left, right
     
 def plot_orthoview(image,
@@ -1652,7 +1704,92 @@ def plot_orthoview(image,
         return fig 
     else:
         return im
+    
+def get_histogram(img,bins=10,range_bins=None):
+    """Return an histogram of a signal
+    
+    More sophisticated algorithms for determining bins can be used. 
+    Aside from the `bins` argument allowing a string specified how bins 
+    are computed, the parameters are the same as numpy.histogram().
+    
+    Parameters
+    ----------
+    
+    bins : int or list or str (optional)
+        If bins is a string, then it must be one of:
+        'blocks' : use bayesian blocks for dynamic bin widths
+        'knuth' : use Knuth's rule to determine bins
+        'scotts' : use Scott's rule to determine bins
+        'freedman' : use the Freedman-diaconis rule to determine bins
         
+    range : tuple or None (optional)
+        the minimum and maximum range for the histogram. If not specified,
+        it will be (x.min(), x.max())
+                
+    Return
+    ------    
+    A 1D spectrum of the histogram
+    
+    See Also
+    --------
+    numpy.histogram
+    astroML.density_estimation.histogram
+    
+    """
+    from hyperspy import signals
+    from astroML.density_estimation import histogram
+    
+    hist, bin_edges = histogram(img.data.flatten(),bins=bins,range=range_bins)
+    hist_spec = signals.Spectrum(hist)
+    hist_spec.axes_manager[0].scale=bin_edges[1]-bin_edges[0]
+    hist_spec.axes_manager[0].offset=bin_edges[0]
+    hist_spec.axes_manager[0].name= 'value'
+    hist_spec.mapped_parameters.title=img.mapped_parameters.title
+    return hist_spec
+
+        
+def get_contrast_brightness_from(img,reference):
+    """Set the contrast/brightness of an image to be the same as a reference.
+    
+    Fit the histogram of the image on the histogram of the reference to 
+    get the change in contrast bightness
+    
+    Parameters
+    ---------
+    
+    img: Signal
+        The signal fo which the contrast need to be adjsuted
+        
+    reference: Signal
+        The contrast/brightness reference
+    """
+    from hyperspy.hspy import create_model  
+    
+    img = img.deepcopy()
+    
+    hist_img=get_histogram(img,bins=50)
+    hist_ref=get_histogram(reference,bins=50)
+    
+    posmax_ref=list(hist_ref.data).index(max(hist_ref.data))
+    posmax_img=list(hist_img.data).index(max(hist_img.data))
+
+    m = create_model(hist_img)
+    fp = components.ScalableFixedPattern(hist_ref)
+
+    fp.xscale.value= (hist_ref.axes_manager[0].scale/
+                hist_img.axes_manager[0].scale)
+    fp.shift.value = (hist_ref.axes_manager[0].scale*posmax_ref/
+                     hist_img.axes_manager[0].scale/posmax_img)
+
+    fp.set_parameters_free(['xscale','shift'])
+    fp.set_parameters_not_free(['yscale'])
+    m.append(fp)          
+    m.multifit() 
+
+    img*=fp.xscale.value
+    img-=fp.shift.value
+
+    return img
     
 
     

@@ -888,7 +888,11 @@ class EDSSpectrum(Spectrum):
                 if return_element in el.mapped_parameters.title:
                     return el
         
-    def plot_histogram_result(self,result,bins = 10):
+    def plot_histogram_result(self,
+        result,
+        bins=50,  
+        colors='auto',
+        line_styles='auto'):
         """
         Plot an histrogram of the result
         
@@ -900,18 +904,20 @@ class EDSSpectrum(Spectrum):
             
         bins: int
             the number of bins
+
+        
+        colors: list
+            If 'auto', automatically selected, eg: ('red','blue')
+        
+        line_styles: list
+            If 'auto', continuous lines, eg: ('-','--','steps','-.',':')
         """
         mp = self.mapped_parameters
-        res = copy.deepcopy(mp.Sample[result])
-        fig = plt.figure()
-        for i, re in enumerate(res):
-            data = re.data.flatten()
-            center, hist1 = utils_eds._histo_data_plot(data,bins)
-            plt.plot(center, hist1, label = re.mapped_parameters.title)
-        plt.legend() 
-        fig.show() 
+        res = copy.deepcopy(mp.Sample[result])       
         
-        return fig
+        utils_eds.compare_histograms(res,bins=bins,legend_labels='auto',
+        colors=colors,line_styles=line_styles)
+
         
     def plot_orthoview_result(self,
         element,

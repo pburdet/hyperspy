@@ -367,7 +367,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             m = create_model(self.top_hat(line_energy,width_windows))
             fp = components.ScalableFixedPattern(std.top_hat(line_energy, 
               width_windows))
-            fp.set_parameters_not_free(['offset','xscale','shift'])
+            fp.set_parameters_not_free(['xscale','shift'])
             m.append(fp)          
             m.multifit(fitter='leastsq') 
             #store k-ratio
