@@ -3422,6 +3422,7 @@ class Signal(MVA,
         s._remove_axis(axis.index_in_axes_manager)
         return s
         
+
     def fft(self, s=None, axes=None):
         """Compute the discrete Fourier Transform.
 
@@ -3478,6 +3479,48 @@ class Signal(MVA,
             im_fft.axes_manager[i].scale=1/self.axes_manager[i].scale
             
         return im_fft
+
+    def get_histogram(img,bins=10,range_bins=None):
+        """Return an histogram of a signal
+        
+        More sophisticated algorithms for determining bins can be used.
+        Aside from the `bins` argument allowing a string specified how bins
+        are computed, the parameters are the same as numpy.histogram().
+        
+        Parameters
+        ----------
+        
+        bins : int or list or str (optional)
+            If bins is a string, then it must be one of:            
+            'knuth' : use Knuth's rule to determine bins
+            'scotts' : use Scott's rule to determine bins
+            'freedman' : use the Freedman-diaconis rule to determine bins
+            'blocks' : use bayesian blocks for dynamic bin widths
+            
+        range_bins : tuple or None (optional)
+            the minimum and maximum range for the histogram. If not specified,
+            it will be (x.min(), x.max())
+            
+        Return
+        ------
+        A 1D spectrum of the histogram
+        
+        See Also        
+        --------
+        astroML.density_estimation.histogram
+        numpy.histogram        
+        """
+        from hyperspy import signals
+        from hyperspy.misc.borrowed.astroML.histtools import histogram
+        
+        hist, bin_edges = histogram(img.data.flatten(),bins=bins,range=range_bins)
+        hist_spec = signals.Spectrum(hist)
+        hist_spec.axes_manager[0].scale=bin_edges[1]-bin_edges[0]
+        hist_spec.axes_manager[0].offset=bin_edges[0]
+        hist_spec.axes_manager[0].name= 'value'
+        hist_spec.mapped_parameters.title=img.mapped_parameters.title
+        return hist_spec            
+
         
     def copy(self):
         try:

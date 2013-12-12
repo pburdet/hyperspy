@@ -1209,7 +1209,7 @@ def compare_histograms_results(specs,
                 re.mapped_parameters.title + ' ' +  spec.mapped_parameters.title)
         #data = re.data.flatten()
         #center, hist1 = _histo_data_plot(data,bins)
-        hist_tmp = get_histogram(re,bins)
+        hist_tmp = re.get_histogram(bins)
         if normalizeI:
             hist_tmp = hist_tmp / float(hist_tmp.sum(0).data)
         hists.append(hist_tmp)
@@ -1242,7 +1242,7 @@ def compare_histograms(imgs,bins=10,
     """
     hists=[]
     for img in imgs:
-        hists.append(get_histogram(img,bins))
+        hists.append(img.get_histogram(bins))
     compare_signal(hists,legend_labels=legend_labels,colors=colors,
         line_styles=line_styles)   
 
@@ -1705,47 +1705,47 @@ def plot_orthoview(image,
     else:
         return im
     
-def get_histogram(img,bins=10,range_bins=None):
-    """Return an histogram of a signal
+#def get_histogram(img,bins=10,range_bins=None):
+    #"""Return an histogram of a signal
     
-    More sophisticated algorithms for determining bins can be used. 
-    Aside from the `bins` argument allowing a string specified how bins 
-    are computed, the parameters are the same as numpy.histogram().
+    #More sophisticated algorithms for determining bins can be used. 
+    #Aside from the `bins` argument allowing a string specified how bins 
+    #are computed, the parameters are the same as numpy.histogram().
     
-    Parameters
-    ----------
+    #Parameters
+    #----------
     
-    bins : int or list or str (optional)
-        If bins is a string, then it must be one of:
-        'blocks' : use bayesian blocks for dynamic bin widths
-        'knuth' : use Knuth's rule to determine bins
-        'scotts' : use Scott's rule to determine bins
-        'freedman' : use the Freedman-diaconis rule to determine bins
+    #bins : int or list or str (optional)
+        #If bins is a string, then it must be one of:
+        #'blocks' : use bayesian blocks for dynamic bin widths
+        #'knuth' : use Knuth's rule to determine bins
+        #'scotts' : use Scott's rule to determine bins
+        #'freedman' : use the Freedman-diaconis rule to determine bins
         
-    range : tuple or None (optional)
-        the minimum and maximum range for the histogram. If not specified,
-        it will be (x.min(), x.max())
+    #range : tuple or None (optional)
+        #the minimum and maximum range for the histogram. If not specified,
+        #it will be (x.min(), x.max())
                 
-    Return
-    ------    
-    A 1D spectrum of the histogram
+    #Return
+    #------    
+    #A 1D spectrum of the histogram
     
-    See Also
-    --------
-    numpy.histogram
-    astroML.density_estimation.histogram
+    #See Also
+    #--------
+    #numpy.histogram
+    #astroML.density_estimation.histogram
     
-    """
-    from hyperspy import signals
-    from astroML.density_estimation import histogram
+    #"""
+    #from hyperspy import signals
+    #from astroML.density_estimation import histogram
     
-    hist, bin_edges = histogram(img.data.flatten(),bins=bins,range=range_bins)
-    hist_spec = signals.Spectrum(hist)
-    hist_spec.axes_manager[0].scale=bin_edges[1]-bin_edges[0]
-    hist_spec.axes_manager[0].offset=bin_edges[0]
-    hist_spec.axes_manager[0].name= 'value'
-    hist_spec.mapped_parameters.title=img.mapped_parameters.title
-    return hist_spec
+    #hist, bin_edges = histogram(img.data.flatten(),bins=bins,range=range_bins)
+    #hist_spec = signals.Spectrum(hist)
+    #hist_spec.axes_manager[0].scale=bin_edges[1]-bin_edges[0]
+    #hist_spec.axes_manager[0].offset=bin_edges[0]
+    #hist_spec.axes_manager[0].name= 'value'
+    #hist_spec.mapped_parameters.title=img.mapped_parameters.title
+    #return hist_spec
 
         
 def get_contrast_brightness_from(img,reference):
@@ -1767,8 +1767,8 @@ def get_contrast_brightness_from(img,reference):
     
     img = img.deepcopy()
     
-    hist_img=get_histogram(img,bins=50)
-    hist_ref=get_histogram(reference,bins=50)
+    hist_img=img.get_histogram(bins=50)
+    hist_ref=reference.get_histogram(bins=50)
     
     posmax_ref=list(hist_ref.data).index(max(hist_ref.data))
     posmax_img=list(hist_img.data).index(max(hist_img.data))
