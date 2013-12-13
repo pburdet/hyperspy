@@ -1496,7 +1496,7 @@ def plot_orthoview(image,
     else:
         return im
         
-def get_contrast_brightness_from(img,reference):
+def get_contrast_brightness_from(img,reference,return_factors=False):
     """Set the contrast/brightness of an image to be the same as a reference.
     
     Fit the histogram of the image on the histogram of the reference to 
@@ -1510,6 +1510,11 @@ def get_contrast_brightness_from(img,reference):
         
     reference: Signal
         The contrast/brightness reference
+        
+    return_factors:bool
+        If False, return the adjusted image
+        If True, return the adjusted image, contrast adjustement 
+        and the brightness adjustment.
     """
     from hyperspy.hspy import create_model  
     
@@ -1537,4 +1542,7 @@ def get_contrast_brightness_from(img,reference):
     img*=fp.xscale.value
     img-=fp.shift.value
 
-    return img
+    if return_factors:
+        return img, fp.xscale.value, fp.shift.value
+    else:
+        return img
