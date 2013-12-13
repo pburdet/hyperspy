@@ -68,6 +68,12 @@ class Test2D:
         assert_true(isinstance(result,signals.Spectrum))
         assert_true((result.data==np.array([17, 16, 17])).all())
         
+    def test_apply(self):
+        s = self.signal
+        import scipy.ndimage
+        result=s.apply(scipy.ndimage.gaussian_filter,sigma=3)
+        assert_true((result.data[::,0] == np.array([17, 19, 21, 22, 24])).all())
+        
 class Test3D:
     def setUp(self):
         self.signal = Signal(np.arange(2*4*6).reshape(2,4,6))
