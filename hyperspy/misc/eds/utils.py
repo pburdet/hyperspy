@@ -5,21 +5,46 @@ import os
 import copy
 import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
-from astroML.density_estimation import histogram
-from astroML.density_estimation import bayesian_blocks
+
+import hyperspy.utils
 
 from hyperspy.misc.eds.elements import elements as elements_db
 from hyperspy.misc.config_dir import config_path
-from hyperspy import utils
-from hyperspy.io import load
+import hyperspy.misc.units_converter as units_converter
 import hyperspy.components as components
-
-
-
     
 def _get_element_and_line(Xray_line):
     lim = Xray_line.find('_')
-    return Xray_line[:lim], Xray_line[lim+1:]    
+    return Xray_line[:lim], Xray_line[lim+1:]
+
+def get_FWHM_at_Energy(energy_resolution_MnKa,E):
+    """Calculates the FWHM of a peak at energy E.
+    
+    Parameters
+    ----------
+    energy_resolution_MnKa : float
+        Energy resolution of Mn Ka in eV
+    E : float
+        Energy of the peak in keV
+            
+    Returns
+    -------
+    float : FWHM of the peak in keV
+    
+    Notes
+    -----
+    From the textbook of Goldstein et al., Plenum publisher, 
+    third edition p 315
+    
+    """
+    FWHM_ref = energy_resolution_MnKa
+    E_ref = elements_db['Mn']['Xray_energy']['Ka']
+    
+    
+    FWHM_e = 2.5*(E-E_ref)*1000 + FWHM_ref*FWHM_ref
+   
+    return math.sqrt(FWHM_e)/1000 # In mrad
+
     
 def get_index_from_names(self,axis_names,index_name,axis_name_in_mp=True):
     """Get the index of an axis that is link to a list of names.
@@ -44,224 +69,14 @@ def get_index_from_names(self,axis_names,index_name,axis_name_in_mp=True):
         if name == index_name:
             return i
 
-def xray_range(Xray_line,beam_energy,rho=None):
-    '''Return the Anderson-Hasler X-ray range. The maximum range of X-ray
-    generation.
-    
-    Parameters
-    ----------    
-    Xray_line: str
-        The X-ray line, e.g. 'Al_Ka'
-        
-    beam_energy: float (kV)
-        The energy of the beam in kV. 
-        
-    rho: float (g/cm3)
-        The density of the material. If None, the density of the pure 
-        element is used.
-        
-    Returns
-    -------
-    X-ray range in micrometer.
-        
-    Notes
-    -----
-    From Anderson, C.A. and M.F. Hasler (1966). In proceedings of the 
-    4th international conference on X-ray optics and microanalysis.
-    
-    See also the textbook of Goldstein et al., Plenum publisher, 
-    third edition p 286
-    '''
-    element, line = _get_element_and_line(Xray_line)
-    if rho is None:
-        rho = elements_db[element]['density']
-    Xray_energy = elements_db[element]['Xray_energy'][line]
-    
-    return 0.064/rho*(np.power(beam_energy,1.68)-
-        np.power(Xray_energy,1.68))
-        
-def electron_range(element,beam_energy,rho=None,tilt=0):
-    '''Return the Kanaya-Okayama electron range in a pure material.
-    
-    Parameters
-    ----------    
-    elements: str
-        The element, e.g. 'Al'
-        
-    beam_energy: float (kV)
-        The energy of the beam in kV. 
-        
-    rho: float (g/cm3)
-        The density of the material. If None, the density of the pure 
-        element is used.
-        
-    tilt: float (degree)
-        the tilt of the sample.
-        
-    Returns
-    -------
-    Electron range in micrometer.
-        
-    Notes
-    -----
-    From Kanaya, K. and S. Okayama (1972). J. Phys. D. Appl. Phys. 5, p43
-    
-    See also the textbook of Goldstein et al., Plenum publisher, 
-    third edition p 72
-    '''
 
-    if rho is None:
-        rho = elements_db[element]['density']
-        Z = elements_db[element]['Z']
-        A = elements_db[element]['A']
-    
-    return (0.0276*A/np.power(Z,0.89)/rho*
-        np.power(beam_energy,1.67)*math.cos(math.radians(tilt)))
-        
-def FWHM(FWHM_ref,E,line_ref='Mn_Ka'):
-    """Calculates the FWHM of a peak at energy E from the FWHM of a 
-    reference peak.
-    
-    Parameters
-    ----------
-    energy_resolution_MnKa : float
-        Energy resolution of Mn Ka in eV
-        
-    E : float
-        Energy of the peak in keV
-        
-    line_ref : str
-        The references X-ray line. Set by default at 'Mn_Ka'
-    
-            
-    Returns
-    -------
-    float : FWHM of the peak in keV
-    
-    Notes
-    -----
-    From the textbook of Goldstein et al., Plenum publisher, 
-    third edition p 315
-    
-    as defined by Fiori and Newbury (1978). In SEM/1978/I, AMF O'Hare,
-    p 401
-    
-    
-    """
-    
-    element, line = _get_element_and_line(line_ref)
-    E_ref = elements_db[element]['Xray_energy'][line]
-    
-    
-    
-    FWHM_e = 2.5*(E-E_ref)*1000 + FWHM_ref*FWHM_ref
-   
-    return math.sqrt(FWHM_e)/1000
-    
-def atomic_to_weight(elements,compositions):
-    """Convert atomic percent in weigth percent
-    """
-    tot = 0
-    for i, element in enumerate(elements):
-        tot = tot + compositions[i]*elements_db[element]['A']
-    weight_compositions = []
-    for i, element in enumerate(elements): 
-        weight_compositions.append(compositions[i]*elements_db[element]['A']/tot)
-        
-    return weight_compositions
-    
-def weigth_to_atomic(elements,compositions):
-    """Convert weigth percent in atomic percent
-    """
-    tot = 0
-    for i, element in enumerate(elements):
-        tot = tot + compositions[i]/elements_db[element]['A']
-    atomic_compositions = []
-    for i, element in enumerate(elements): 
-        atomic_compositions.append(compositions[i]/elements_db[element]['A']/tot)
-        
-    return atomic_compositions       
-    
-    
-def get_density(elements,compositions):
-    """Return the density from the sample composition
-    
-    Parameters
-    ----------
-    elements: list of str
-        A list of element abbreviations, e.g. ['Al','Zn']
-    Composition: list of float
-        The atomic composition of the sample.
-        
-    Returns
-    -------
-    The density in g/cm3
-    """
-    density = 0
-    weights = atomic_to_weight(elements,compositions)
-    for i, element in enumerate(elements):
-        density = density + elements_db[element]['density']*weights[i]
-
-    return density
-    
-    
-def TOA(self,tilt_stage=None,azimuth_angle=None,elevation_angle=None):
-    #must be the main function. But another on in EDS spec
-    """Calculate the take-off-angle (TOA).
-    
-    TOA is the angle with which the X-rays leave the surface towards 
-    the detector. If any parameter is None, it is read in 'SEM.tilt_stage',
-    'SEM.EDS.azimuth_angle' and 'SEM.EDS.elevation_angle'
-     in 'mapped_parameters'.
-
-    Parameters
-    ----------
-    tilt_stage: float (Degree)
-        The tilt of the stage. The sample is facing a detector at 0 azimuth 
-        when positively tilted. 
-
-    azimuth_angle: float (Degree)
-        The azimuth of the detector. 0 is perpendicular to the tilt 
-        axis. A zero azimuth means that the tilt axis is normal to the 
-        vertical place containing the axis of detection.
-
-    elevation_angle: float (Degree)
-        The elevation of the detector compared to a surface with 0 tilt.
-        90 is SEM direction (perp to the surface)
-                
-    Returns
-    -------
-    TOA: float (Degree)
-    
-    Notes
-    -----
-    Defined by M. Schaffer et al., Ultramicroscopy 107(8), pp 587-597 (2007)
-    
-    """
-        
-    if tilt_stage == None:
-        a = math.radians(90+self.mapped_parameters.SEM.tilt_stage)
-    else:
-        a = math.radians(90+tilt_stage)
-        
-    if azimuth_angle == None:
-        b = math.radians(self.mapped_parameters.SEM.EDS.azimuth_angle)
-    else:
-        b = math.radians(azimuth_angle)
-        
-    if elevation_angle == None:
-        c = math.radians(self.mapped_parameters.SEM.EDS.elevation_angle)
-    else:
-        c = math.radians(elevation_angle)
-    
-    return math.degrees( np.arcsin (-math.cos(a)*math.cos(b)*math.cos(c) \
-    + math.sin(a)*math.sin(c)))
     
 def phase_inspector(self,bins=[20,20,20],plot_result=True):
     #must go in Image
     """
     Generate an binary image of different channel
     """
+    from hyperspy import utils
     bins=[20,20,20]
     minmax = []
     
@@ -367,6 +182,7 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
    
     """
     from hyperspy import signals
+    from hyperspy import utils
     spec = signals.EDSSEMSpectrum(np.zeros(1024))
     
     if mp == 'gui':             
@@ -404,7 +220,7 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
     mp.Sample.compo_at = compo_at
             
     if density == 'auto':
-        density = get_density(elements, compo_at)
+        density = utils.eds.density_from_composition(elements, compo_at)
     mp.Sample.density = density
         
     e0 = mp.SEM.beam_energy
@@ -415,9 +231,9 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
     azim = np.radians(90-mp.SEM.EDS.azimuth_angle)
     #if mp.SEM.EDS.azimuth_angle==90:
     #    tilt = np.radians(abs(mp.SEM.tilt_stage))
-    TOangle = np.radians(TOA(spec))
+    TOangle = np.radians(spec.get_take_off_angle())
     #print TOA(spec)
-    compo_wt = atomic_to_weight(elements,compo_at)
+    compo_wt = units_converter.atomic_to_weight(elements,compo_at)
 
         
     if gateway == 'auto':
@@ -605,6 +421,7 @@ def simulate_Xray_depth_distribution(nTraj,bins=120,mp='gui',
    
     """
     from hyperspy import signals
+    from hyperspy import utils
     spec = signals.EDSSEMSpectrum(np.zeros(1024))
     if mp == 'gui':        
         spec.set_microscope_parameters()        
@@ -642,14 +459,14 @@ def simulate_Xray_depth_distribution(nTraj,bins=120,mp='gui',
             compo_at.append(1./len(elements))
             
     if density == 'auto':
-        density = get_density(elements, compo_at)
+        density = utils.eds.density_from_composition(elements, compo_at)
         
     e0 = mp.SEM.beam_energy
     tilt = np.radians(mp.SEM.tilt_stage)
     ltime = mp.SEM.EDS.live_time
     elevation =np.radians(mp.SEM.EDS.elevation_angle)
     azim = np.radians(90-mp.SEM.EDS.azimuth_angle)
-    compo_wt = atomic_to_weight(elements,compo_at)
+    compo_wt = units_converter.atomic_to_weight(elements,compo_at)
  
         
     if gateway == 'auto':
@@ -743,14 +560,13 @@ def simulate_Xray_depth_distribution(nTraj,bins=120,mp='gui',
     datas = np.rollaxis(datas,1,0)
         
     frz = signals.Spectrum(np.array(datas))
+    frz.mapped_parameters.SEM = mp.SEM 
     mp = frz.mapped_parameters
     mp.add_node('Sample')
     mp.Sample.elements = elements
     mp.Sample.compo_at = compo_at
     mp.Sample.Xray_lines = Xray_lines 
     mp.Sample.density = density
-    
-    mp.SEM = mp.SEM
 
     frz.axes_manager[0].name = 'Generated|Emitted'
     frz.axes_manager[1].name = 'Xray_lines'
@@ -883,6 +699,7 @@ def align_with_stackReg(img,
     
     """
     import time
+    from hyperspy.io import load
     path_align_file = os.path.join(config_path, "imageJ\\TransfoMatrix.txt")
     path_img = os.path.join(config_path, "imageJ\\tmp.tiff")
     path_img_alnd = os.path.join(config_path, "imageJ\\tmp_alnd.tiff")
@@ -1039,6 +856,7 @@ def compare_results(specs,results,sum_elements=False,
         if results and specs have different shape, expand in a matrix/lines.
     
     """ 
+    from hyperspy import utils
     if expand == True:
         specs = copy.deepcopy(specs)
         if isinstance(specs, list):
@@ -1103,37 +921,7 @@ def compare_results(specs,results,sum_elements=False,
         check.plot(navigator=None)
     else:
         return check
-        
-        
-#def _histo_data_plot(data,bins = 10):
-    #"""Return data ready to plot an histogram, with a step style
-    
-    #Parameters
-    #----------    
-    #data: np.array
-        #the data to use
-        
-    #bins: int
-        #the number of bins
-        
-    #Returns
-    #-------    
-    #center: np.array
-        #the position of the bins
-        
-    #hist: np.array
-        #the number of conts in the bins
-        
-    #See also
-    #--------    
-    #np.histogram
-    #"""
-    
-    #hist1, bins = np.histogram(data,bins)
-    #hist = np.append(np.append(np.array([0]),
-        #np.array(zip(hist1,hist1)).flatten()),[0])
-    #center = np.array(zip(bins ,bins )).flatten()
-    #return center, hist
+
     
 def compare_histograms_results(specs,
     element,
@@ -1180,6 +968,7 @@ def compare_histograms_results(specs,
         If 'auto', continuous lines, eg: ('-','--','steps','-.',':')
         
     """
+    from hyperspy import utils
     specs = copy.deepcopy(specs)
     if isinstance(results,list) is False:
         results = [results]*len(specs)
@@ -1395,6 +1184,7 @@ def simulate_linescan(nTraj,
     http://www.cstl.nist.gov/div837/837.02/epq/dtsa2/index.html
     """
     from hyperspy import signals
+    from hyperspy import utils
     spec = signals.EDSSEMSpectrum(np.zeros(1024))
     if mp == 'gui':        
         spec.set_microscope_parameters()        
@@ -1422,7 +1212,7 @@ def simulate_linescan(nTraj,
     if density == 'auto':
         density = []
         for compo_at in compos_at:
-            density.append(get_density(elements, compo_at))
+            density.append(utils.eds.density_from_composition(elements, compo_at))
             
     mp.Sample.compo_at = compo_at
     mp.Sample.density = density
@@ -1434,7 +1224,7 @@ def simulate_linescan(nTraj,
     azim = np.radians(90-mp.SEM.EDS.azimuth_angle)
     compos_wt = []
     for compo_at in compos_at:
-        compos_wt.append(atomic_to_weight(elements,compo_at))
+        compos_wt.append(units_converter.atomic_to_weight(elements,compo_at))
     if gateway == 'auto':
         gateway = get_link_to_jython()
     def simu_film(interface_xyz):
@@ -1658,6 +1448,7 @@ def plot_orthoview(image,
         if False, return the image.
     """
     from hyperspy import signals
+    from hyperspy import utils
     image = image.deepcopy()
     dim = image.axes_manager.shape
     if len(dim)!=3:
@@ -1704,49 +1495,6 @@ def plot_orthoview(image,
         return fig 
     else:
         return im
-    
-#def get_histogram(img,bins=10,range_bins=None):
-    #"""Return an histogram of a signal
-    
-    #More sophisticated algorithms for determining bins can be used. 
-    #Aside from the `bins` argument allowing a string specified how bins 
-    #are computed, the parameters are the same as numpy.histogram().
-    
-    #Parameters
-    #----------
-    
-    #bins : int or list or str (optional)
-        #If bins is a string, then it must be one of:
-        #'blocks' : use bayesian blocks for dynamic bin widths
-        #'knuth' : use Knuth's rule to determine bins
-        #'scotts' : use Scott's rule to determine bins
-        #'freedman' : use the Freedman-diaconis rule to determine bins
-        
-    #range : tuple or None (optional)
-        #the minimum and maximum range for the histogram. If not specified,
-        #it will be (x.min(), x.max())
-                
-    #Return
-    #------    
-    #A 1D spectrum of the histogram
-    
-    #See Also
-    #--------
-    #numpy.histogram
-    #astroML.density_estimation.histogram
-    
-    #"""
-    #from hyperspy import signals
-    #from astroML.density_estimation import histogram
-    
-    #hist, bin_edges = histogram(img.data.flatten(),bins=bins,range=range_bins)
-    #hist_spec = signals.Spectrum(hist)
-    #hist_spec.axes_manager[0].scale=bin_edges[1]-bin_edges[0]
-    #hist_spec.axes_manager[0].offset=bin_edges[0]
-    #hist_spec.axes_manager[0].name= 'value'
-    #hist_spec.mapped_parameters.title=img.mapped_parameters.title
-    #return hist_spec
-
         
 def get_contrast_brightness_from(img,reference):
     """Set the contrast/brightness of an image to be the same as a reference.
@@ -1790,24 +1538,3 @@ def get_contrast_brightness_from(img,reference):
     img-=fp.shift.value
 
     return img
-    
-
-    
-    
-    
-
-
-
-    
-    
-        
-
-    
-
-    
-    
-    
-        
-    
-    
-    

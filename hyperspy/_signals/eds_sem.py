@@ -319,7 +319,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         offset = np.copy(self.axes_manager.signal_axes[0].offset)
         scale_s = np.copy(self.axes_manager.signal_axes[0].scale)
         FWHM_MnKa = self.mapped_parameters.SEM.EDS.energy_resolution_MnKa
-        line_FWHM = utils_eds.FWHM(FWHM_MnKa, line_energy) 
+        line_FWHM = utils_eds.get_FWHM_at_Energy(FWHM_MnKa, line_energy) 
         if np.ndim(width_windows) == 0:            
             det = [width_windows*line_FWHM,width_windows*line_FWHM]
         else :
@@ -567,10 +567,10 @@ class EDSSEMSpectrum(EDSSpectrum):
                 element, line = utils_eds._get_element_and_line(Xray_line)  
                 line_energy.append(elements_db[element]['Xray_energy'][line])
             width_energy = [0,0]
-            width_energy[0] = np.min(line_energy)-utils_eds.FWHM(130,np.min(
-              line_energy))*2
-            width_energy[1] = np.max(line_energy)+utils_eds.FWHM(130,np.max(
-              line_energy))*2
+            width_energy[0] = np.min(line_energy)-utils_eds.get_FWHM_at_Energy(
+                130,np.min(line_energy))*2
+            width_energy[1] = np.max(line_energy)+utils_eds.get_FWHM_at_Energy(
+                130,np.max(line_energy))*2
                 
         line_energy = np.mean(width_energy)
         width_windows=[line_energy-width_energy[0],width_energy[1]\
@@ -1110,7 +1110,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             self.axes_manager[2].scale *1.0e-6]
         nblayer = []
         for el in elements:
-            nblayer.append(utils_eds.electron_range(el,e0,tilt=tilt))            
+            nblayer.append(utils.eds.electron_range(el,e0,tilt=tilt))            
             
         nblayermax = int(round(max(nblayer)/self.axes_manager[2].scale))
         pixLat = [int((limit_x[1]-limit_x[0])/dx0+1), nblayermax]

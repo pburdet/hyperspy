@@ -24,6 +24,8 @@ from hyperspy.defaults_parser import preferences
 from hyperspy.components import Gaussian
 from hyperspy.misc.eds.elements import elements as elements_EDS
 from hyperspy.misc.eds import utils as utils_eds
+from hyperspy import utils
+
 
 class Test_mapped_parameters:
     def setUp(self):
@@ -33,7 +35,10 @@ class Test_mapped_parameters:
         s.axes_manager.signal_axes[0].units = "keV"
         s.axes_manager.signal_axes[0].name = "Energy"
         s.mapped_parameters.SEM.EDS.live_time = 3.1
-        s.mapped_parameters.SEM.beam_energy = 15.0          
+        s.mapped_parameters.SEM.beam_energy = 15.0 
+        s.mapped_parameters.SEM.tilt_stage = -38
+        s.mapped_parameters.SEM.EDS.azimuth_angle = 63
+        s.mapped_parameters.SEM.EDS.elevation_angle = 35      
         self.signal = s
         
     def test_sum_live_time(self):
@@ -114,6 +119,10 @@ class Test_mapped_parameters:
         s.get_calibration_from(scalib)
         assert_equal(s.axes_manager.signal_axes[0].scale,
             energy_axis.scale)
+            
+    def test_take_off_angle(self):
+        s = self.signal
+        assert_equal(s.get_take_off_angle(),12.886929785732487)
         
         
 class Test_get_intentisity_map:
@@ -167,14 +176,14 @@ class Test_quantification:
         gauss.centre.value = line_energy
         gauss.A.value = 500
         FWHM_MnKa = s.mapped_parameters.SEM.EDS.energy_resolution_MnKa        
-        gauss.sigma.value = utils_eds.FWHM(FWHM_MnKa,line_energy)
+        gauss.sigma.value = utils_eds.get_FWHM_at_Energy(FWHM_MnKa,line_energy)
 
         gauss2 = Gaussian()
         line_energy = elements_EDS['Zn']['Xray_energy']['La']
         gauss2.centre.value = line_energy
         gauss2.A.value = 300
         FWHM_MnKa = s.mapped_parameters.SEM.EDS.energy_resolution_MnKa        
-        gauss2.sigma.value = utils_eds.FWHM(FWHM_MnKa,line_energy)
+        gauss2.sigma.value = utils_eds.get_FWHM_at_Energy(FWHM_MnKa,line_energy)
 
         s.data[:] = (gauss.function(energy_axis.axis) + 
                      gauss2.function(energy_axis.axis))  
@@ -373,4 +382,25 @@ class Test_plot_Xray_lines:
         s.plot_Xray_line(line_to_plot='ab')
         
         
+
+class Test_tools_bulk:
+    def setUp(self):
+        s = EDSSEMSpectrum(np.ones(1024))
+        s.mapped_parameters.SEM.beam_energy = 5.0
+        s.set_elements(['Al','Zn'])
+        s.add_lines()
+        self.signal = s
+    def test_range(self):
+        s = self.signal
+        mp = s.mapped_parameters
+        elec_range = utils.eds.electron_range(mp.Sample.elements[0],
+            mp.SEM.beam_energy,rho='auto',tilt=mp.SEM.tilt_stage)
+        assert_equal(elec_range,0.41350651162374225)
+        
+        density = utils.eds.density_from_composition(mp.Sample.elements,[0.8,0.2])
+        xr_range = utils.eds.xray_range(mp.Sample.Xray_lines[0],
+            mp.SEM.beam_energy,rho=density)
+        assert_equal(xr_range,0.19002078834049554)
+        
+    
 

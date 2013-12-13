@@ -21,6 +21,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import copy
 
+from hyperspy import utils
 from hyperspy._signals.spectrum import Spectrum
 from hyperspy.signal import Signal
 from hyperspy._signals.image import Image
@@ -456,11 +457,12 @@ class EDSSpectrum(Spectrum):
         intensities = []
         #test 1D Spectrum (0D problem)
             #signal_to_index = self.axes_manager.navigation_dimension - 2                  
+
         if lines_deconvolution is None:
             for Xray_line in Xray_lines:                
                 element, line = utils_eds._get_element_and_line(Xray_line)           
                 line_energy = elements_db[element]['Xray_energy'][line]
-                line_FWHM = utils_eds.FWHM(FWHM_MnKa,line_energy)
+                line_FWHM = utils_eds.get_FWHM_at_Energy(FWHM_MnKa,line_energy)
                 det = integration_window_factor * line_FWHM / 2.
                 img = self[...,line_energy - det:line_energy + det
                         ].integrate_simpson(-1)
@@ -496,7 +498,7 @@ class EDSSpectrum(Spectrum):
             for Xray_line in Xray_lines:
                 element, line = utils_eds._get_element_and_line(Xray_line)           
                 line_energy = elements_db[element]['Xray_energy'][line]
-                line_FWHM = utils_eds.FWHM(FWHM_MnKa,line_energy)
+                line_FWHM = utils_eds.get_FWHM_at_Energy(FWHM_MnKa,line_energy)
                 if lines_deconvolution == 'model':   
                     fp = components.Gaussian()    
                     fp.centre.value = line_energy
@@ -516,7 +518,7 @@ class EDSSpectrum(Spectrum):
                     for li in elements_db[element]['Xray_energy']:
                         if line[0] in li and line != li: 
                             line_energy = elements_db[element]['Xray_energy'][li]
-                            line_FWHM = utils_eds.FWHM(FWHM_MnKa,line_energy)
+                            line_FWHM = utils_eds.get_FWHM_at_Energy(FWHM_MnKa,line_energy)
                             fp = components.Gaussian()    
                             fp.centre.value = line_energy
                             fp.name = element + '_' + li
@@ -568,7 +570,7 @@ class EDSSpectrum(Spectrum):
                     #if lines_deconvolution == 'model': 
                         #img.data = fp.A.value
                     #elif lines_deconvolution == 'standard': 
-                        #img.data = fp.yscale.value 
+                        #img.data = fp.yscale.value  
                                  
                 img.mapped_parameters.title = (
                     'Intensity of %s at %.2f %s from %s' % 
@@ -587,6 +589,8 @@ class EDSSpectrum(Spectrum):
                            img.data))
                 intensities.append(img)
         return intensities
+
+
 
     def running_sum(self,shape_convo='square',corner=-1) :
         #cross not tested
@@ -755,7 +759,7 @@ class EDSSpectrum(Spectrum):
         mp = self.mapped_parameters        
         element, line = utils_eds._get_element_and_line(Xray_line)
         Xray_energy = elements_db[element]['Xray_energy'][line]
-        FWHM = utils_eds.FWHM(mp.SEM.EDS.energy_resolution_MnKa,
+        FWHM = utils_eds.get_FWHM_at_Energy(mp.SEM.EDS.energy_resolution_MnKa,
             Xray_energy)
         if bck=='auto':
             spec_bck = self[Xray_energy+2.5*FWHM:Xray_energy+2.7*FWHM]
@@ -773,7 +777,7 @@ class EDSSpectrum(Spectrum):
         if model_plot:
             m.plot()
 
-        res_MnKa = utils_eds.FWHM(fp.sigma.value*2.355*1000,
+        res_MnKa = utils_eds.get_FWHM_at_Energy(fp.sigma.value*2.355*1000,
             elements_db['Mn']['Xray_energy']['Ka'],Xray_line)        
         if set_Mn_Ka:            
             mp.SEM.EDS.energy_resolution_MnKa = res_MnKa*1000
@@ -968,10 +972,38 @@ class EDSSpectrum(Spectrum):
         self.data = np.random.poisson(self.data, **kwargs).astype(
                                       original_type)
         
+    def get_take_off_angle(self):
+        """Calculate the take-off-angle (TOA).
     
+        TOA is the angle with which the X-rays leave the surface towards 
+        the detector. Parameters are read in 'SEM.tilt_stage',
+        'SEM.EDS.azimuth_angle' and 'SEM.EDS.elevation_angle'
+         in 'mapped_parameters'.
+         
+        Returns
+        -------
+        take_off_angle: float (Degree)
         
+        See also
+        --------        
+        utils.eds.take_off_angle
         
-        
+        Notes
+        -----
+        Defined by M. Schaffer et al., Ultramicroscopy 107(8), pp 587-597 (2007)
+        """   
+        if self.mapped_parameters.signal_type == 'EDS_SEM':
+            mp = self.mapped_parameters.SEM
+        elif self.mapped_parameters.signal_type == 'EDS_TEM':
+            mp = self.mapped_parameters.TEM 
             
+        tilt_stage=mp.tilt_stage
+        azimuth_angle=mp.EDS.azimuth_angle
+        elevation_angle=mp.EDS.elevation_angle
+        
+        TOA = utils.eds.take_off_angle(tilt_stage,azimuth_angle,
+            elevation_angle)
+        
+        return TOA
 
 
