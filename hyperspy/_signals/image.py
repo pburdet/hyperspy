@@ -16,8 +16,10 @@
 # You should have received a copy of the GNU General Public License
 # along with  Hyperspy.  If not, see <http://www.gnu.org/licenses/>.
 
+import numpy as np
 
 from hyperspy.signal import Signal
+
 
 class Image(Signal):
     """
@@ -72,16 +74,42 @@ class Image(Signal):
         
         """
         
-        from skimage import filter
-        
-        img = self.deepcopy()
+        import skimage.filter       
+
         if method=='bregman':
-            img.data = filter.denoise_tv_bregman(img.data,weight=weight,
+            img = self.apply(skimage.filter.denoise_tv_bregman,weight=weight,
                 eps=eps, max_iter=n_iter_max)
         elif method=='chambolle':
-            img.data = filter.denoise_tv_chambolle(img.data,
-                weight=weight, eps=eps, n_iter_max=n_iter_max)
-        
-        #img.mapped_paramters.denoise=
-        
+            img = self.apply(skimage.filter.denoise_tv_chambolle,img.data,
+                weight=weight, eps=eps, n_iter_max=n_iter_max)        
         return img
+        
+    def mean_filter(self,size):
+        """ Apply a mean filter.
+
+        Parameters
+        ----------
+        
+        size : int | list or tuple
+            `size` gives the shape that is taken from the input array, 
+            at every element position, to define the input to the filter
+            function.
+        
+        """
+        import scipy.ndimage
+        dim=self.axes_manager.shape
+        if isinstance(size,int):
+            kernel=np.ones([size]*len(dim))        
+        else:
+            kernel=np.ones(size)
+        kernel=kernel/kernel.sum()       
+        img = self.apply(scipy.ndimage.convolve,weights=kernel)    
+        return img
+        
+        
+        
+        
+        
+        
+        
+        
