@@ -58,6 +58,7 @@ from hyperspy.misc import spectrum_tools
 from hyperspy.gui.tools import IntegrateArea
 from hyperspy import components
 from hyperspy.misc.utils import underline
+from hyperspy.misc.borrowed.astroML.histtools import histogram
 
 class Signal2DTools(object):
     def estimate_shift2D(self, reference='current',
@@ -3723,56 +3724,7 @@ class Signal(MVA,
         for i in range(dim):
             im_fft.axes_manager[i].scale=1/self.axes_manager[i].scale
             
-        return im_fft
-
-    def get_histogram(img,bins=10,range_bins=None):
-        """Return an histogram of a signal
-        
-        More sophisticated algorithms for determining bins can be used.
-        Aside from the `bins` argument allowing a string specified how bins
-        are computed, the parameters are the same as numpy.histogram().
-        
-        Parameters
-        ----------
-        
-        bins : int or list or str (optional)
-            If bins is a string, then it must be one of:            
-            'knuth' : use Knuth's rule to determine bins
-            'scotts' : use Scott's rule to determine bins
-            'freedman' : use the Freedman-diaconis rule to determine bins
-            'blocks' : use bayesian blocks for dynamic bin widths
-            
-        range_bins : tuple or None (optional)
-            the minimum and maximum range for the histogram. If not specified,
-            it will be (x.min(), x.max())
-            
-        Return
-        ------
-        A 1D spectrum of the histogram
-        
-        See Also        
-        --------
-        astroML.density_estimation.histogram
-        numpy.histogram        
-        """
-        from hyperspy import signals
-        from hyperspy.misc.borrowed.astroML.histtools import histogram
-        
-        hist, bin_edges = histogram(img.data.flatten(),bins=bins,range=range_bins)
-        hist_spec = signals.Spectrum(hist)
-        if bins == 'blocks':
-            hist_spec.axes_manager.signal_axes[0].axis=bin_edges[:-1]
-            warnings.warn(
-            "The options `bins = 'blocks'` is not fully supported in this " 
-            "versions of hyperspy. It should be used for plotting purpose"
-            "only.")
-        else:            
-            hist_spec.axes_manager[0].scale=bin_edges[1]-bin_edges[0]
-            hist_spec.axes_manager[0].offset=bin_edges[0]
-        
-        hist_spec.axes_manager[0].name= 'value'
-        hist_spec.mapped_parameters.title=img.mapped_parameters.title
-        return hist_spec            
+        return im_fft        
 
 
     def indexmax(self, axis):
@@ -3802,6 +3754,7 @@ class Signal(MVA,
         >>> s.indexmax(-1).data.shape
         (64,64) 
         
+
         """
         return self._apply_function_on_data_and_remove_axis(np.argmax, axis)
        
@@ -3836,6 +3789,74 @@ class Signal(MVA,
         s = self.indexmax(axis)                                                 
         s.data = self.axes_manager[axis].index2value(s.data)                 
         return s
+
+
+    def get_histogram(img, bins='freedman', range_bins=None):
+        """Return a histogram of the signal data.
+        
+        More sophisticated algorithms for determining bins can be used.
+        Aside from the `bins` argument allowing a string specified how bins
+        are computed, the parameters are the same as numpy.histogram().
+        
+        Parameters
+        ----------
+        
+        bins : int or list or str (optional)
+            If bins is a string, then it must be one of:            
+            'knuth' : use Knuth's rule to determine bins
+            'scotts' : use Scott's rule to determine bins
+            'freedman' : use the Freedman-diaconis rule to determine bins
+            'blocks' : use bayesian blocks for dynamic bin widths
+            
+        range_bins : tuple or None (optional)
+            the minimum and maximum range for the histogram. If not specified,
+            it will be (x.min(), x.max())
+            
+        Returns
+        -------
+        hist_spec : An 1D spectrum instance containing the histogram.
+        
+        See Also        
+        --------
+        print_summary_statistics
+        astroML.density_estimation.histogram, numpy.histogram : these are the 
+            functions that hyperspy uses to compute the histogram.
+        
+        Notes
+        -----
+        The number of bins estimators are taken from AstroML. Read 
+        their documentation for more info.
+        
+        Examples
+        --------
+        >>> s = signals.Spectrum(np.random.normal(size=(10, 100)))
+        Plot the data histogram
+        >>> s.get_histogram().plot()
+        Plot the histogram of the signal at the current coordinates
+        >>> s.get_current_signal().get_histogram().plot()
+
+        """
+        from hyperspy import signals
+        
+        hist, bin_edges = histogram(img.data.flatten(),
+                                    bins=bins,
+                                    range=range_bins)
+        hist_spec = signals.Spectrum(hist)
+        if bins == 'blocks':
+            hist_spec.axes_manager.signal_axes[0].axis=bin_edges[:-1]
+            warnings.warn(
+            "The options `bins = 'blocks'` is not fully supported in this " 
+            "versions of hyperspy. It should be used for plotting purpose"
+            "only.")
+        else:            
+            hist_spec.axes_manager[0].scale = bin_edges[1] - bin_edges[0]
+            hist_spec.axes_manager[0].offset = bin_edges[0]
+        
+        hist_spec.axes_manager[0].name = 'value'
+        hist_spec.mapped_parameters.title = (img.mapped_parameters.title +
+                                             " histogram")
+        return hist_spec            
+    
 
     def copy(self):
         try:
@@ -4162,7 +4183,7 @@ class Signal(MVA,
     
         
 
-    def print_summary_statistics(self, only_current=False, formatter="%.3f"):
+    def print_summary_statistics(self, formatter="%.3f"):
         """Prints the five-number summary statistics of the data, the mean and
         the standard deviation.
         
@@ -4172,28 +4193,28 @@ class Signal(MVA,
         
         Parameters
         ----------
-        global : bool
-            If True, compute the values using the full dataset.
-            If False, compute the values at the current position.
-            
+        formatter : bool
+           Number formatter. 
+
+        See Also
+        --------
+        get_histogram
+
         """
-        if only_current is False:
-            target = self.data
-        else:
-            target = self()
+        data = self.data
         # To make it work with nans
-        target = target[~np.isnan(target)]
+        data = data[~np.isnan(data)]
         print(underline("Summary statistics"))
-        print("mean:\t" + formatter % target.mean())
-        print("std:\t" + formatter  % target.std())
+        print("mean:\t" + formatter % data.mean())
+        print("std:\t" + formatter  % data.std())
         print
-        print("min:\t" + formatter % target.min())
-        print("Q1:\t" + formatter % np.percentile(target,
+        print("min:\t" + formatter % data.min())
+        print("Q1:\t" + formatter % np.percentile(data,
                                                                     25))
-        print("median:\t" + formatter % np.median(target))
-        print("Q3:\t" + formatter % np.percentile(target,
+        print("median:\t" + formatter % np.median(data))
+        print("Q3:\t" + formatter % np.percentile(data,
                                                                      75))
-        print("max:\t" + formatter  % target.max())
+        print("max:\t" + formatter  % data.max())
 
 # Implement binary operators
 for name in (
