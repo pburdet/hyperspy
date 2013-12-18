@@ -974,10 +974,10 @@ def compare_histograms_results(specs,
         results = [results]*len(specs)
     elif isinstance(specs,list) is False:        
         specs = [specs]*len(results)
-    else:
-        dim_results = len(results)        
-        results = np.repeat(results,len(specs))
-        specs = specs*dim_results
+    #else:
+    #    dim_results = len(results)        
+    #    results = np.repeat(results,len(specs))
+    #    specs = specs*dim_results
     hists=[]
     for i, spec in enumerate(specs):
         if element == 'all':
@@ -1421,17 +1421,61 @@ def crop_indexes_from_shift(shifts):
     shifts = -shifts
     return top, bottom, left, right
     
-def plot_orthoview(image,
-    index,
-    plot_index=False,
-    space=2,
-    plot_result=True):
+def plot_orthoview_animated(img,isotropic_voxel=True):
     """
     Plot an orthogonal view of a 3D images
     
     Parameters
     ---------
     
+    image: signals.Image
+        An image in 3D.
+        
+    isotropic_voxel:
+        If True, generate a new image, scaling z in order to obtain isotropic
+        voxel.
+    """  
+    if isotropic_voxel:
+        im_xy, scale = get_isotropic_3D_image(img)
+    else:
+        im_xy = img.deepcopy()
+    im_xy.mapped_parameters.title = 'xy'
+    im_xy.axes_manager.set_signal_dimension(0)
+
+    im_xz = im_xy.deepcopy()
+    im_xz = im_xz.rollaxis(2,1)
+    im_xz.mapped_parameters.title = 'xz'
+    im_xz.axes_manager.set_signal_dimension(0)
+
+    im_xz.axes_manager._axes[2] = im_xy.axes_manager._axes[2]
+    im_xz.axes_manager._axes[1] = im_xy.axes_manager._axes[0]
+    im_xz.axes_manager._axes[0] = im_xy.axes_manager._axes[1]
+
+    im_yz = im_xy.deepcopy()
+    im_yz = im_yz.rollaxis(0,2)
+    im_yz = im_yz.rollaxis(1,0)
+    im_yz.mapped_parameters.title = 'yz'
+    im_yz.axes_manager.set_signal_dimension(0)
+    
+    im_yz.axes_manager._axes = im_xy.axes_manager._axes[::-1]
+
+    im_xz.axes_manager._update_attributes()
+    im_yz.axes_manager._update_attributes()
+    im_xy.plot()
+    im_xz.plot()
+    im_yz.plot()
+    
+def plot_orthoview(image,
+    index,
+    plot_index=False,
+    space=2,
+    plot_result=True,
+    isotropic_voxel=True):
+    """
+    Plot an orthogonal view of a 3D images
+    
+    Parameters
+    ----------    
     image: signals.Image
         An image in 3D.
         
@@ -1446,33 +1490,35 @@ def plot_orthoview(image,
         
     plot_result: bool
         if False, return the image.
+        
+    isotropic_voxel:
+        If True, generate a new image, scaling z in order to obtain isotropic
+        voxel.
     """
     from hyperspy import signals
     from hyperspy import utils
-    image = image.deepcopy()
-    dim = image.axes_manager.shape
-    if len(dim)!=3:
-        raise ValueError('Needs a 3D image')   
+
+    if isotropic_voxel:
+        image, scale_fact = get_isotropic_3D_image(image)
+    else:
+        image = image.deepcopy()
+        scale_fact = 1
     
-    scalez = image.axes_manager[0].scale
-    scalex = image.axes_manager[1].scale
-    if scalez > scalex:
-        scale_fact= int(scalez / scalex)                
-        image.data = np.repeat(image.data,int(scalez / scalex),axis=0)
-        image.get_dimensions_from_data()
-        dim = image.axes_manager.shape
+    dim = image.axes_manager.shape
 
     map_color = plt.get_cmap()
     if map_color.name == 'RdYlBu_r':
         mean_img= image.mean(0).mean(0).mean(0).data
     else:
         mean_img= image.max(0).max(0).max(0).data*0.88
-    a=image[index[2]*scale_fact].deepcopy()
+        
+    if isinstance(index[2],int):
+        a=image[index[2]*scale_fact].deepcopy()
+    else:
+        a=image[index[2]].deepcopy()
     b= image[::,index[0]].as_image([0,1]).deepcopy()
     c = image[::,::,index[1]].as_image([1,0]).deepcopy()
-    if plot_index:
-        #a.data[index[0]] = np.ones(dim[1])*mean_img
-        #a.data[::,index[1]] = np.ones(dim[2])*mean_img   
+    if plot_index: 
         a.data[::,index[0]] = np.ones(dim[2])*mean_img
         a.data[index[1]] = np.ones(dim[1])*mean_img   
         b.data[index[1]] = np.ones(dim[0])*mean_img          
@@ -1495,6 +1541,32 @@ def plot_orthoview(image,
         return fig 
     else:
         return im
+        
+def get_isotropic_3D_image(image):
+    """Rescale the z axes to generate a  new image with isotropic voxel.    
+    
+    Returns
+    -------
+    
+    signals.Image, int: The resaled image and the scaling factor applied
+        to z.    
+    """
+    image = image.deepcopy()
+    dim = image.axes_manager.shape
+    if len(dim)!=3:
+        raise ValueError('Needs a 3D image')
+    scalez = image.axes_manager[0].scale
+    scalex = image.axes_manager[1].scale
+    if scalez > scalex:        
+        scale_fact= int(scalez / scalex)                
+        image.data = np.repeat(image.data,int(scalez / scalex),axis=0)
+        image.get_dimensions_from_data() 
+        image.axes_manager[0].scale/=scale_fact
+    else:
+        scale_fact=1
+    return image, scale_fact
+        
+    
         
 def get_contrast_brightness_from(img,reference,return_factors=False):
     """Set the contrast/brightness of an image to be the same as a reference.
@@ -1546,3 +1618,31 @@ def get_contrast_brightness_from(img,reference,return_factors=False):
         return img, fp.xscale.value, fp.shift.value
     else:
         return img
+        
+def animate_legend():
+    fig = plt.gcf()
+    ax= plt.gca()
+    lines = ax.lines
+    lined = dict()
+    leg=ax.get_legend()
+    for legline, origline in zip(leg.get_lines(), lines):
+        legline.set_picker(5)  # 5 pts tolerance
+        lined[legline] = origline
+    def onpick(event):
+        # on the pick event, find the orig line corresponding to the
+        # legend proxy line, and toggle the visibility
+        legline = event.artist
+        origline = lined[legline]
+        vis = not origline.get_visible()
+        origline.set_visible(vis)
+        # Change the alpha on the line in the legend so we can see what lines
+        # have been toggled
+        if vis:
+            legline.set_alpha(1.0)
+        else:
+            legline.set_alpha(0.2)
+        fig.canvas.draw()
+    
+    fig.canvas.mpl_connect('pick_event', onpick)
+    
+    plt.show()
