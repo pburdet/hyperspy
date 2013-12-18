@@ -1713,10 +1713,11 @@ class EDSSEMSpectrum(EDSSpectrum):
             raise ValueError( 'Dimension for suported yet')
             return 0
             
-    def plot_3D_iso_surface(self,element,result,threshold,
+    def plot_3D_iso_surface_result(self,elements,result,thresholds,
             color = 'auto',
             figure='new',
-            scale='auto'):
+            scale='auto',
+            tv_denoise=False):
         #must be the main function in Image, and here jsut to connect with result
         """
         Generate an iso-surface in Mayavi.
@@ -1724,13 +1725,13 @@ class EDSSEMSpectrum(EDSSpectrum):
         Parameters
         ----------
         
-        element: str 
+        elements: str || list
             The element to select.
             
-        result: str || signals.Image
+        result: str
             The name of the result, or an image in 3D.
             
-        threshold: float
+        threshold: float || list
             Between 0 (min intensity) and 1 (max intensity).
             If result == quant, 1 == 100%.
         
@@ -1750,50 +1751,37 @@ class EDSSEMSpectrum(EDSSpectrum):
         
         figure: mayavi.core.scene.Scene
         
-        src: mayavi.sources.array_source.ArraySource
+        srcs: list of mayavi.sources.array_source.ArraySource
         
-        iso: mayavi.modules.iso_surface.IsoSurface        
+        isos: list of mayavi.modules.iso_surface.IsoSurface        
             
         """
-        from mayavi import mlab        
-        
-        if figure=='new':
-            figure = mlab.figure()
-        if isinstance(result,str):
-            img_res = self.get_result(element,result)
-        else:            
-            img_res = result.deepcopy()
-        
-        img_data = img_res.data        
-        img_data = np.rollaxis(img_data,0,3)
-        img_data = np.rollaxis(img_data,0,2)
-        src = mlab.pipeline.scalar_field(img_data)
-        src.name = img_res.mapped_parameters.title
-        
-        if 'intensities' == result or isinstance(result,str) is False:
-            threshold = img_data.max()-threshold*img_data.ptp()
-        
-        if scale=='auto':
-            scale = []
-            for i in [1,2,0]:
-                scale.append(img_res.axes_manager[i].scale)
-            src.spacing= scale
+        if isinstance(elements, list):
+            if isinstance(thresholds, list) is False:
+                thresholds = [thresholds]*len(elements)
+        elif isinstance(thresholds, list):
+            if isinstance(elements, list) is False:
+                elements = [elements]*len(thresholds)
         else:
-            src.spacing = scale           
-        if color != 'auto':
-            iso = mlab.pipeline.iso_surface(src,
-                contours=[threshold, ],color =color)
-        else:
-           iso = mlab.pipeline.iso_surface(src,
-                contours=[threshold, ])
-            
-        iso.compute_normals = False
-        #if color != 'auto':
-         #   iso.actor.property.color = color
-        #iso.actor.property.opacity = 0.5        
-        return figure, src, iso
+            elements = [elements]
+            thresholds = [thresholds]
         
-    
+        srcs=[]
+        isos=[]    
+        
+        for i, el in enumerate(elements):
+            img = self.get_result(el,result) 
+            if tv_denoise:
+                img = img.tv_denoise()      
+            figure, src, iso = utils_eds.plot_3D_iso_surface(img,
+            threshold=thresholds[i],color =color,figure=figure,scale=scale)
+            srcs.append(src)
+            isos.append(iso)         
+        
+        if len(elements)==1:
+            return figure, src, iso
+        else :
+            return figure, srcs, isos
         
 
     

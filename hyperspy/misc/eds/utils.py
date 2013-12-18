@@ -1421,7 +1421,7 @@ def crop_indexes_from_shift(shifts):
     shifts = -shifts
     return top, bottom, left, right
     
-def plot_orthoview_animated(img,isotropic_voxel=True):
+def plot_orthoview_animated(image,isotropic_voxel=True):
     """
     Plot an orthogonal view of a 3D images
     
@@ -1436,9 +1436,9 @@ def plot_orthoview_animated(img,isotropic_voxel=True):
         voxel.
     """  
     if isotropic_voxel:
-        im_xy, scale = get_isotropic_3D_image(img)
+        im_xy, scale = get_isotropic_3D_image(image)
     else:
-        im_xy = img.deepcopy()
+        im_xy = image.deepcopy()
     im_xy.mapped_parameters.title = 'xy'
     im_xy.axes_manager.set_signal_dimension(0)
 
@@ -1646,3 +1646,76 @@ def animate_legend():
     fig.canvas.mpl_connect('pick_event', onpick)
     
     plt.show()
+    
+def plot_3D_iso_surface(self,threshold,
+            color = 'auto',
+            figure='new',
+            scale='auto'):
+        #must be the main function in Image, and here jsut to connect with result
+        """
+        Generate an iso-surface in Mayavi.
+        
+        Parameters
+        ----------
+            
+        threshold: float
+            Between 0 (min intensity) and 1 (max intensity).
+            If result == quant, 1 == 100%.
+        
+        color: list
+            The color of the surface, (R,G,B). If 'auto', automatically 
+            selected.
+            
+        figure: str 
+            If 'new', generate a new scene/figure. Else, use the old one.
+        
+        scale: str || list
+            If 'auto', scale with axes_manager.scale. Else, scale with 
+            the given list (x,y,z).            
+          
+        Return
+        ------
+        
+        figure: mayavi.core.scene.Scene
+        
+        src: mayavi.sources.array_source.ArraySource
+        
+        iso: mayavi.modules.iso_surface.IsoSurface        
+            
+        """
+        from mayavi import mlab        
+        
+        if figure=='new':
+            figure = mlab.figure()     
+            
+        img_res = self.deepcopy()
+        
+        img_data = img_res.data        
+        img_data = np.rollaxis(img_data,0,3)
+        img_data = np.rollaxis(img_data,0,2)
+        src = mlab.pipeline.scalar_field(img_data)
+        src.name = img_res.mapped_parameters.title
+        
+        #if 'intensities' == result or isinstance(result,str) is False:
+        
+        threshold = img_data.max()-threshold*img_data.ptp()
+        
+        if scale=='auto':
+            scale = []
+            for i in [1,2,0]:
+                scale.append(img_res.axes_manager[i].scale)
+            src.spacing= scale
+        else:
+            src.spacing = scale           
+        if color != 'auto':
+            iso = mlab.pipeline.iso_surface(src,
+                contours=[threshold, ],color =color)
+        else:
+           iso = mlab.pipeline.iso_surface(src,
+                contours=[threshold, ])
+            
+        iso.compute_normals = False
+        #if color != 'auto':
+         #   iso.actor.property.color = color
+        #iso.actor.property.opacity = 0.5        
+        return figure, src, iso
