@@ -29,7 +29,6 @@ from hyperspy.misc.eds.elements import elements as elements_db
 from hyperspy.misc.eds import utils as utils_eds
 from hyperspy.misc.utils import isiterable
 import hyperspy.components as components
-from hyperspy import utils
 
 class EDSSpectrum(Spectrum):
     _signal_type = "EDS"
@@ -894,9 +893,11 @@ class EDSSpectrum(Spectrum):
         
     def plot_histogram_result(self,
         result,
-        bins=50,  
-        colors='auto',
-        line_styles='auto'):
+        bins='freedman',
+        color=None,
+        legend='auto',
+        line_style=None,
+        fig=None):
         """
         Plot an histrogram of the result
         
@@ -906,23 +907,41 @@ class EDSSpectrum(Spectrum):
         result: str
             the result to plot
             
-        bins: int
-            the number of bins
-
-        
-        colors: list
-            If 'auto', automatically selected, eg: ('red','blue')
-        
-        line_styles: list
-            If 'auto', continuous lines, eg: ('-','--','steps','-.',':')
+        bins : int or list or str (optional)
+            If bins is a string, then it must be one of:
+            'knuth' : use Knuth's rule to determine bins
+            'scotts' : use Scott's rule to determine bins
+            'freedman' : use the Freedman-diaconis rule to determine bins
+            'blocks' : use bayesian blocks for dynamic bin widths
+            
+        color : valid matplotlib color or a list of them or `None`
+            Sets the color of the lines of the plots when `style` is "cascade"
+            or "mosaic". If a list, if its length is
+            less than the number of spectra to plot, the colors will be cycled. If
+            If `None`, use default matplotlib color cycle.
+            
+        line_style: valid matplotlib line style or a list of them or `None`
+            Sets the line style of the plots for "cascade"
+            or "mosaic". The main line style are '-','--','steps','-.',':'.
+            If a list, if its length is less than the number of
+            spectra to plot, line_style will be cycled. If
+            If `None`, use continuous lines, eg: ('-','--','steps','-.',':')
+            
+        legend: None | list of str | 'auto'
+           If list of string, legend for "cascade" or title for "mosaic" is 
+           displayed. If 'auto', the title of each spectra (mapped_parameters.title)
+           is used.
+           
+        fig : {matplotlib figure, None}
+            If None, a default figure will be created.
         """
         mp = self.mapped_parameters
         res = copy.deepcopy(mp.Sample[result])       
         
-        utils_eds.compare_histograms(res,bins=bins,legend_labels='auto',
-        colors=colors,line_styles=line_styles)
-
+        utils_eds.compare_histograms(res,bins=bins,legend=legend,
+        color=color,line_style=line_style,fig=fig)
         
+                
     def plot_orthoview_result(self,
         element,
         result,

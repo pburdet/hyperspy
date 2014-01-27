@@ -20,6 +20,7 @@ import copy
 import os.path
 import warnings
 import math
+import inspect
 
 import numpy as np
 import numpy.ma as ma
@@ -61,16 +62,17 @@ from hyperspy.misc.utils import underline
 from hyperspy.misc.borrowed.astroML.histtools import histogram
 
 class Signal2DTools(object):
-    def estimate_shift2D(self, reference='current',
-                                correlation_threshold=None,
-                                chunk_size=30,
-                                roi=None,
-                                normalize_corr=False,
-                                sobel=True,
-                                medfilter=True,
-                                hanning=True,
-                                plot=False,
-                                dtype='float',):
+    def estimate_shift2D(self,
+            reference='current',
+            correlation_threshold=None,
+            chunk_size=30,
+            roi=None,
+            normalize_corr=False,
+            sobel=True,
+            medfilter=True,
+            hanning=True,
+            plot=False,
+            dtype='float',):
         """Estimate the shifts in a image using phase correlation
 
         This method can only estimate the shift by comparing
@@ -3643,31 +3645,7 @@ class Signal(MVA,
                                x=axis.axis,
                                axis=axis.index_in_array))
         s._remove_axis(axis.index_in_axes_manager)
-        return s
-
-    
-    def apply(self,function,*args, **kwargs):
-        """Apply apply a function to all the coordinates.
-        
-        Parameters
-        ----------
-        
-        function: function
-            A function that can be applied on each point of the signal,
-            without changing the shape
-        
-        Examples
-        --------
-        >>> import scipy.ndimage
-        >>> s = signals.Signal(np.random.random((64,64,1024)))
-        >>> filtered_s = sapply(
-        >>> scipy.ndimage.gaussian_filter, sigma=2.5)        
-        """
-        
-        im = self.deepcopy()
-        im.data = function(im.data,*args, **kwargs)
-        return im        
-        
+        return s   
 
     def fft(self, s=None, axes=None):
         """Compute the discrete Fourier Transform.
@@ -3724,8 +3702,7 @@ class Signal(MVA,
         for i in range(dim):
             im_fft.axes_manager[i].scale=1/self.axes_manager[i].scale
             
-        return im_fft        
-
+        return im_fft     
 
     def indexmax(self, axis):
         """Returns a signal with the index of the maximum along an axis.
@@ -3855,6 +3832,93 @@ class Signal(MVA,
         hist_spec.mapped_parameters.title = (img.mapped_parameters.title +
                                              " histogram")
         return hist_spec
+
+    def apply_function(self, function, **kwargs):
+        """Apply a function to the signal data at all the coordinates.
+
+        The function must operate on numpy arrays and the output *must have the
+        same dimensions as the input*. The function is applied to the data at
+        each coordinate and the result is stored in the current signal i.e.
+        this method operates *in-place*.  Any extra keyword argument is passed
+        to the function. The keywords can take different values at different
+        coordinates. If the function takes an `axis` or `axes` argument, the
+        function is assumed to be vectorial and the signal axes are assigned to
+        `axis` or `axes`.  Otherwise, the signal is iterated over the
+        navigation axes and a progress bar is displayed to monitor the
+        progress.
+
+        Parameters
+        ----------
+
+        function : function
+            A function that can be applied to the signal.
+        keyword arguments : any valid keyword argument
+            All extra keyword arguments are passed to the
+
+        Examples
+        --------
+        Apply a gaussian filter to all the images in the dataset. The sigma
+        parameter is constant.
+
+        >>> import scipy.ndimage
+        >>> im = signals.Image(np.random.random((10, 64, 64)))
+        >>> im.apply_function(scipy.ndimage.gaussian_filter, sigma=2.5)
+
+        Apply a gaussian filter to all the images in the dataset. The sigmal
+        parameter is variable.
+
+        >>> im = signals.Image(np.random.random((10, 64, 64)))
+        >>> sigmas = signals.Signal(np.linspace(2,5,10))
+        >>> sigmas.axes_manager.set_signal_dimension(0)
+        >>> im.apply_function(scipy.ndimage.gaussian_filter, sigma=sigmas)
+
+        """
+        # Sepate ndkwargs
+        ndkwargs = ()
+        for key, value in kwargs.iteritems():
+            if isinstance(value, Signal):
+                ndkwargs += ((key, value),)
+
+        # Check if the signal axes have inhomogenous scales and/or units and
+        # display in warning if yes.
+        scale = set()
+        units = set()
+        for i in range(len(self.axes_manager.signal_axes)):
+            scale.add(self.axes_manager[i].scale)
+            units.add(self.axes_manager[i].units)
+        if len(units) != 1 or len(scale) != 1:
+            warnings.warn("The function you applied does not take into "
+            "account the difference of units and of scales in-between"
+            " axes.")
+        # If the function has an axis argument and the signal dimension is 1,
+        # we suppose that it can operate on the full array and we don't
+        # interate over the coordinates.
+        fargs = inspect.getargspec(function).args
+        if not ndkwargs and (self.axes_manager.signal_dimension == 1 and
+            "axis" in fargs):
+            kwargs['axis'] = \
+                self.axes_manager.signal_axes[-1].index_in_array
+
+            self.data = function(self.data, **kwargs)
+        # If the function has an axes argument
+        # we suppose that it can operate on the full array and we don't
+        # interate over the coordinates.
+        elif not ndkwargs and  "axes" in fargs:
+            kwargs['axes'] = tuple([axis.index_in_array for axis in
+                                    self.axes_manager.signal_axes])
+            self.data = function(self.data, **kwargs)
+        else:
+            # Iteration over coordinates.
+            pbar = progressbar(
+                    maxval=self.axes_manager.navigation_size)
+            iterators = [signal[1]._iterate_signal() for signal in ndkwargs]
+            iterators = tuple([self._iterate_signal()] + iterators)
+            for data in zip(*iterators):
+                for (key, value), datum in zip(ndkwargs, data[1:]):
+                    kwargs[key] = datum[0]
+                data[0][:] = function(data[0], **kwargs)
+                pbar.next()
+            pbar.finish()
 
     def copy(self):
         try:
@@ -4031,6 +4095,8 @@ class Signal(MVA,
         return s
 
     def __iter__(self):
+        # Reset AxesManager iteration index
+        self.axes_manager.__iter__()
         return self
 
     def next(self):
@@ -4038,7 +4104,9 @@ class Signal(MVA,
         return self.get_current_signal()
 
     def __len__(self):
-        return self.axes_manager.signal_shape[-1]
+        nitem = int(self.axes_manager.navigation_size)
+        nitem = nitem if nitem > 0 else 1
+        return nitem
 
     def as_spectrum(self, spectral_axis):
         """Return the Signal as a spectrum.
@@ -4279,4 +4347,4 @@ class SpecialSlicers:
         self.signal.__getitem__(i, self.isNavigation).data[:] = j
 
     def __len__(self):
-        return self.signal.__len__()
+        return self.signal.axes_manager.signal_shape[0]

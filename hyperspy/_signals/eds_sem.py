@@ -27,7 +27,6 @@ import matplotlib.pyplot as plt
 import execnet
 import copy
 
-
 from hyperspy._signals.eds import EDSSpectrum
 from hyperspy.defaults_parser import preferences
 from hyperspy.decorators import only_interactive

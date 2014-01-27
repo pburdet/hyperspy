@@ -1,3 +1,4 @@
+import numpy as np
 import math
 import numpy as np
 import execnet
@@ -10,7 +11,6 @@ import hyperspy.utils
 
 from hyperspy.misc.eds.elements import elements as elements_db
 from hyperspy.misc.config_dir import config_path
-import hyperspy.misc.units_converter as units_converter
 import hyperspy.components as components
     
 def _get_element_and_line(Xray_line):
@@ -44,7 +44,120 @@ def get_FWHM_at_Energy(energy_resolution_MnKa,E):
     FWHM_e = 2.5*(E-E_ref)*1000 + FWHM_ref*FWHM_ref
    
     return math.sqrt(FWHM_e)/1000 # In mrad
+    
+def xray_range(xray_line, beam_energy, density='auto'):
+    '''Return the Anderson-Hasler X-ray range.
 
+    Return the maximum range of X-ray generation in a pure bulk material.
+
+    Parameters
+    ----------
+    xray_line: str
+        The X-ray line, e.g. 'Al_Ka'
+    beam_energy: float
+        The energy of the beam in kV.
+    density: {float, 'auto'}
+        The density of the material in g/cm3. If 'auto', the density
+        of the pure element is used.
+
+    Returns
+    -------
+    X-ray range in micrometer.
+
+    Notes
+    -----
+    From Anderson, C.A. and M.F. Hasler (1966). In proceedings of the
+    4th international conference on X-ray optics and microanalysis.
+
+    See also the textbook of Goldstein et al., Plenum publisher,
+    third edition p 286
+
+    '''
+
+    element, line = _get_element_and_line(xray_line)
+    if density == 'auto':
+        density = elements_db[element]['density']
+    Xray_energy = elements_db[element]['Xray_energy'][line]
+
+    return 0.064 / density * (np.power(beam_energy, 1.68) -
+                          np.power(Xray_energy, 1.68))
+
+
+def electron_range(element, beam_energy, density='auto', tilt=0):
+    '''Return the Kanaya-Okayama electron range.
+
+    Return the maximum electron range in a pure bulk material.
+
+    Parameters
+    ----------
+    element: str
+        The element symbol, e.g. 'Al'.
+    beam_energy: float
+        The energy of the beam in keV.
+    density: {float, 'auto'}
+        The density of the material in g/cm3. If 'auto', the density of
+        the pure element is used.
+    tilt: float.
+        The tilt of the sample in degrees.
+
+    Returns
+    -------
+    Electron range in micrometers.
+
+    Notes
+    -----
+    From Kanaya, K. and S. Okayama (1972). J. Phys. D. Appl. Phys. 5, p43
+
+    See also the textbook of Goldstein et al., Plenum publisher,
+    third edition p 72.
+
+    '''
+
+    if density == 'auto':
+        density = elements_db[element]['density']
+    Z = elements_db[element]['Z']
+    A = elements_db[element]['A']
+
+    return (0.0276 * A / np.power(Z, 0.89) / density *
+            np.power(beam_energy, 1.67) * math.cos(math.radians(tilt)))
+
+
+def take_off_angle(tilt_stage,
+                   azimuth_angle,
+                   elevation_angle):
+    """Calculate the take-off-angle (TOA).
+
+    TOA is the angle with which the X-rays leave the surface towards
+    the detector.
+
+    Parameters
+    ----------
+    tilt_stage: float
+        The tilt of the stage in degrees. The sample is facing the detector when
+        positively tilted.
+    azimuth_angle: float
+        The azimuth of the detector in degrees. 0 is perpendicular to the tilt
+        axis.
+    elevation_angle: float
+        The elevation of the detector in degrees.
+
+    Returns
+    -------
+    take_off_angle: float.
+        In degrees.
+
+    Notes
+    -----
+    Defined by M. Schaffer et al., Ultramicroscopy 107(8), pp 587-597 (2007)
+
+    """
+
+    a = math.radians(90 + tilt_stage)
+    b = math.radians(azimuth_angle)
+    c = math.radians(elevation_angle)
+
+    return math.degrees(np.arcsin(-math.cos(a) * math.cos(b) * math.cos(c)
+                                  + math.sin(a) * math.sin(c)))
     
 def get_index_from_names(self,axis_names,index_name,axis_name_in_mp=True):
     """Get the index of an axis that is link to a list of names.
@@ -208,6 +321,7 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
     else: 
         mp.Sample.elements = elements
         
+        
     if compo_at == 'auto':        
         compo_at = []
         #Not tested. atm vs w
@@ -218,9 +332,10 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
         for elm in elements:
             compo_at.append(1./len(elements))
     mp.Sample.compo_at = compo_at
-            
+    
+    compo_wt = utils.material.atomic_to_weight(elements,compo_at)        
     if density == 'auto':
-        density = utils.eds.density_from_composition(elements, compo_at)
+        density = utils.material.density_of_mixture_of_pure_elements(elements, compo_wt)
     mp.Sample.density = density
         
     e0 = mp.SEM.beam_energy
@@ -233,7 +348,7 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
     #    tilt = np.radians(abs(mp.SEM.tilt_stage))
     TOangle = np.radians(spec.get_take_off_angle())
     #print TOA(spec)
-    compo_wt = units_converter.atomic_to_weight(elements,compo_at)
+    
 
         
     if gateway == 'auto':
@@ -458,15 +573,16 @@ def simulate_Xray_depth_distribution(nTraj,bins=120,mp='gui',
         for elm in elements:
             compo_at.append(1./len(elements))
             
+    compo_wt = utils.material.atomic_to_weight(elements,compo_at)        
     if density == 'auto':
-        density = utils.eds.density_from_composition(elements, compo_at)
+        density = utils.material.density_of_mixture_of_pure_elements(elements, compo_wt)
         
     e0 = mp.SEM.beam_energy
     tilt = np.radians(mp.SEM.tilt_stage)
     ltime = mp.SEM.EDS.live_time
     elevation =np.radians(mp.SEM.EDS.elevation_angle)
     azim = np.radians(90-mp.SEM.EDS.azimuth_angle)
-    compo_wt = units_converter.atomic_to_weight(elements,compo_at)
+    
  
         
     if gateway == 'auto':
@@ -926,12 +1042,13 @@ def compare_results(specs,results,sum_elements=False,
 def compare_histograms_results(specs,
     element,
     results,
-    bins = 10,
     normalizeI=False,
     normalizex=False,
-    legend_labels='auto',
-    colors='auto',
-    line_styles='auto'):
+    bins='freedman',
+    color=None,
+    line_style=None,
+    legend='auto',
+    fig=None):
     """
     Plot the histrogram for different results for one element.
     
@@ -949,23 +1066,39 @@ def compare_histograms_results(specs,
     results: list || str
         The list of name of the results (or a list of images).        
         
-    bins: int
-        the number of bins
-        
     normalizeI: bool
         nomralize the intensity
         
     normalizex: bool
-        nomralize over all the results
-    
-    legend_labels: 'auto' | list | None
-        If legend_labels is auto, then the indexes are used.
+        nomralize over all the results  
+     
+    bins : int or list or str (optional)
+        If bins is a string, then it must be one of:
+        'knuth' : use Knuth's rule to determine bins
+        'scotts' : use Scott's rule to determine bins
+        'freedman' : use the Freedman-diaconis rule to determine bins
+        'blocks' : use bayesian blocks for dynamic bin widths
         
-    colors: list
-        If 'auto', automatically selected, eg: ('red','blue')
+    color : valid matplotlib color or a list of them or `None`
+        Sets the color of the lines of the plots when `style` is "cascade"
+        or "mosaic". If a list, if its length is
+        less than the number of spectra to plot, the colors will be cycled. If
+        If `None`, use default matplotlib color cycle.
         
-    line_styles: list
-        If 'auto', continuous lines, eg: ('-','--','steps','-.',':')
+    line_style: valid matplotlib line style or a list of them or `None`
+        Sets the line style of the plots for "cascade"
+        or "mosaic". The main line style are '-','--','steps','-.',':'.
+        If a list, if its length is less than the number of
+        spectra to plot, line_style will be cycled. If
+        If `None`, use continuous lines, eg: ('-','--','steps','-.',':')
+        
+    legend: None | list of str | 'auto'
+       If list of string, legend for "cascade" or title for "mosaic" is 
+       displayed. If 'auto', the title of each spectra (mapped_parameters.title)
+       is used.
+       
+    fig : {matplotlib figure, None}
+        If None, a default figure will be created.
         
     """
     from hyperspy import utils
@@ -1003,39 +1136,58 @@ def compare_histograms_results(specs,
             hist_tmp = hist_tmp / float(hist_tmp.sum(0).data)
         hists.append(hist_tmp)
         
-    compare_signal(hists,legend_labels=legend_labels,colors=colors,
-        line_styles=line_styles)
+    utils.plot.plot_spectra(hists, style='overlap', color=color,
+        line_style=line_style,legend=legend,fig=fig)
     
     
-def compare_histograms(imgs,bins=10,
-    legend_labels='auto',
-    colors='auto',
-    line_styles='auto'):
+def compare_histograms(imgs,
+    bins='freedman',
+    color=None,
+    line_style=None,
+    legend='auto',
+    fig=None):
     """Compare the histogram of the list of image
     
     Parameters
     ----------
     
-    bins: int
-        the number of bins (channel)
+    bins : int or list or str (optional)
+        If bins is a string, then it must be one of:
+        'knuth' : use Knuth's rule to determine bins
+        'scotts' : use Scott's rule to determine bins
+        'freedman' : use the Freedman-diaconis rule to determine bins
+        'blocks' : use bayesian blocks for dynamic bin widths
         
-    legend_labels: 'auto' | list | None
-        If legend_labels is auto, then the indexes are used.
+    color : valid matplotlib color or a list of them or `None`
+        Sets the color of the lines of the plots when `style` is "cascade"
+        or "mosaic". If a list, if its length is
+        less than the number of spectra to plot, the colors will be cycled. If
+        If `None`, use default matplotlib color cycle.
         
-    colors: list
-        If 'auto', automatically selected, eg: ('red','blue')
+    line_style: valid matplotlib line style or a list of them or `None`
+        Sets the line style of the plots for "cascade"
+        or "mosaic". The main line style are '-','--','steps','-.',':'.
+        If a list, if its length is less than the number of
+        spectra to plot, line_style will be cycled. If
+        If `None`, use continuous lines, eg: ('-','--','steps','-.',':')
         
-    line_styles: list
-        If 'auto', continuous lines, eg: ('-','--','steps','-.',':')
+    legend: None | list of str | 'auto'
+       If list of string, legend for "cascade" or title for "mosaic" is 
+       displayed. If 'auto', the title of each spectra (mapped_parameters.title)
+       is used.
+       
+    fig : {matplotlib figure, None}
+        If None, a default figure will be created.
         
     """
     hists=[]
     for img in imgs:
         hists.append(img.get_histogram(bins))
-    compare_signal(hists,legend_labels=legend_labels,colors=colors,
-        line_styles=line_styles)   
-
+        
+    hyperspy.utils.plot.plot_spectra(hists, style='overlap', color=color,
+        line_style=line_style,legend=legend,fig=fig)
     
+#obsolete, should use utils.plot.plot_spectra
 def compare_signal(specs,
     indexes=None,
     legend_labels='auto',
@@ -1070,6 +1222,7 @@ def compare_signal(specs,
     figure
         
     """
+    print "obsolete, should use utils.plot.plot_spectra"
 
     if indexes == None:
         nb_signals = len(specs)
@@ -1208,11 +1361,15 @@ def simulate_linescan(nTraj,
             return 0
     else: 
         mp.Sample.elements = elements
+        
+    compos_wt = []
+    for compo_at in compos_at:
+        compos_wt.append(utils.material.atomic_to_weight(elements,compo_at))
             
     if density == 'auto':
         density = []
-        for compo_at in compos_at:
-            density.append(utils.eds.density_from_composition(elements, compo_at))
+        for compo_wt in compos_wt:
+            density.append(utils.material.density_of_mixture_of_pure_elements(elements, compo_wt))
             
     mp.Sample.compo_at = compo_at
     mp.Sample.density = density
@@ -1222,9 +1379,7 @@ def simulate_linescan(nTraj,
     ltime = mp.SEM.EDS.live_time
     elevation =np.radians(mp.SEM.EDS.elevation_angle)
     azim = np.radians(90-mp.SEM.EDS.azimuth_angle)
-    compos_wt = []
-    for compo_at in compos_at:
-        compos_wt.append(units_converter.atomic_to_weight(elements,compo_at))
+    
     if gateway == 'auto':
         gateway = get_link_to_jython()
     def simu_film(interface_xyz):
@@ -1719,3 +1874,6 @@ def plot_3D_iso_surface(self,threshold,
          #   iso.actor.property.color = color
         #iso.actor.property.opacity = 0.5        
         return figure, src, iso
+
+
+
