@@ -333,7 +333,7 @@ def simulate_one_spectrum(nTraj,dose=100,mp='gui',
             compo_at.append(1./len(elements))
     mp.Sample.compo_at = compo_at
     
-    compo_wt = utils.material.atomic_to_weight(elements,compo_at)        
+    compo_wt = np.array(utils.material.atomic_to_weight(elements,compo_at))/100       
     if density == 'auto':
         density = utils.material.density_of_mixture_of_pure_elements(elements, compo_wt)
     mp.Sample.density = density
@@ -573,7 +573,7 @@ def simulate_Xray_depth_distribution(nTraj,bins=120,mp='gui',
         for elm in elements:
             compo_at.append(1./len(elements))
             
-    compo_wt = utils.material.atomic_to_weight(elements,compo_at)        
+    compo_wt = np.array(utils.material.atomic_to_weight(elements,compo_at))/100        
     if density == 'auto':
         density = utils.material.density_of_mixture_of_pure_elements(elements, compo_wt)
         
@@ -1136,7 +1136,7 @@ def compare_histograms_results(specs,
             hist_tmp = hist_tmp / float(hist_tmp.sum(0).data)
         hists.append(hist_tmp)
         
-    utils.plot.plot_spectra(hists, style='overlap', color=color,
+    return utils.plot.plot_spectra(hists, style='overlap', color=color,
         line_style=line_style,legend=legend,fig=fig)
     
     
@@ -1184,7 +1184,7 @@ def compare_histograms(imgs,
     for img in imgs:
         hists.append(img.get_histogram(bins))
         
-    hyperspy.utils.plot.plot_spectra(hists, style='overlap', color=color,
+    return hyperspy.utils.plot.plot_spectra(hists, style='overlap', color=color,
         line_style=line_style,legend=legend,fig=fig)
     
 #obsolete, should use utils.plot.plot_spectra
@@ -1364,7 +1364,7 @@ def simulate_linescan(nTraj,
         
     compos_wt = []
     for compo_at in compos_at:
-        compos_wt.append(utils.material.atomic_to_weight(elements,compo_at))
+        compos_wt.append(utils.material.atomic_to_weight(elements,compo_at)/100)
             
     if density == 'auto':
         density = []
@@ -1774,9 +1774,20 @@ def get_contrast_brightness_from(img,reference,return_factors=False):
     else:
         return img
         
-def animate_legend():
-    fig = plt.gcf()
-    ax= plt.gca()
+def animate_legend(figure='last'):
+    """Animate the legend of a figure
+    
+    Parameters
+    ---------
+    
+    figure: 'last' | matplolib.figure
+        If 'last' pick the last figure
+    """
+    if figure=='last':
+        fig = plt.gcf()
+        ax= plt.gca()
+    else:
+        ax = fig.axes[0]
     lines = ax.lines
     lined = dict()
     leg=ax.get_legend()

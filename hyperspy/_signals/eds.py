@@ -938,7 +938,7 @@ class EDSSpectrum(Spectrum):
         mp = self.mapped_parameters
         res = copy.deepcopy(mp.Sample[result])       
         
-        utils_eds.compare_histograms(res,bins=bins,legend=legend,
+        return utils_eds.compare_histograms(res,bins=bins,legend=legend,
         color=color,line_style=line_style,fig=fig)
         
                 
