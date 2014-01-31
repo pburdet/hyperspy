@@ -28,6 +28,7 @@ from hyperspy import utils
 from hyperspy.misc.eds import utils as utils_eds
 from hyperspy.misc.eels.elements import elements_db as elements_EELS
 from hyperspy.misc.eds.elements import elements_db as elements_EDS
+from hyperspy.misc.eds.MAC import MAC_db as MAC
 
 def get_configuration_directory_path():
     import hyperspy.misc.config_dir
