@@ -1034,7 +1034,7 @@ def compare_results(specs,results,sum_elements=False,
     
     check.mapped_parameters.title = 'Compared Results'
     if plot_result: 
-        check.plot(navigator=None)
+        check.plot(navigator='slider')
     else:
         return check
 

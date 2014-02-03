@@ -478,7 +478,7 @@ class EDSSpectrum(Spectrum):
                     img.axes_manager.set_signal_dimension(1)
                 if plot_result:
                     if img.axes_manager.signal_dimension != 0:
-                        img.plot(navigator=None)
+                        img.plot(navigator='slider')
                     else:
                         print("%s at %s %s : Intensity = %.3f" 
                         % (Xray_line,
@@ -579,7 +579,7 @@ class EDSSpectrum(Spectrum):
                      self.mapped_parameters.title)) 
                 if plot_result:
                     if img.axes_manager.signal_dimension != 0:
-                        img.plot(navigator=None)
+                        img.plot(navigator='slider')
                     else:
                         print("%s at %s %s : Intensity = %.3f" 
                         % (Xray_line,
