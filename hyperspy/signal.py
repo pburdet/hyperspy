@@ -3770,7 +3770,7 @@ class Signal(MVA,
         return s
 
 
-    def get_histogram(img, bins='freedman', range_bins=None):
+    def get_histogram(img, bins='freedman', range_bins=None, **kwargs):
         """Return a histogram of the signal data.
 
         More sophisticated algorithms for determining bins can be used.
@@ -3819,7 +3819,8 @@ class Signal(MVA,
 
         hist, bin_edges = histogram(img.data.flatten(),
                                     bins=bins,
-                                    range=range_bins)
+                                    range=range_bins,
+                                    **kwargs)
         hist_spec = signals.Spectrum(hist)
         if bins == 'blocks':
             hist_spec.axes_manager.signal_axes[0].axis=bin_edges[:-1]

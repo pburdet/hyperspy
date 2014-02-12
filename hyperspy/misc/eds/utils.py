@@ -1145,7 +1145,9 @@ def compare_histograms(imgs,
     color=None,
     line_style=None,
     legend='auto',
-    fig=None):
+    fig=None,
+    range_bins=None,
+    **kwargs):
     """Compare the histogram of the list of image
     
     Parameters
@@ -1165,11 +1167,10 @@ def compare_histograms(imgs,
         If `None`, use default matplotlib color cycle.
         
     line_style: valid matplotlib line style or a list of them or `None`
-        Sets the line style of the plots for "cascade"
-        or "mosaic". The main line style are '-','--','steps','-.',':'.
+        The main line style are '-','--','steps','-.',':'.
         If a list, if its length is less than the number of
         spectra to plot, line_style will be cycled. If
-        If `None`, use continuous lines, eg: ('-','--','steps','-.',':')
+        If `None`, use 'steps'.
         
     legend: None | list of str | 'auto'
        If list of string, legend for "cascade" or title for "mosaic" is 
@@ -1181,8 +1182,14 @@ def compare_histograms(imgs,
         
     """
     hists=[]
+
     for img in imgs:
-        hists.append(img.get_histogram(bins))
+        hists.append(img.get_histogram(bins=bins,
+            range_bins=range_bins, **kwargs))
+
+
+    if line_style==None:
+        line_style='steps'
         
     return hyperspy.utils.plot.plot_spectra(hists, style='overlap', color=color,
         line_style=line_style,legend=legend,fig=fig)

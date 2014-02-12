@@ -188,16 +188,20 @@ def _make_heatmap_subplot(spectra):
 
 def _make_cascade_subplot(spectra, ax, color="blue",line_style='-', padding=1):
     max_value = 0
-    for spectrum in spectra:
-        spectrum_yrange = (np.nanmax(spectrum.data) -
-                           np.nanmin(spectrum.data))
-        if spectrum_yrange > max_value:
-            max_value = spectrum_yrange
+    if padding !=0:
+        for spectrum in spectra:
+            spectrum_yrange = (np.nanmax(spectrum.data) -
+                               np.nanmin(spectrum.data))
+            if spectrum_yrange > max_value:
+                max_value = spectrum_yrange
     for spectrum_index, (spectrum, color,line_style) in enumerate(
             zip(spectra, color,line_style)):
         x_axis = spectrum.axes_manager.signal_axes[0]
-        data_to_plot = ((spectrum.data - spectrum.data.min()) /
-                            float(max_value) + spectrum_index * padding)
+        if padding !=0:
+            data_to_plot = ((spectrum.data - spectrum.data.min()) /
+                                float(max_value) + spectrum_index * padding)
+        else:
+            data_to_plot = spectrum.data
         ax.plot(x_axis.axis, data_to_plot, color=color,ls=line_style)
     _set_spectrum_xlabel(spectrum, ax)
     if padding !=0:
