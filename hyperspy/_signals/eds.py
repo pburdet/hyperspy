@@ -372,7 +372,8 @@ class EDSSpectrum(Spectrum):
                             only_lines=("Ka", "La", "Ma"),
                             lines_deconvolution=None,
                             bck=0,
-                            plot_fit=False):
+                            plot_fit=False,
+                            **kwargs):
         """Return the intensity map of selected Xray lines.
         
         The intensity maps are computed by integrating the spectrum over the 
@@ -413,6 +414,9 @@ class EDSSpectrum(Spectrum):
             Deconvolution of the line with a gaussian model. Take time
         bck : float
             background to substract. Only for deconvolution
+        kwargs
+            The extra keyword arguments for plotting. See 
+            `utils.plot.plot_signals`
             
         Returns
         -------
@@ -458,7 +462,7 @@ class EDSSpectrum(Spectrum):
             #signal_to_index = self.axes_manager.navigation_dimension - 2                  
 
         if lines_deconvolution is None:
-            for Xray_line in Xray_lines:                
+            for Xray_line in Xray_lines:
                 element, line = utils_eds._get_element_and_line(Xray_line)           
                 line_energy = elements_db[element]['Xray_energy'][line]
                 line_FWHM = utils_eds.get_FWHM_at_Energy(FWHM_MnKa,line_energy)
@@ -473,19 +477,15 @@ class EDSSpectrum(Spectrum):
                      self.mapped_parameters.title)) 
                 if img.axes_manager.navigation_dimension >= 2:
                     img = img.as_image([0,1])
-                #useless never the case
                 elif img.axes_manager.navigation_dimension == 1:
                     img.axes_manager.set_signal_dimension(1)
-                if plot_result:
-                    if img.axes_manager.signal_dimension != 0:
-                        img.plot(navigator='slider')
-                    else:
-                        print("%s at %s %s : Intensity = %.3f" 
-                        % (Xray_line,
-                           line_energy,
-                           self.axes_manager.signal_axes[0].units,
-                           img.data))
-                intensities.append(img)                                
+                if plot_result and img.axes_manager.signal_dimension == 0:
+                    print("%s at %s %s : Intensity = %.2f" 
+                    % (Xray_line,
+                       line_energy,
+                       self.axes_manager.signal_axes[0].units,
+                       img.data))
+                intensities.append(img)                               
         else:
             fps = []
             if lines_deconvolution == 'standard':  
@@ -577,16 +577,21 @@ class EDSSpectrum(Spectrum):
                      line_energy,
                      self.axes_manager.signal_axes[0].units,
                      self.mapped_parameters.title)) 
-                if plot_result:
-                    if img.axes_manager.signal_dimension != 0:
-                        img.plot(navigator='slider')
-                    else:
-                        print("%s at %s %s : Intensity = %.3f" 
-                        % (Xray_line,
-                           line_energy,
-                           self.axes_manager.signal_axes[0].units,
-                           img.data))
+                if img.axes_manager.navigation_dimension >= 2:
+                    img = img.as_image([0,1])
+                elif img.axes_manager.navigation_dimension == 1:
+                    img.axes_manager.set_signal_dimension(1)
+                if plot_result and img.axes_manager.signal_dimension == 0:
+                    print("%s at %s %s : Intensity = %.2f" 
+                    % (Xray_line,
+                       line_energy,
+                       self.axes_manager.signal_axes[0].units,
+                       img.data))
                 intensities.append(img)
+            
+        if plot_result and img.axes_manager.signal_dimension != 0:
+                utils.plot.plot_signals(intensities,**kwargs)          
+
         return intensities
 
 
