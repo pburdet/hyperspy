@@ -1781,44 +1781,44 @@ def get_contrast_brightness_from(img,reference,return_factors=False):
     else:
         return img
         
-def animate_legend(figure='last'):
-    """Animate the legend of a figure
+#def animate_legend(figure='last'):
+    #"""Animate the legend of a figure
     
-    Parameters
-    ---------
+    #Parameters
+    #---------
     
-    figure: 'last' | matplolib.figure
-        If 'last' pick the last figure
-    """
-    if figure=='last':
-        fig = plt.gcf()
-        ax= plt.gca()
-    else:
-        ax = fig.axes[0]
-    lines = ax.lines
-    lined = dict()
-    leg=ax.get_legend()
-    for legline, origline in zip(leg.get_lines(), lines):
-        legline.set_picker(5)  # 5 pts tolerance
-        lined[legline] = origline
-    def onpick(event):
-        # on the pick event, find the orig line corresponding to the
-        # legend proxy line, and toggle the visibility
-        legline = event.artist
-        origline = lined[legline]
-        vis = not origline.get_visible()
-        origline.set_visible(vis)
-        # Change the alpha on the line in the legend so we can see what lines
-        # have been toggled
-        if vis:
-            legline.set_alpha(1.0)
-        else:
-            legline.set_alpha(0.2)
-        fig.canvas.draw()
+    #figure: 'last' | matplolib.figure
+        #If 'last' pick the last figure
+    #"""
+    #if figure=='last':
+        #fig = plt.gcf()
+        #ax= plt.gca()
+    #else:
+        #ax = fig.axes[0]
+    #lines = ax.lines
+    #lined = dict()
+    #leg=ax.get_legend()
+    #for legline, origline in zip(leg.get_lines(), lines):
+        #legline.set_picker(5)  # 5 pts tolerance
+        #lined[legline] = origline
+    #def onpick(event):
+        ## on the pick event, find the orig line corresponding to the
+        ## legend proxy line, and toggle the visibility
+        #legline = event.artist
+        #origline = lined[legline]
+        #vis = not origline.get_visible()
+        #origline.set_visible(vis)
+        ## Change the alpha on the line in the legend so we can see what lines
+        ## have been toggled
+        #if vis:
+            #legline.set_alpha(1.0)
+        #else:
+            #legline.set_alpha(0.2)
+        #fig.canvas.draw()
     
-    fig.canvas.mpl_connect('pick_event', onpick)
+    #fig.canvas.mpl_connect('pick_event', onpick)
     
-    plt.show()
+    #plt.show()
     
 def plot_3D_iso_surface(self,threshold,
             color = 'auto',
