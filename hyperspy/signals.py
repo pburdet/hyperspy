@@ -29,6 +29,3 @@ from hyperspy._signals.eels_spectrum_simulation import (
     EELSSpectrumSimulation)
 from hyperspy._signals.fourier_transform_signal import FourierTransformSignal
 from hyperspy.signal import Signal
-
-
-
