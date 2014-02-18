@@ -385,7 +385,7 @@ class EDSSpectrum(Spectrum):
         Parameters
         ----------
 
-        Xray_lines: {None, "best", list of string}
+        Xray_lines: None or "best" or list of string
             If None,
             if `mapped.parameters.Sample.elements.Xray_lines` contains a
             list of lines use those.
@@ -408,7 +408,7 @@ class EDSSpectrum(Spectrum):
             above an overvoltage of 2 (< beam energy / 2).
         only_lines : {None, list of strings}
             If not None, use only the given lines.
-        lines_deconvolution : None | 'model' | 'standard'
+        lines_deconvolution : None or 'model' or 'standard'
             Deconvolution of the line with a gaussian model. Take time
         bck : float
             background to substract. Only for deconvolution
