@@ -424,7 +424,7 @@ class EDSSpectrum(Spectrum):
         Examples
         --------
 
-        >>> specImg.plot_intensity_map(["C_Ka", "Ta_Ma"])
+        >>> specImg.get_lines_intensity(["C_Ka", "Ta_Ma"])
 
         See also
         --------
@@ -662,80 +662,80 @@ class EDSSpectrum(Spectrum):
             mp.EDS.live_time = mp.EDS.live_time * len(end_mirrors)
         self.data = data_s
 
-    def plot_Xray_line(self, line_to_plot='selected'):
-        """
-        Annotate a spec.plot() with the name of the selected X-ray
-        lines
+    #def plot_Xray_line(self, line_to_plot='selected'):
+        #"""
+        #Annotate a spec.plot() with the name of the selected X-ray
+        #lines
 
-        Parameters
-        ----------
+        #Parameters
+        #----------
 
-        line_to_plot: string 'selected'|'a'|'ab|'all'
-            Defined which lines to annotate. 'selected': the selected one,
-            'a': all alpha lines of the selected elements, 'ab': all alpha and
-            beta lines, 'all': all lines of the selected elements
+        #line_to_plot: string 'selected'|'a'|'ab|'all'
+            #Defined which lines to annotate. 'selected': the selected one,
+            #'a': all alpha lines of the selected elements, 'ab': all alpha and
+            #beta lines, 'all': all lines of the selected elements
 
-        See also
-        --------
+        #See also
+        #--------
 
-        set_elements, add_elements
+        #set_elements, add_elements
 
-        """
-        if self.axes_manager.navigation_dimension > 0:
-            raise ValueError("Works only for single spectrum")
+        #"""
+        #if self.axes_manager.navigation_dimension > 0:
+            #raise ValueError("Works only for single spectrum")
 
-        mp = self.mapped_parameters
-        if hasattr(self.mapped_parameters, 'SEM') and\
-                hasattr(self.mapped_parameters.SEM, 'beam_energy'):
-            beam_energy = mp.SEM.beam_energy
-        elif hasattr(self.mapped_parameters, 'TEM') and\
-                hasattr(self.mapped_parameters.TEM, 'beam_energy'):
-            beam_energy = mp.TEM.beam_energy
-        else:
-            beam_energy = 300
+        #mp = self.mapped_parameters
+        #if hasattr(self.mapped_parameters, 'SEM') and\
+                #hasattr(self.mapped_parameters.SEM, 'beam_energy'):
+            #beam_energy = mp.SEM.beam_energy
+        #elif hasattr(self.mapped_parameters, 'TEM') and\
+                #hasattr(self.mapped_parameters.TEM, 'beam_energy'):
+            #beam_energy = mp.TEM.beam_energy
+        #else:
+            #beam_energy = 300
 
-        elements = []
-        lines = []
-        if line_to_plot == 'selected':
-            Xray_lines = mp.Sample.Xray_lines
-            for Xray_line in Xray_lines:
-                element, line = utils_eds._get_element_and_line(Xray_line)
-                elements.append(element)
-                lines.append(line)
+        #elements = []
+        #lines = []
+        #if line_to_plot == 'selected':
+            #Xray_lines = mp.Sample.Xray_lines
+            #for Xray_line in Xray_lines:
+                #element, line = utils_eds._get_element_and_line(Xray_line)
+                #elements.append(element)
+                #lines.append(line)
 
-        else:
-            for element in mp.Sample.elements:
-                for line, en in elements_db[element]['Xray_energy'].items():
-                    if en < beam_energy:
-                        if line_to_plot == 'a' and line[1] == 'a':
-                            elements.append(element)
-                            lines.append(line)
-                        elif line_to_plot == 'ab':
-                            if line[1] == 'a' or line[1] == 'b':
-                                elements.append(element)
-                                lines.append(line)
-                        elif line_to_plot == 'all':
-                            elements.append(element)
-                            lines.append(line)
+        #else:
+            #for element in mp.Sample.elements:
+                #for line, en in elements_db[element]['Xray_energy'].items():
+                    #if en < beam_energy:
+                        #if line_to_plot == 'a' and line[1] == 'a':
+                            #elements.append(element)
+                            #lines.append(line)
+                        #elif line_to_plot == 'ab':
+                            #if line[1] == 'a' or line[1] == 'b':
+                                #elements.append(element)
+                                #lines.append(line)
+                        #elif line_to_plot == 'all':
+                            #elements.append(element)
+                            #lines.append(line)
 
-        Xray_lines = []
-        line_energy = []
-        intensity = []
-        for i, element in enumerate(elements):
-            line_energy.append(elements_db[element]['Xray_energy'][lines[i]])
-            if lines[i] == 'a':
-                intensity.append(self[line_energy[-1]].data[0])
-            else:
-                relative_factor = elements_db['lines']['ratio_line'][lines[i]]
-                a_eng = elements_db[element]['Xray_energy'][lines[i][0] + 'a']
-                intensity.append(self[a_eng].data[0] * relative_factor)
-            Xray_lines.append(element + '_' + lines[i])
+        #Xray_lines = []
+        #line_energy = []
+        #intensity = []
+        #for i, element in enumerate(elements):
+            #line_energy.append(elements_db[element]['Xray_energy'][lines[i]])
+            #if lines[i] == 'a':
+                #intensity.append(self[line_energy[-1]].data[0])
+            #else:
+                #relative_factor = elements_db['lines']['ratio_line'][lines[i]]
+                #a_eng = elements_db[element]['Xray_energy'][lines[i][0] + 'a']
+                #intensity.append(self[a_eng].data[0] * relative_factor)
+            #Xray_lines.append(element + '_' + lines[i])
 
-        self.plot()
-        for i in range(len(line_energy)):
-            plt.text(line_energy[i], intensity[i] * 1.1, Xray_lines[i],
-                     rotation=90)
-            plt.vlines(line_energy[i], 0, intensity[i] * 0.8, color='black')
+        #self.plot()
+        #for i in range(len(line_energy)):
+            #plt.text(line_energy[i], intensity[i] * 1.1, Xray_lines[i],
+                     #rotation=90)
+            #plt.vlines(line_energy[i], 0, intensity[i] * 0.8, color='black')
 
     def calibrate_energy_resolution(self, Xray_line, bck='auto',
                                     set_Mn_Ka=True, model_plot=True):
@@ -1024,3 +1024,94 @@ class EDSSpectrum(Spectrum):
         TOA = utils.eds.take_off_angle(tilt_stage, azimuth_angle,
                                        elevation_angle)
         return TOA
+
+    def plot_Xray_lines(self,
+                        Xray_lines=None,
+                        only_one=False,
+                        only_lines=("a", "b"),
+                        **kwargs):
+        """
+        Annotate a spec.plot() with the name of the selected X-ray
+        lines
+
+        Parameters
+        ----------
+        Xray_lines: None or list of string
+            If None,
+            if `mapped.parameters.Sample.elements.Xray_lines` contains a
+            list of lines use those.
+            If `mapped.parameters.Sample.elements.Xray_lines` is undefined
+            or empty but `mapped.parameters.Sample.elements` is defined,
+            use the same syntax as `add_line` to select a subset of lines
+            for the operation.
+            Alternatively, provide an iterable containing
+            a list of valid X-ray lines symbols.
+        only_one : bool
+            If False, use all the lines of each element in the data spectral
+            range. If True use only the line at the highest energy
+            above an overvoltage of 2 (< beam energy / 2).
+        only_lines : None or list of strings
+            If not None, use only the given lines (eg. ('a','Kb')).
+            If None, use all lines.
+
+        See also
+        --------
+        set_elements, add_elements
+
+        """
+
+        if only_lines is not None:
+            only_lines = list(only_lines)
+            for only_line in only_lines:
+                if only_line == 'a':
+                    only_lines.extend(['Ka', 'La', 'Ma'])
+                elif only_line == 'b':
+                    only_lines.extend(['Kb', 'Lb1', 'Mb'])
+
+        if Xray_lines is None:
+            if 'Sample.Xray_lines' in self.mapped_parameters:
+                Xray_lines = self.mapped_parameters.Sample.Xray_lines
+            elif 'Sample.elements' in self.mapped_parameters:
+                Xray_lines = self._get_lines_from_elements(
+                    self.mapped_parameters.Sample.elements,
+                    only_one=only_one,
+                    only_lines=only_lines)
+            else:
+                raise ValueError(
+                    "Not X-ray line, set them with `add_elements`")
+
+        line_energy = []
+        intensity = []
+        for Xray_line in Xray_lines:
+            element, line = utils_eds._get_element_and_line(Xray_line)
+            line_energy.append(elements_db[element]['Xray_energy'][line])
+            relative_factor = elements_db['lines']['ratio_line'][line]
+            a_eng = elements_db[element]['Xray_energy'][line[0] + 'a']
+            # to improve
+            # intensity.append(self[...,a_eng])
+            intensity.append(self[..., a_eng].data.flatten().mean()
+                             * relative_factor)
+
+        self.plot()
+        line = self._plot.signal_plot.ax_lines[0]
+        #line.marker_data = [intens.data for intens in intensity]
+        #line.marker_data = intensity
+        for i in range(len(line_energy)):
+            # f=intensity[i][self._plot.axes_manager.indices].data[0]
+            #line.marker = line.ax.vlines(line_energy[i], 0, f * 0.8, color='black')
+            # line.marker.set_animated(True)
+            #line.marker_style = 'vline_EDS'
+            #line.marker_no = i
+            # line.marker = line.ax.text(line_energy[i], f * 1.1,
+                # Xray_lines[i], rotation=90)
+            #line.marker_style = 'text_EDS'
+            #line.marker_no = i
+            # line.marker.set_animated(True)
+            line.marker = line.ax.vlines(
+                line_energy[i],
+                0,
+                intensity[i] * 0.8,
+                color='black')
+            line.marker = line.ax.text(line_energy[i], intensity[i] * 1.1,
+                                       Xray_lines[i], rotation=90)
+        line.update()
