@@ -1709,8 +1709,6 @@ class EDSSEMSpectrum(EDSSpectrum):
                                    figure='new',
                                    scale='auto',
                                    tv_denoise=False):
-        # must be the main function in Image, and here jsut to connect with
-        # result
         """
         Generate an iso-surface in Mayavi.
 
@@ -1765,8 +1763,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             img = self.get_result(el, result)
             if tv_denoise:
                 img = img.tv_denoise()
-            figure, src, iso = utils_eds.plot_3D_iso_surface(img,
-                                                             threshold=thresholds[i], color=color, figure=figure, scale=scale)
+            figure, src, iso = img.plot_3D_iso_surface(threshold=thresholds[i], color=color, figure=figure, scale=scale)
             srcs.append(src)
             isos.append(iso)
 
