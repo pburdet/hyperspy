@@ -625,12 +625,12 @@ class EDSSpectrum(Spectrum):
         if shape_convo == 'square':
             end_mirrors = [[0, 0], [-1, 0], [0, -1], [-1, -1]]
             for end_mirror in end_mirrors:
-                tmp_s = np.insert(self.data, end_mirror[0], self.data[..., end_mirror[0],:,:], axis=-3)
-                data_s += np.insert(tmp_s, end_mirror[1], tmp_s[..., end_mirror[1],:], axis=-2)
+                tmp_s = np.insert(self.data, end_mirror[0], self.data[..., end_mirror[0], :,:], axis=-3)
+                data_s += np.insert(tmp_s, end_mirror[1], tmp_s[..., end_mirror[1], :], axis=-2)
             if corner == -1:
-                data_s = data_s[..., 1:,:,:][..., 1:,:]
+                data_s = data_s[..., 1:, :,:][..., 1:,:]
             else:
-                data_s = data_s[..., :-1,:,:][..., :-1,:]
+                data_s = data_s[..., :-1, :,:][..., :-1,:]
 
         elif shape_convo == 'cross':
             data_s = np.insert(data_s, 0, 0, axis=-3)
@@ -648,11 +648,11 @@ class EDSSpectrum(Spectrum):
                     [0, -1, -1, -1], [0, 0, 0, 0], [-1, -1, 0, 0], [0, 0, -1, -1], [-1, -1, -1, -1]]
 
             for end_mirror in end_mirrors:
-                tmp_s = np.insert(self.data, end_mirror[0], self.data[..., end_mirror[0],:,:], axis=-3)
-                tmp_s = np.insert(tmp_s, end_mirror[1], tmp_s[..., end_mirror[0],:,:], axis=-3)
-                tmp_s = np.insert(tmp_s, end_mirror[2], tmp_s[..., end_mirror[1],:], axis=-2)
-                data_s += np.insert(tmp_s, end_mirror[3], tmp_s[..., end_mirror[1],:], axis=-2)
-            data_s = data_s[..., 1:-2,:,:][..., 1:-2,:]
+                tmp_s = np.insert(self.data, end_mirror[0], self.data[..., end_mirror[0], :,:], axis=-3)
+                tmp_s = np.insert(tmp_s, end_mirror[1], tmp_s[..., end_mirror[0], :,:], axis=-3)
+                tmp_s = np.insert(tmp_s, end_mirror[2], tmp_s[..., end_mirror[1], :], axis=-2)
+                data_s += np.insert(tmp_s, end_mirror[3], tmp_s[..., end_mirror[1], :], axis=-2)
+            data_s = data_s[..., 1:-2, :,:][..., 1:-2,:]
 
         if hasattr(self.mapped_parameters, 'SEM'):
             mp = self.mapped_parameters.SEM
@@ -662,79 +662,79 @@ class EDSSpectrum(Spectrum):
             mp.EDS.live_time = mp.EDS.live_time * len(end_mirrors)
         self.data = data_s
 
-    #def plot_Xray_line(self, line_to_plot='selected'):
+    # def plot_Xray_line(self, line_to_plot='selected'):
         #"""
-        #Annotate a spec.plot() with the name of the selected X-ray
-        #lines
+        # Annotate a spec.plot() with the name of the selected X-ray
+        # lines
 
-        #Parameters
+        # Parameters
         #----------
 
-        #line_to_plot: string 'selected'|'a'|'ab|'all'
-            #Defined which lines to annotate. 'selected': the selected one,
+        # line_to_plot: string 'selected'|'a'|'ab|'all'
+            # Defined which lines to annotate. 'selected': the selected one,
             #'a': all alpha lines of the selected elements, 'ab': all alpha and
-            #beta lines, 'all': all lines of the selected elements
+            # beta lines, 'all': all lines of the selected elements
 
-        #See also
+        # See also
         #--------
 
         #set_elements, add_elements
 
         #"""
-        #if self.axes_manager.navigation_dimension > 0:
+        # if self.axes_manager.navigation_dimension > 0:
             #raise ValueError("Works only for single spectrum")
 
         #mp = self.mapped_parameters
-        #if hasattr(self.mapped_parameters, 'SEM') and\
-                #hasattr(self.mapped_parameters.SEM, 'beam_energy'):
+        # if hasattr(self.mapped_parameters, 'SEM') and\
+                # hasattr(self.mapped_parameters.SEM, 'beam_energy'):
             #beam_energy = mp.SEM.beam_energy
-        #elif hasattr(self.mapped_parameters, 'TEM') and\
-                #hasattr(self.mapped_parameters.TEM, 'beam_energy'):
+        # elif hasattr(self.mapped_parameters, 'TEM') and\
+                # hasattr(self.mapped_parameters.TEM, 'beam_energy'):
             #beam_energy = mp.TEM.beam_energy
-        #else:
+        # else:
             #beam_energy = 300
 
         #elements = []
         #lines = []
-        #if line_to_plot == 'selected':
+        # if line_to_plot == 'selected':
             #Xray_lines = mp.Sample.Xray_lines
-            #for Xray_line in Xray_lines:
+            # for Xray_line in Xray_lines:
                 #element, line = utils_eds._get_element_and_line(Xray_line)
-                #elements.append(element)
-                #lines.append(line)
+                # elements.append(element)
+                # lines.append(line)
 
-        #else:
-            #for element in mp.Sample.elements:
-                #for line, en in elements_db[element]['Xray_energy'].items():
-                    #if en < beam_energy:
-                        #if line_to_plot == 'a' and line[1] == 'a':
-                            #elements.append(element)
-                            #lines.append(line)
-                        #elif line_to_plot == 'ab':
-                            #if line[1] == 'a' or line[1] == 'b':
-                                #elements.append(element)
-                                #lines.append(line)
-                        #elif line_to_plot == 'all':
-                            #elements.append(element)
-                            #lines.append(line)
+        # else:
+            # for element in mp.Sample.elements:
+                # for line, en in elements_db[element]['Xray_energy'].items():
+                    # if en < beam_energy:
+                        # if line_to_plot == 'a' and line[1] == 'a':
+                            # elements.append(element)
+                            # lines.append(line)
+                        # elif line_to_plot == 'ab':
+                            # if line[1] == 'a' or line[1] == 'b':
+                                # elements.append(element)
+                                # lines.append(line)
+                        # elif line_to_plot == 'all':
+                            # elements.append(element)
+                            # lines.append(line)
 
         #Xray_lines = []
         #line_energy = []
         #intensity = []
-        #for i, element in enumerate(elements):
-            #line_energy.append(elements_db[element]['Xray_energy'][lines[i]])
-            #if lines[i] == 'a':
-                #intensity.append(self[line_energy[-1]].data[0])
-            #else:
+        # for i, element in enumerate(elements):
+            # line_energy.append(elements_db[element]['Xray_energy'][lines[i]])
+            # if lines[i] == 'a':
+                # intensity.append(self[line_energy[-1]].data[0])
+            # else:
                 #relative_factor = elements_db['lines']['ratio_line'][lines[i]]
                 #a_eng = elements_db[element]['Xray_energy'][lines[i][0] + 'a']
                 #intensity.append(self[a_eng].data[0] * relative_factor)
             #Xray_lines.append(element + '_' + lines[i])
 
-        #self.plot()
-        #for i in range(len(line_energy)):
-            #plt.text(line_energy[i], intensity[i] * 1.1, Xray_lines[i],
-                     #rotation=90)
+        # self.plot()
+        # for i in range(len(line_energy)):
+            # plt.text(line_energy[i], intensity[i] * 1.1, Xray_lines[i],
+                     # rotation=90)
             #plt.vlines(line_energy[i], 0, intensity[i] * 0.8, color='black')
 
     def calibrate_energy_resolution(self, Xray_line, bck='auto',

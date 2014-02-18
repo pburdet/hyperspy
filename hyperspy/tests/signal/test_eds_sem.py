@@ -161,128 +161,136 @@ class Test_get_lines_intentisity:
                                              plot_result=False,
                                              integration_window_factor=5)[0]
         assert_true(np.allclose(1, sAl.data, atol=1e-3))
-        
-        
+
+
 class Test_quantification:
+
     def setUp(self):
-        s = EDSSEMSpectrum(np.ones((2,2,3,1024)))
+        s = EDSSEMSpectrum(np.ones((2, 2, 3, 1024)))
         energy_axis = s.axes_manager.signal_axes[0]
         energy_axis.scale = 1e-2
         energy_axis.units = 'keV'
         energy_axis.name = "Energy"
         s.mapped_parameters.SEM.EDS.live_time = 3.1
-        s.mapped_parameters.SEM.beam_energy = 15.0 
-        
+        s.mapped_parameters.SEM.beam_energy = 15.0
+
         gauss = Gaussian()
-        line_energy = elements_EDS['Al']['Xray_energy']['Ka']               
+        line_energy = elements_EDS['Al']['Xray_energy']['Ka']
         gauss.centre.value = line_energy
         gauss.A.value = 500
-        FWHM_MnKa = s.mapped_parameters.SEM.EDS.energy_resolution_MnKa        
-        gauss.sigma.value = utils_eds.get_FWHM_at_Energy(FWHM_MnKa,line_energy)
+        FWHM_MnKa = s.mapped_parameters.SEM.EDS.energy_resolution_MnKa
+        gauss.sigma.value = utils_eds.get_FWHM_at_Energy(
+            FWHM_MnKa,
+            line_energy)
 
         gauss2 = Gaussian()
         line_energy = elements_EDS['Zn']['Xray_energy']['La']
         gauss2.centre.value = line_energy
         gauss2.A.value = 300
-        FWHM_MnKa = s.mapped_parameters.SEM.EDS.energy_resolution_MnKa        
-        gauss2.sigma.value = utils_eds.get_FWHM_at_Energy(FWHM_MnKa,line_energy)
+        FWHM_MnKa = s.mapped_parameters.SEM.EDS.energy_resolution_MnKa
+        gauss2.sigma.value = utils_eds.get_FWHM_at_Energy(
+            FWHM_MnKa,
+            line_energy)
 
-        s.data[:] = (gauss.function(energy_axis.axis) + 
-                     gauss2.function(energy_axis.axis))  
-                     
-        s.set_elements(('Al','Zn'))
+        s.data[:] = (gauss.function(energy_axis.axis) +
+                     gauss2.function(energy_axis.axis))
+
+        s.set_elements(('Al', 'Zn'))
         s.add_lines()
 
-        stdAl=s[0,0,0].deepcopy()
+        stdAl = s[0, 0, 0].deepcopy()
         gauss.A.value = 12000
         stdAl.mapped_parameters.SEM.EDS.live_time = 31
         stdAl.data[:] = gauss.function(energy_axis.axis)
         stdAl.mapped_parameters.title = 'Al_std'
 
-        stdZn=s[0,0,0].deepcopy()
+        stdZn = s[0, 0, 0].deepcopy()
         gauss2.A.value = 13000
         stdZn.mapped_parameters.SEM.EDS.live_time = 32
         stdZn.data[:] = gauss2.function(energy_axis.axis)
         stdZn.mapped_parameters.title = 'Zn_std'
 
-        s.mapped_parameters.Sample.standard_spec = [stdAl,stdZn]
+        s.mapped_parameters.Sample.standard_spec = [stdAl, stdZn]
         self.signal = s
-    
+
     def test_kratio(self):
         s = self.signal
-        
-        s1 = s.deepcopy()[0,0,0]
+
+        s1 = s.deepcopy()[0, 0, 0]
         s1.get_kratio(plot_result=False)
-        res = np.array([s1.get_result('Al_Ka','kratios').data,
-            s1.get_result('Zn_La','kratios').data])        
+        res = np.array([s1.get_result('Al_Ka', 'kratios').data,
+                        s1.get_result('Zn_La', 'kratios').data])
         assert_true(np.allclose(res,
-            np.array([0.4166665022647609, 0.23821329009859846]))) 
-            
-        s1.check_kratio(('Al_Ka','Zn_La'))
-            
-        s1 = s.deepcopy()[0,0]
+                                np.array([0.4166665022647609, 0.23821329009859846])))
+
+        s1.check_kratio(('Al_Ka', 'Zn_La'))
+
+        s1 = s.deepcopy()[0, 0]
         s1.get_kratio(plot_result=False)
-        res = np.array([s1.get_result('Al_Ka','kratios').data[0],
-            s1.get_result('Zn_La','kratios').data[0]])        
+        res = np.array([s1.get_result('Al_Ka', 'kratios').data[0],
+                        s1.get_result('Zn_La', 'kratios').data[0]])
         assert_true(np.allclose(res,
-            np.array([0.4166665022647609, 0.23821329009859846]))) 
-            
+                                np.array([0.4166665022647609, 0.23821329009859846])))
+
         s1 = s.deepcopy()[0]
         s1.get_kratio(plot_result=False)
-        res = np.array([s1.get_result('Al_Ka','kratios').data[0,0],
-            s1.get_result('Zn_La','kratios').data[0,0]])        
+        res = np.array([s1.get_result('Al_Ka', 'kratios').data[0, 0],
+                        s1.get_result('Zn_La', 'kratios').data[0, 0]])
         assert_true(np.allclose(res,
-            np.array([0.4166665022647609, 0.23821329009859846])))
-        
+                                np.array([0.4166665022647609, 0.23821329009859846])))
+
         s.get_kratio(plot_result=False)
-        res = np.array([s.get_result('Al_Ka','kratios').data[0,0,0],
-            s.get_result('Zn_La','kratios').data[0,0,0]])        
+        res = np.array([s.get_result('Al_Ka', 'kratios').data[0, 0, 0],
+                        s.get_result('Zn_La', 'kratios').data[0, 0, 0]])
         assert_true(np.allclose(res,
-            np.array([0.4166665022647609, 0.23821329009859846])))
-            
-        s.get_kratio([[["Zn_La",'Al_Ka'],["Zn",'Al'],[0.8,1.75]]],
-            plot_result=False)
-        res = np.array([s.get_result('Al_Ka','kratios').data[0,0,0],
-                    s.get_result('Zn_La','kratios').data[0,0,0]])
+                                np.array([0.4166665022647609, 0.23821329009859846])))
+
+        s.get_kratio([[["Zn_La", 'Al_Ka'], ["Zn", 'Al'], [0.8, 1.75]]],
+                     plot_result=False)
+        res = np.array([s.get_result('Al_Ka', 'kratios').data[0, 0, 0],
+                        s.get_result('Zn_La', 'kratios').data[0, 0, 0]])
         np.allclose(res,
-            np.array([ 0.41666667,  0.2382134 ]))
-            
+                    np.array([0.41666667, 0.2382134]))
+
     def test_quant(self):
         s = self.signal
-        
-        s1 = s.deepcopy()[0,0,0]
+
+        s1 = s.deepcopy()[0, 0, 0]
         s1.get_kratio(plot_result=False)
         s1.quant(plot_result=False)
-        res = np.array([s1.get_result('Al','quant').data,
-            s1.get_result('Zn','quant').data])        
+        res = np.array([s1.get_result('Al', 'quant').data,
+                        s1.get_result('Zn', 'quant').data])
         assert_true(np.allclose(res,
-            np.array([ 0.610979,  0.246892])))
-            
-        s1 = s.deepcopy()[0,0]
+                                np.array([0.610979, 0.246892])))
+
+        s1 = s.deepcopy()[0, 0]
         s1.get_kratio(plot_result=False)
         s1.quant(plot_result=False)
-        res = np.array([s1.get_result('Al','quant').data[0],
-            s1.get_result('Zn','quant').data[0]])        
+        res = np.array([s1.get_result('Al', 'quant').data[0],
+                        s1.get_result('Zn', 'quant').data[0]])
         assert_true(np.allclose(res,
-            np.array([ 0.610979,  0.246892])))
-            
+                                np.array([0.610979, 0.246892])))
+
         s1 = s.deepcopy()[0]
         s1.get_kratio(plot_result=False)
         s1.quant(plot_result=False)
-        res = np.array([s1.get_result('Al','quant').data[0,0],
-            s1.get_result('Zn','quant').data[0,0]])        
+        res = np.array([s1.get_result('Al', 'quant').data[0, 0],
+                        s1.get_result('Zn', 'quant').data[0, 0]])
         assert_true(np.allclose(res,
-            np.array([ 0.610979,  0.246892])))
-                    
+                                np.array([0.610979, 0.246892])))
+
         s.get_kratio(plot_result=False)
         s.quant(plot_result=False)
-        res = np.array([s.get_result('Al','quant').data[0,0,0],
-            s.get_result('Zn','quant').data[0,0,0]])        
+        res = np.array([s.get_result('Al', 'quant').data[0, 0, 0],
+                        s.get_result('Zn', 'quant').data[0, 0, 0]])
         assert_true(np.allclose(res,
-            np.array([ 0.610979,  0.246892])))
-            
-#Should go in is own file            
-class Test_simulation:    
+                                np.array([0.610979, 0.246892])))
+
+# Should go in is own file
+
+
+class Test_simulation:
+
     def setUp(self):
         s = EDSSEMSpectrum(np.ones(1024))
         energy_axis = s.axes_manager.signal_axes[0]
@@ -290,77 +298,81 @@ class Test_simulation:
         energy_axis.units = 'keV'
         energy_axis.name = "Energy"
         s.mapped_parameters.SEM.EDS.live_time = 3.1
-        s.mapped_parameters.SEM.beam_energy = 15.0 
- 
-        s.set_elements(('Al','Zn'))
+        s.mapped_parameters.SEM.beam_energy = 15.0
+
+        s.set_elements(('Al', 'Zn'))
         s.add_lines()
 
-
         self.signal = s
-        
+
     def test_simu_1_spec(self):
         s = self.signal
-        gateway= utils_eds.get_link_to_jython()
+        gateway = utils_eds.get_link_to_jython()
         utils_eds.simulate_one_spectrum(nTraj=10,
-            mp=s.mapped_parameters,gateway=gateway)
+                                        mp=s.mapped_parameters, gateway=gateway)
         utils_eds.simulate_Xray_depth_distribution(10,
-            mp=s.mapped_parameters,gateway=gateway)
-        
-class Test_electron_distribution:    
+                                                   mp=s.mapped_parameters, gateway=gateway)
+
+
+class Test_electron_distribution:
+
     def setUp(self):
-        s = EDSSEMSpectrum(np.ones((2,2,3,1024)))
+        s = EDSSEMSpectrum(np.ones((2, 2, 3, 1024)))
         energy_axis = s.axes_manager.signal_axes[0]
         energy_axis.scale = 1e-2
         energy_axis.units = 'keV'
         energy_axis.name = "Energy"
         s.mapped_parameters.SEM.EDS.live_time = 3.1
-        s.mapped_parameters.SEM.beam_energy = 5.0 
-        
+        s.mapped_parameters.SEM.beam_energy = 5.0
+
         nav_axis = s.axes_manager.navigation_axes
         units_name = '${\mu}m$'
-        EDS_scale = np.array([0.050,0.050,0.100])
+        EDS_scale = np.array([0.050, 0.050, 0.100])
         for i, ax in enumerate(nav_axis):
             ax.units = units_name
             ax.scale = EDS_scale[i]
- 
-        s.set_elements(('Al','Zn'))
+
+        s.set_elements(('Al', 'Zn'))
         s.add_lines()
 
-
         self.signal = s
-        
+
     def test_electron_distribution(self):
         s = self.signal
         s.simulate_electron_distribution(nb_traj=10,
-            limit_x=[-0.250, 0.300], dx0=0.004, dx_increment=0.75)
-        
-class Test_running_sum:        
+                                         limit_x=[-0.250, 0.300], dx0=0.004, dx_increment=0.75)
+
+
+class Test_running_sum:
+
     def setUp(self):
-        s = EDSSEMSpectrum(np.ones((2,2,3,1024)))
+        s = EDSSEMSpectrum(np.ones((2, 2, 3, 1024)))
         energy_axis = s.axes_manager.signal_axes[0]
         energy_axis.scale = 1e-2
         energy_axis.units = 'keV'
         energy_axis.name = "Energy"
         s.mapped_parameters.SEM.EDS.live_time = 3.1
         s.mapped_parameters.SEM.beam_energy = 15.0
-        
-        self.signal = s 
-        
+
+        self.signal = s
+
     def test_running_sum(self):
         s = self.signal
         s.running_sum()
-        
-        assert_equal(s[0,0,0,0].data[0], 4.)
-        
+
+        assert_equal(s[0, 0, 0, 0].data[0], 4.)
+
         s = self.signal
         s = s[0]
-        
+
         s.running_sum()
-        assert_equal(s[0,0,0].data[0], 16.)
-        
-        assert_equal(s.mapped_parameters.SEM.EDS.live_time,49.6)
-        
-class Test_plot_Xray_lines:        
+        assert_equal(s[0, 0, 0].data[0], 16.)
+
+        assert_equal(s.mapped_parameters.SEM.EDS.live_time, 49.6)
+
+
+class Test_plot_Xray_lines:
+
     def setUp(self):
         s = EDSSEMSpectrum(np.ones(1024))
         energy_axis = s.axes_manager.signal_axes[0]
@@ -369,21 +381,19 @@ class Test_plot_Xray_lines:
         energy_axis.name = "Energy"
         s.mapped_parameters.SEM.EDS.live_time = 3.1
         s.mapped_parameters.SEM.beam_energy = 15.0
-        
-        s.set_elements(('Al','Zn'))
+
+        s.set_elements(('Al', 'Zn'))
         s.add_lines()
-        
-        self.signal = s 
-        
+
+        self.signal = s
+
     def test_plot_Xray_lines(self):
         s = self.signal
-        
-        s.plot_Xray_line()        
+
+        s.plot_Xray_line()
         s.plot_Xray_line(line_to_plot='all')
         s.plot_Xray_line(line_to_plot='a')
         s.plot_Xray_line(line_to_plot='ab')
-        
-        
 
 
 class Test_tools_bulk:
