@@ -26,7 +26,7 @@ from hyperspy.io import load
 from hyperspy.defaults_parser import preferences
 from hyperspy import utils
 
-#dev
+# dev
 from hyperspy.misc.eds import utils as utils_eds
 from hyperspy.misc.eds.MAC import MAC_db as MAC
 
