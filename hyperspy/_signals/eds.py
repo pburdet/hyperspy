@@ -262,15 +262,14 @@ class EDSSpectrum(Spectrum):
                     "Please provide a valid line symbol e.g. Fe_Ka")
             if element in elements_db:
                 elements.add(element)
-                if subshell in elements:
-                    db[element]['atomic']['Xray_lines']:
+                if subshell in elements_db[element]['atomic']['Xray_lines']:
                     lines_len = len(Xray_lines)
                     Xray_lines.add(line)
                     # if lines_len != len(Xray_lines):
                     #    print("%s line added," % line)
                     # else:
                     #    print("%s line already in." % line)
-                    if (elements: db[element]['atomic']['Xray_lines'][subshell]['energy'] >
+                    if (elements_db[element]['atomic']['Xray_lines'][subshell]['energy'] >
                             end_energy):
                         print("Warning: %s %s is above the data energy range."
                               % (element, subshell))
@@ -340,11 +339,10 @@ class EDSSpectrum(Spectrum):
         for element in elements:
             # Possible line (existing and excited by electron)
             element_lines = []
-            for subshell in elements:
-                db[element]['atomic']['Xray_lines'].keys():
+            for subshell in elements_db[element]['atomic']['Xray_lines'].keys():
                 if only_lines and subshell not in only_lines:
                     continue
-                if (elements: db[element]['atomic']['Xray_lines'][subshell]['energy'] <
+                if (elements_db[element]['atomic']['Xray_lines'][subshell]['energy'] <
                         end_energy):
 
                     element_lines.append(element + "_" + subshell)
@@ -352,7 +350,7 @@ class EDSSpectrum(Spectrum):
             # Choose the best line
                 select_this = -1
                 for i, line in enumerate(element_lines):
-                    if (elements: db[element]['atomic']['Xray_lines']
+                    if (elements_db[element]['atomic']['Xray_lines']
                             [line.split("_")[1]]['energy'] < beam_energy / 2):
                         select_this = i
                         break
@@ -464,7 +462,7 @@ class EDSSpectrum(Spectrum):
         if lines_deconvolution is None:
             for Xray_line in Xray_lines:
                 element, line = utils_eds._get_element_and_line(Xray_line)
-                line_energy = elements_db[element]['Xray_energy'][line]
+                line_energy = elements_db[element]['atomic']['Xray_lines'][line]['energy']
                 line_FWHM = utils_eds.get_FWHM_at_Energy(
                     FWHM_MnKa,
                     line_energy)
@@ -498,7 +496,7 @@ class EDSSpectrum(Spectrum):
 
             for Xray_line in Xray_lines:
                 element, line = utils_eds._get_element_and_line(Xray_line)
-                line_energy = elements_db[element]['Xray_energy'][line]
+                line_energy = elements_db[element]['atomic']['Xray_lines'][line]['energy']
                 line_FWHM = utils_eds.get_FWHM_at_Energy(
                     FWHM_MnKa,
                     line_energy)
@@ -518,10 +516,10 @@ class EDSSpectrum(Spectrum):
                 fps.append(fp)
                 m.append(fps[-1])
                 if lines_deconvolution == 'model':
-                    for li in elements_db[element]['Xray_energy']:
+                    for li in elements_db[element]['atomic']['Xray_lines']:
                         if line[0] in li and line != li:
                             line_energy = elements_db[
-                                element]['Xray_energy'][li]
+                                element]['Xray_lines'][li]['energy']
                             line_FWHM = utils_eds.get_FWHM_at_Energy(
                                 FWHM_MnKa,
                                 line_energy)
@@ -532,7 +530,8 @@ class EDSSpectrum(Spectrum):
                             fp.A.twin = fps[-1].A
                             fp.centre.free = False
                             fp.sigma.free = False
-                            ratio_line = elements_db['lines']['ratio_line'][li]
+                            ratio_line = elements_db[
+                                element]['Xray_lines'][li]['factor']
                             fp.A.twin_function = lambda x: x * ratio_line
                             fp.A.twin_inverse_function = lambda x: x / \
                                 ratio_line
@@ -544,7 +543,7 @@ class EDSSpectrum(Spectrum):
             for i, fp in enumerate(fps):
                 Xray_line = Xray_lines[i]
                 element, line = utils_eds._get_element_and_line(Xray_line)
-                line_energy = elements_db[element]['Xray_energy'][line]
+                line_energy = elements_db[element]['atomic']['Xray_lines'][line]['energy']
 
                 if self.axes_manager.navigation_dimension == 0:
                     if lines_deconvolution == 'model':
@@ -735,7 +734,7 @@ class EDSSpectrum(Spectrum):
 
         # else:
             # for element in mp.Sample.elements:
-                # for line, en in elements_db[element]['Xray_energy'].items():
+                # for line, en in elements_db[element]['atomic']['Xray_lines'].items():
                     # if en < beam_energy:
                         # if line_to_plot == 'a' and line[1] == 'a':
                             # elements.append(element)
@@ -752,12 +751,12 @@ class EDSSpectrum(Spectrum):
         #line_energy = []
         #intensity = []
         # for i, element in enumerate(elements):
-            # line_energy.append(elements_db[element]['Xray_energy'][lines[i]])
+            # line_energy.append(elements_db[element]['atomic']['Xray_lines'][lines[i]])
             # if lines[i] == 'a':
                 # intensity.append(self[line_energy[-1]].data[0])
             # else:
                 #relative_factor = elements_db['lines']['ratio_line'][lines[i]]
-                #a_eng = elements_db[element]['Xray_energy'][lines[i][0] + 'a']
+                #a_eng = elements_db[element]['atomic']['Xray_lines'][lines[i][0] + 'a']
                 #intensity.append(self[a_eng].data[0] * relative_factor)
             #Xray_lines.append(element + '_' + lines[i])
 
@@ -794,7 +793,7 @@ class EDSSpectrum(Spectrum):
         from hyperspy.hspy import create_model
         mp = self.mapped_parameters
         element, line = utils_eds._get_element_and_line(Xray_line)
-        Xray_energy = elements_db[element]['Xray_energy'][line]
+        Xray_energy = elements_db[element]['atomic']['Xray_lines'][line]['energy']
         FWHM = utils_eds.get_FWHM_at_Energy(mp.SEM.EDS.energy_resolution_MnKa,
                                             Xray_energy)
         if bck == 'auto':
@@ -813,7 +812,7 @@ class EDSSpectrum(Spectrum):
             m.plot()
 
         res_MnKa = utils_eds.get_FWHM_at_Energy(fp.sigma.value * 2.355 * 1000,
-                                                elements_db['Mn']['Xray_energy']['Ka'], Xray_line)
+                                                elements_db['Mn']['atomic']['Xray_lines']['Ka']['energy'], Xray_line)
         if set_Mn_Ka:
             mp.SEM.EDS.energy_resolution_MnKa = res_MnKa * 1000
             print 'Resolution at Mn Ka ', res_MnKa * 1000
@@ -1114,9 +1113,9 @@ class EDSSpectrum(Spectrum):
         intensity = []
         for Xray_line in Xray_lines:
             element, line = utils_eds._get_element_and_line(Xray_line)
-            line_energy.append(elements_db[element]['Xray_energy'][line])
-            relative_factor = elements_db['lines']['ratio_line'][line]
-            a_eng = elements_db[element]['Xray_energy'][line[0] + 'a']
+            line_energy.append(elements_db[element]['atomic']['Xray_lines'][line]['energy'])
+            relative_factor = elements_db[element]['atomic']['Xray_lines'][line]['factor']
+            a_eng = elements_db[element]['atomic']['Xray_lines'][line[0] + 'a']['energy']
             # if fixed_height:
                 # intensity.append(self[..., a_eng].data.flatten().mean()
                              #* relative_factor)

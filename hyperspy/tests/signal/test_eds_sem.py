@@ -390,10 +390,10 @@ class Test_plot_Xray_lines:
     def test_plot_Xray_lines(self):
         s = self.signal
 
-        s.plot_Xray_line()
-        s.plot_Xray_line(line_to_plot='all')
-        s.plot_Xray_line(line_to_plot='a')
-        s.plot_Xray_line(line_to_plot='ab')
+        s.plot_Xray_lines()
+        s.plot_Xray_lines(line_to_plot='all')
+        s.plot_Xray_lines(line_to_plot='a')
+        s.plot_Xray_lines(line_to_plot='ab')
 
 
 class Test_tools_bulk:
