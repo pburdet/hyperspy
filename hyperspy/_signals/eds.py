@@ -462,7 +462,12 @@ class EDSSpectrum(Spectrum):
         if lines_deconvolution is None:
             for Xray_line in Xray_lines:
                 element, line = utils_eds._get_element_and_line(Xray_line)
-                line_energy = elements_db[element]['atomic']['Xray_lines'][line]['energy']
+                line_energy = elements_db[
+                    element][
+                    'atomic'][
+                    'Xray_lines'][
+                    line][
+                    'energy']
                 line_FWHM = utils_eds.get_FWHM_at_Energy(
                     FWHM_MnKa,
                     line_energy)
@@ -496,7 +501,12 @@ class EDSSpectrum(Spectrum):
 
             for Xray_line in Xray_lines:
                 element, line = utils_eds._get_element_and_line(Xray_line)
-                line_energy = elements_db[element]['atomic']['Xray_lines'][line]['energy']
+                line_energy = elements_db[
+                    element][
+                    'atomic'][
+                    'Xray_lines'][
+                    line][
+                    'energy']
                 line_FWHM = utils_eds.get_FWHM_at_Energy(
                     FWHM_MnKa,
                     line_energy)
@@ -543,7 +553,12 @@ class EDSSpectrum(Spectrum):
             for i, fp in enumerate(fps):
                 Xray_line = Xray_lines[i]
                 element, line = utils_eds._get_element_and_line(Xray_line)
-                line_energy = elements_db[element]['atomic']['Xray_lines'][line]['energy']
+                line_energy = elements_db[
+                    element][
+                    'atomic'][
+                    'Xray_lines'][
+                    line][
+                    'energy']
 
                 if self.axes_manager.navigation_dimension == 0:
                     if lines_deconvolution == 'model':
@@ -793,7 +808,12 @@ class EDSSpectrum(Spectrum):
         from hyperspy.hspy import create_model
         mp = self.mapped_parameters
         element, line = utils_eds._get_element_and_line(Xray_line)
-        Xray_energy = elements_db[element]['atomic']['Xray_lines'][line]['energy']
+        Xray_energy = elements_db[
+            element][
+            'atomic'][
+            'Xray_lines'][
+            line][
+            'energy']
         FWHM = utils_eds.get_FWHM_at_Energy(mp.SEM.EDS.energy_resolution_MnKa,
                                             Xray_energy)
         if bck == 'auto':
@@ -1113,9 +1133,27 @@ class EDSSpectrum(Spectrum):
         intensity = []
         for Xray_line in Xray_lines:
             element, line = utils_eds._get_element_and_line(Xray_line)
-            line_energy.append(elements_db[element]['atomic']['Xray_lines'][line]['energy'])
-            relative_factor = elements_db[element]['atomic']['Xray_lines'][line]['factor']
-            a_eng = elements_db[element]['atomic']['Xray_lines'][line[0] + 'a']['energy']
+            line_energy.append(
+                elements_db[
+                    element][
+                    'atomic'][
+                    'Xray_lines'][
+                    line][
+                    'energy'])
+            relative_factor = elements_db[
+                element][
+                'atomic'][
+                'Xray_lines'][
+                line][
+                'factor']
+            a_eng = elements_db[
+                element][
+                'atomic'][
+                'Xray_lines'][
+                line[
+                    0] +
+                'a'][
+                'energy']
             # if fixed_height:
                 # intensity.append(self[..., a_eng].data.flatten().mean()
                              #* relative_factor)

@@ -352,7 +352,12 @@ class EDSSEMSpectrum(EDSSpectrum):
             element, line = utils_eds._get_element_and_line(Xray_line)
             std = self.get_result(element, 'standard_spec')
             mp_std = std.mapped_parameters
-            line_energy = elements_db[element]['atomic']['Xray_lines'][line]['energy']
+            line_energy = elements_db[
+                element][
+                'atomic'][
+                'Xray_lines'][
+                line][
+                'energy']
             diff_ltime = mp.SEM.EDS.live_time / mp_std.SEM.EDS.live_time
             # Fit with least square
             m = create_model(self.top_hat(line_energy, width_windows))
@@ -550,7 +555,13 @@ class EDSSEMSpectrum(EDSSpectrum):
             line_energy = []
             for Xray_line in Xray_lines:
                 element, line = utils_eds._get_element_and_line(Xray_line)
-                line_energy.append(elements_db[element]['atomic']['Xray_lines'][line]['energy'])
+                line_energy.append(
+                    elements_db[
+                        element][
+                        'atomic'][
+                        'Xray_lines'][
+                        line][
+                        'energy'])
             width_energy = [0, 0]
             width_energy[0] = np.min(line_energy) - utils_eds.get_FWHM_at_Energy(
                 130, np.min(line_energy)) * 2
@@ -576,7 +587,12 @@ class EDSSEMSpectrum(EDSSpectrum):
                                              width_windows).data))
         for Xray_line in Xray_lines:
             element, line = utils_eds._get_element_and_line(Xray_line)
-            line_energy = elements_db[element]['atomic']['Xray_lines'][line]['energy']
+            line_energy = elements_db[
+                element][
+                'atomic'][
+                'Xray_lines'][
+                line][
+                'energy']
             width_windows = [line_energy - width_energy[0], width_energy[1] -
                              line_energy]
 
