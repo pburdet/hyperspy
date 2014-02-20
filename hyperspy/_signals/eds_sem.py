@@ -44,7 +44,7 @@ class EDSSEMSpectrum(EDSSpectrum):
     def __init__(self, *args, **kwards):
         EDSSpectrum.__init__(self, *args, **kwards)
         # Attributes defaults
-        if hasattr(self.mapped_parameters, 'SEM.EDS') == False:
+        if hasattr(self.metadata, 'SEM.EDS') == False:
             self._load_from_TEM_param()
         self._set_default_param()
 
@@ -58,14 +58,14 @@ class EDSSEMSpectrum(EDSSpectrum):
         ----------
         ref : signal
             The reference contains the calibration in its
-            mapped_parameters
+            metadata
         nb_pix : int
             The live time (real time corrected from the "dead time")
             is divided by the number of pixel (spectrums), giving an
             average live time.
         """
 
-        self.original_parameters = ref.original_parameters.deepcopy()
+        self.original_metadata = ref.original_metadata.deepcopy()
         # Setup the axes_manager
         ax_m = self.axes_manager.signal_axes[0]
         ax_ref = ref.axes_manager.signal_axes[0]
@@ -73,16 +73,16 @@ class EDSSEMSpectrum(EDSSpectrum):
         ax_m.units = ax_ref.units
         ax_m.offset = ax_ref.offset
 
-        # Setup mapped_parameters
-        if hasattr(ref.mapped_parameters, 'SEM'):
-            mp_ref = ref.mapped_parameters.SEM
-        elif hasattr(ref.mapped_parameters, 'TEM'):
-            mp_ref = ref.mapped_parameters.TEM
+        # Setup metadata
+        if hasattr(ref.metadata, 'SEM'):
+            mp_ref = ref.metadata.SEM
+        elif hasattr(ref.metadata, 'TEM'):
+            mp_ref = ref.metadata.TEM
         else:
-            raise ValueError("The reference has no mapped_parameters.TEM"
-                             "\n nor mapped_parameters.SEM ")
+            raise ValueError("The reference has no metadata.TEM"
+                             "\n nor metadata.SEM ")
 
-        mp = self.mapped_parameters
+        mp = self.metadata
 
         mp.SEM = mp_ref.deepcopy()
 
@@ -90,11 +90,11 @@ class EDSSEMSpectrum(EDSSpectrum):
             mp.SEM.EDS.live_time = mp_ref.EDS.live_time / nb_pix
 
     def _load_from_TEM_param(self):
-        """Transfer mapped_parameters.TEM to mapped_parameters.SEM
+        """Transfer metadata.TEM to metadata.SEM
 
         """
 
-        mp = self.mapped_parameters
+        mp = self.metadata
         if mp.has_item('SEM') is False:
             mp.add_node('SEM')
         if mp.has_item('SEM.EDS') is False:
@@ -110,7 +110,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         """Set to value to default (defined in preferences)
 
         """
-        mp = self.mapped_parameters
+        mp = self.metadata
         if hasattr(mp.SEM, 'tilt_stage') is False:
             mp.SEM.tilt_stage = preferences.EDS.eds_tilt_stage
         if hasattr(mp.SEM.EDS, 'elevation_angle') is False:
@@ -150,7 +150,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             In eV
 
         """
-        mp_mic = self.mapped_parameters.SEM
+        mp_mic = self.metadata.SEM
 
         if beam_energy is not None:
             mp_mic.beam_energy = beam_energy
@@ -180,8 +180,8 @@ class EDSSEMSpectrum(EDSSpectrum):
             'SEM.EDS.energy_resolution_MnKa': 'tem_par.energy_resolution_MnKa', }
 
         for key, value in mapping.iteritems():
-            if self.mapped_parameters.has_item(key):
-                exec('%s = self.mapped_parameters.%s' % (value, key))
+            if self.metadata.has_item(key):
+                exec('%s = self.metadata.%s' % (value, key))
         tem_par.edit_traits()
 
         mapping = {
@@ -194,12 +194,12 @@ class EDSSEMSpectrum(EDSSpectrum):
 
         for key, value in mapping.iteritems():
             if value != t.Undefined:
-                exec('self.mapped_parameters.%s = %s' % (key, value))
+                exec('self.metadata.%s = %s' % (key, value))
         self._are_microscope_parameters_missing()
 
     def _are_microscope_parameters_missing(self):
         """Check if the EDS parameters necessary for quantification
-        are defined in mapped_parameters. If not, in interactive mode
+        are defined in metadata. If not, in interactive mode
         raises an UI item to fill the values
 
         """
@@ -210,7 +210,7 @@ class EDSSEMSpectrum(EDSSpectrum):
 
         missing_parameters = []
         for item in must_exist:
-            exists = self.mapped_parameters.has_item(item)
+            exists = self.metadata.has_item(item)
             if exists is False:
                 missing_parameters.append(item)
         if missing_parameters:
@@ -233,11 +233,11 @@ class EDSSEMSpectrum(EDSSpectrum):
         """
         Seek for standard spectra (spectrum recorded on known composition
         sample) in the std_file folder and link them to the analyzed
-        elements of 'mapped_parameters.Sample.elements'. A standard
+        elements of 'metadata.Sample.elements'. A standard
         spectrum is linked if its file name contains the elements name.
         "C.msa", "Co.msa" but not "Co4.msa".
 
-        Store the standard spectra in 'mapped_parameters.Sample.standard_spec'
+        Store the standard spectra in 'metadata.Sample.standard_spec'
 
 
         Parameters
@@ -254,9 +254,9 @@ class EDSSEMSpectrum(EDSSpectrum):
 
         """
 
-        if not hasattr(self.mapped_parameters, 'Sample'):
+        if not hasattr(self.metadata, 'Sample'):
             raise ValueError("Add elements first, see 'set_elements'")
-        if not hasattr(self.mapped_parameters.Sample, 'elements'):
+        if not hasattr(self.metadata.Sample, 'elements'):
             raise ValueError("Add elements first, see 'set_elements'")
 
         std_tot = load(
@@ -264,14 +264,14 @@ class EDSSEMSpectrum(EDSSpectrum):
             "//*." +
             std_file_extension,
             signal_type='EDS_SEM')
-        mp = self.mapped_parameters
+        mp = self.metadata
         mp.Sample.standard_spec = []
         # for element in mp.Sample.elements:
         for Xray_line in mp.Sample.Xray_lines:
             element, line = utils_eds._get_element_and_line(Xray_line)
             test_file_exist = False
             for std in std_tot:
-                mp_std = std.mapped_parameters
+                mp_std = std.metadata
                 if hasattr(mp, 'original_filename'):
                     filename = mp_std.original_filename
                 else:
@@ -309,7 +309,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         """
         offset = np.copy(self.axes_manager.signal_axes[0].offset)
         scale_s = np.copy(self.axes_manager.signal_axes[0].scale)
-        FWHM_MnKa = self.mapped_parameters.SEM.EDS.energy_resolution_MnKa
+        FWHM_MnKa = self.metadata.SEM.EDS.energy_resolution_MnKa
         line_FWHM = utils_eds.get_FWHM_at_Energy(FWHM_MnKa, line_energy)
         if np.ndim(width_windows) == 0:
             det = [width_windows * line_FWHM, width_windows * line_FWHM]
@@ -346,12 +346,12 @@ class EDSSEMSpectrum(EDSSpectrum):
         """
         from hyperspy.hspy import create_model
         width_windows = 0.75
-        mp = self.mapped_parameters
+        mp = self.metadata
 
         for Xray_line in Xray_lines:
             element, line = utils_eds._get_element_and_line(Xray_line)
             std = self.get_result(element, 'standard_spec')
-            mp_std = std.mapped_parameters
+            mp_std = std.metadata
             line_energy = elements_db[
                 element][
                 'atomic'][
@@ -380,7 +380,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         sepectrum after background substraction with a top hat filtering
 
         Return a display of the resutls and store them in
-        'mapped_parameters.Sample.k_ratios'
+        'metadata.Sample.k_ratios'
 
         Parameters
         ----------
@@ -393,14 +393,14 @@ class EDSSEMSpectrum(EDSSpectrum):
 
         """
 
-        if not hasattr(self.mapped_parameters, 'Sample'):
+        if not hasattr(self.metadata, 'Sample'):
             raise ValueError("Add elements first, see 'set_elements'")
-        if not hasattr(self.mapped_parameters.Sample, 'elements'):
+        if not hasattr(self.metadata.Sample, 'elements'):
             raise ValueError("Add elements first, see 'set_elements'")
-        if not hasattr(self.mapped_parameters.Sample, 'standard_spec'):
+        if not hasattr(self.metadata.Sample, 'standard_spec'):
             raise ValueError("Add Standard, see 'link_standard'")
 
-        mp = self.mapped_parameters
+        mp = self.metadata
         mp.Sample.kratios = list(np.zeros(len(mp.Sample.Xray_lines)))
         Xray_lines = list(mp.Sample.Xray_lines)
 
@@ -436,7 +436,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             m = create_model(self.top_hat(line_energy, width_windows))
         else:
             m = create_model(self[..., width_energy[0]:width_energy[1]])
-        mp = self.mapped_parameters
+        mp = self.metadata
 
         diff_ltime = []
         fps = []
@@ -452,7 +452,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             fps.append(fp)
             m.append(fps[-1])
             diff_ltime.append(mp.SEM.EDS.live_time /
-                              std.mapped_parameters.SEM.EDS.live_time)
+                              std.metadata.SEM.EDS.live_time)
         m.multifit(fitter='leastsq')
         i = 0
         for Xray_line in Xray_lines:
@@ -494,7 +494,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         """
         from hyperspy.hspy import create_model
         m = create_model(self)
-        mp = self.mapped_parameters
+        mp = self.metadata
 
         elements = mp.Sample.elements
 
@@ -572,7 +572,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         width_windows = [line_energy - width_energy[0], width_energy[1]
                          - line_energy]
 
-        mp = self.mapped_parameters
+        mp = self.metadata
         if new_figure:
             fig = plt.figure()
         if top_hat_applied:
@@ -599,7 +599,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             std_spec = self.get_result(element, 'standard_spec')
             kratio = self.get_result(Xray_line, 'kratios').data
             diff_ltime = mp.SEM.EDS.live_time /\
-                std_spec.mapped_parameters.SEM.EDS.live_time
+                std_spec.metadata.SEM.EDS.live_time
             if top_hat_applied:
                 std_data = std_spec.top_hat(line_energy,
                                             width_windows).data * kratio * diff_ltime
@@ -631,7 +631,7 @@ class EDSSEMSpectrum(EDSSpectrum):
                     extension='hdf5'):
         """
         Save the result in a file (results stored in
-        'mapped_parameters.Sample')
+        'metadata.Sample')
 
         Parameters
         ----------
@@ -654,7 +654,7 @@ class EDSSEMSpectrum(EDSSpectrum):
 
         """
 
-        mp = self.mapped_parameters
+        mp = self.metadata
         if Xray_lines is 'all':
             if result == 'intensities':
                 Xray_lines = mp.Sample.elements
@@ -681,7 +681,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         needed.
 
         k-ratios needs to be calculated before. Return a display of the
-        results and store them in 'mapped_parameters.Sample.quants'
+        results and store them in 'metadata.Sample.quants'
 
         Parameters
         ----------
@@ -714,7 +714,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         set_elements, link_standard, top_hat, get_kratio
 
         """
-        mp = self.mapped_parameters
+        mp = self.metadata
         if enh is False:
             if len(mp.Sample.Xray_lines) != len(mp.Sample.elements):
                 raise ValueError("Only one X-ray lines should be " +
@@ -755,7 +755,7 @@ class EDSSEMSpectrum(EDSSpectrum):
 
     def _read_result_tsv(self, foldername, plot_result, enh):
         encoding = 'latin-1'
-        mp = self.mapped_parameters
+        mp = self.metadata
         f = codecs.open(foldername + '//result.tsv', encoding=encoding,
                         errors='replace')
         #dim = list(self.data.shape)
@@ -805,7 +805,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             foldername = os.path.join(config_path,
                                       'strata_quant_enh' + str(compiler) + '//essai')
         encoding = 'latin-1'
-        mp = self.mapped_parameters
+        mp = self.metadata
         f = codecs.open(foldername + '//result.tsv', encoding=encoding,
                         errors='replace')
 
@@ -838,7 +838,7 @@ class EDSSEMSpectrum(EDSSpectrum):
 
     def _write_donnee_tsv(self, foldername):
         encoding = 'latin-1'
-        mp = self.mapped_parameters
+        mp = self.metadata
         Xray_lines = mp.Sample.Xray_lines
         elements = mp.Sample.elements
         f = codecs.open(foldername + '//donnee.tsv', 'w',
@@ -888,7 +888,7 @@ class EDSSEMSpectrum(EDSSpectrum):
 
     def _write_nbData_tsv(self, foldername):
         encoding = 'latin-1'
-        mp = self.mapped_parameters
+        mp = self.metadata
         f = codecs.open(foldername + '//nbData.tsv', 'w',
                         encoding=encoding, errors='ignore')
 
@@ -939,7 +939,7 @@ class EDSSEMSpectrum(EDSSpectrum):
 
     def _write_nbData_ehn_tsv(self, foldername):
         encoding = 'latin-1'
-        mp = self.mapped_parameters
+        mp = self.metadata
         f = codecs.open(foldername + '//nbData.tsv', 'w',
                         encoding=encoding, errors='ignore')
         Xray_lines = mp.Sample.Xray_lines
@@ -947,7 +947,7 @@ class EDSSEMSpectrum(EDSSpectrum):
                                       'kratios').data.shape).tolist()
         dim.reverse()
         #dim = np.copy(self.axes_manager.navigation_shape).tolist()
-        distr_dic = self.mapped_parameters.elec_distr
+        distr_dic = self.metadata.elec_distr
         scale = []
         for ax in self.axes_manager.navigation_axes:
             scale.append(ax.scale * 1000)
@@ -1098,8 +1098,8 @@ class EDSSEMSpectrum(EDSSpectrum):
 
         """
 
-        mp = self.mapped_parameters
-        #dic = self.deepcopy().mapped_parameters.as_dictionary()
+        mp = self.metadata
+        #dic = self.deepcopy().metadata.as_dictionary()
         if hasattr(mp.Sample, 'elements') is False:
             raise ValueError('Elements needs to be defined')
             return 0
@@ -1282,7 +1282,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         simulate_electron_distribution
         """
 
-        mp = self.mapped_parameters
+        mp = self.metadata
 
         if mp.has_item('elec_distr') is False:
             raise ValueError(" Simulate an electron distribution first " +
@@ -1363,18 +1363,18 @@ class EDSSEMSpectrum(EDSSpectrum):
             iii) `preferences.General.default_file_format` in this order.
         """
 
-        mp = self.mapped_parameters
+        mp = self.metadata
         if hasattr(mp, 'Sample'):
             if hasattr(mp.Sample, 'standard_spec'):
                 l_time = []
                 # for el in range(len(mp.Sample.elements)):
                 for el in range(len(mp.Sample.Xray_lines)):
                     l_time.append(
-                        mp.Sample.standard_spec[el].mapped_parameters.SEM.EDS.live_time)
+                        mp.Sample.standard_spec[el].metadata.SEM.EDS.live_time)
                 std = copy.deepcopy(mp.Sample.standard_spec)
                 mp.Sample.standard_spec = utils.stack(mp.Sample.standard_spec)
                 del mp.Sample.standard_spec.original_parameters.stack_elements
-                mp.Sample.standard_spec.mapped_parameters.SEM.EDS.live_time = l_time
+                mp.Sample.standard_spec.metadata.SEM.EDS.live_time = l_time
             result_store = []
             for result in ['kratios', 'quant', 'quant_enh', 'intensities']:
                 if hasattr(mp.Sample, result):
@@ -1419,7 +1419,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             with missing data
         shifts : 'StackReg' | 'mp' | array
             1. If StackReg, use align_with_stackReg
-            2. If mp, look in the mapped_parameters of  reference
+            2. If mp, look in the metadata of  reference
             3. or give an array
 
         See also
@@ -1436,7 +1436,7 @@ class EDSSEMSpectrum(EDSSpectrum):
 
         """
         from hyperspy import signals
-        mp = self.mapped_parameters
+        mp = self.metadata
         if isinstance(reference, signals.Image) is False:
             ref_is_result = True
             if isinstance(reference[1], basestring) is False:
@@ -1445,7 +1445,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         else:
             ref_is_result = False
 
-        mp_ref = reference.mapped_parameters
+        mp_ref = reference.metadata
         if shifts == 'StackReg':
             utils_eds.align_with_stackReg(reference,
                                           starting_slice=starting_slice, align_img=False,
@@ -1525,7 +1525,7 @@ class EDSSEMSpectrum(EDSSpectrum):
                 result_images = mp.Sample[result]
                 for res in result_images:
                     res.align2D(shifts=shifts, crop=False)
-                    mp_temp = res.mapped_parameters
+                    mp_temp = res.metadata
                     if mp_temp.has_item('align') is False:
                         mp_temp.add_node('align')
                     mp_temp.align.crop = crop
@@ -1559,7 +1559,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         gateway: execnet Gateway
             If 'auto', generate automatically the connection to jython.
         """
-        mp = self.mapped_parameters
+        mp = self.metadata
         if hasattr(mp.Sample, 'Xray_lines'):
             Xray_lines = mp.Sample.Xray_lines
             xrts = []

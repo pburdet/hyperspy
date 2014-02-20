@@ -175,11 +175,11 @@ def get_index_from_names(self, axis_names, index_name, axis_name_in_mp=True):
         The name of the index to find
 
     axis_name_in_mp: bool
-        if axis_name is in mapped_parameters.Sample.
+        if axis_name is in metadata.Sample.
 
     """
     if axis_name_in_mp == True:
-        axis_names = self.mapped_parameters.Sample[axis_names]
+        axis_names = self.metadata.Sample[axis_names]
 
     for i, name in enumerate(axis_names):
         if name == index_name:
@@ -243,7 +243,7 @@ def phase_inspector(self, bins=[20, 20, 20], plot_result=True):
     img = utils.stack(dataBin)
 
     for i in range(len(self)):
-        img.axes_manager[i].name = self[i].mapped_parameters.title
+        img.axes_manager[i].name = self[i].metadata.title
         img.axes_manager[i].scale = (minmax[i][1] - minmax[i][0]) / bins[i]
         img.axes_manager[i].offest = minmax[i][0]
         img.axes_manager[i].units = '-'
@@ -309,10 +309,10 @@ def simulate_one_spectrum(nTraj, dose=100, mp='gui',
             spec.set_microscope_parameters()
             spec.set_elements(elements)
             spec.add_lines()
-        mp = spec.mapped_parameters
+        mp = spec.metadata
     else:
-        spec.mapped_parameters = mp.deepcopy()
-        mp = spec.mapped_parameters
+        spec.metadata = mp.deepcopy()
+        mp = spec.metadata
 
     if elements == 'auto':
         if hasattr(mp.Sample, 'elements'):
@@ -468,15 +468,15 @@ def simulate_one_spectrum(nTraj, dose=100, mp='gui',
     spec.data = np.array(datas)
     spec.get_dimensions_from_data()
 
-    spec.mapped_parameters.SEM.EDS.energy_resolution_MnKa = reso
+    spec.metadata.SEM.EDS.energy_resolution_MnKa = reso
     spec.axes_manager[0].scale = scale / 1000
     spec.axes_manager[0].offset = offset
     spec.axes_manager[0].name = 'Energy'
     spec.axes_manager[0].units = 'keV'
-    spec.mapped_parameters.title = 'Simulated spectrum'
+    spec.metadata.title = 'Simulated spectrum'
 
-    spec.mapped_parameters.add_node('simulation')
-    spec.mapped_parameters.simulation.nTraj = nTraj
+    spec.metadata.add_node('simulation')
+    spec.metadata.simulation.nTraj = nTraj
     #mp.signal_origin = "simulation"
 
     return spec
@@ -552,10 +552,10 @@ def simulate_Xray_depth_distribution(nTraj, bins=120, mp='gui',
         else:
             spec.set_elements(elements)
             spec.set_lines()
-        mp = spec.mapped_parameters
+        mp = spec.metadata
     else:
-        spec.mapped_parameters = mp.deepcopy()
-        mp = spec.mapped_parameters
+        spec.metadata = mp.deepcopy()
+        mp = spec.metadata
 
     if elements == 'auto':
         if hasattr(mp.Sample, 'elements'):
@@ -685,8 +685,8 @@ def simulate_Xray_depth_distribution(nTraj, bins=120, mp='gui',
     datas = np.rollaxis(datas, 1, 0)
 
     frz = signals.Spectrum(np.array(datas))
-    frz.mapped_parameters.SEM = mp.SEM
-    mp = frz.mapped_parameters
+    frz.metadata.SEM = mp.SEM
+    mp = frz.metadata
     mp.add_node('Sample')
     mp.Sample.elements = elements
     mp.Sample.compo_at = compo_at
@@ -740,7 +740,7 @@ def load_EDSSEMSpectrum(filenames=None,
     s = load(filenames, record_by, signal_type, signal_origin, stack,
              stack_axis, new_axis_name, mmap, mmap_dir, **kwds)
 
-    mp = s.mapped_parameters
+    mp = s.metadata
     if hasattr(mp, 'Sample'):
         for result in ['standard_spec', 'kratios', 'quant', 'quant_enh', 'intensities']:
             if hasattr(mp.Sample, result):
@@ -751,7 +751,7 @@ def load_EDSSEMSpectrum(filenames=None,
 
 def _set_result_signal_list(mp, result):
     std = mp.Sample[result]
-    # if '_' in std.mapped_parameters.title:
+    # if '_' in std.metadata.title:
     #    number_of_parts=len(mp.Sample.Xray_lines)
     #    is_xray = True
     # else:
@@ -762,7 +762,7 @@ def _set_result_signal_list(mp, result):
     if result == 'standard_spec':
         # Need to change
         # number_of_parts=len(mp.Sample.elements)
-        l_time = std.mapped_parameters.SEM.EDS.live_time
+        l_time = std.metadata.SEM.EDS.live_time
         # number_of_parts=len(mp.Sample.Xray_lines)
         temp = std.split(axis=0, number_of_parts=number_of_parts)
     elif len(std.data.shape) == 1:
@@ -779,12 +779,12 @@ def _set_result_signal_list(mp, result):
                 el, li = _get_element_and_line(mp.Sample.Xray_lines[i])
             else:
                 el = mp.Sample.elements[i]
-            tp.mapped_parameters.title = el + '_std'
-            tp.mapped_parameters.SEM.EDS.live_time = l_time[i]
+            tp.metadata.title = el + '_std'
+            tp.metadata.SEM.EDS.live_time = l_time[i]
         elif number_of_parts == len(mp.Sample.Xray_lines):
-            tp.mapped_parameters.title = result + ' ' + mp.Sample.Xray_lines[i]
+            tp.metadata.title = result + ' ' + mp.Sample.Xray_lines[i]
         elif number_of_parts == len(mp.Sample.elements):
-            tp.mapped_parameters.title = result + ' ' + mp.Sample.elements[i]
+            tp.metadata.title = result + ' ' + mp.Sample.elements[i]
         std.append(tp)
     mp.Sample[result] = std
 
@@ -797,7 +797,7 @@ def align_with_stackReg(img,
     # must be in Image
     """Align a stack of images with stackReg from Imagej.
 
-    store the shifts in mapped_parameters.align.shifts
+    store the shifts in metadata.align.shifts
 
     Parameters
     ----------
@@ -874,7 +874,7 @@ def align_with_stackReg(img,
         item = item
 
     shifts = _read_alignement_file()
-    mp = img.mapped_parameters
+    mp = img.metadata
     if mp.has_item('align') is False:
             mp.add_node('align')
     mp.align.crop = False
@@ -964,7 +964,7 @@ def compare_results(specs, results, sum_elements=False,
     """
     Plot different results side by side
 
-    The results are found in 'mapped.mapped_parameters.Sample['results_name']'.
+    The results are found in 'mapped.metadata.Sample['results_name']'.
     They need to have the same dimension
 
     Parameters
@@ -1012,7 +1012,7 @@ def compare_results(specs, results, sum_elements=False,
                     temp = s.normalize_result(results[j][i])
                 else:
                     temp = copy.deepcopy(
-                        s.mapped_parameters.Sample[results[j][i]])
+                        s.metadata.Sample[results[j][i]])
                 temp = utils.stack(temp)
                 if sum_elements:
                     temp = temp.sum(1)
@@ -1034,7 +1034,7 @@ def compare_results(specs, results, sum_elements=False,
             elif normalize:
                 temp = s.normalize_result(results[i])
             else:
-                temp = copy.deepcopy(s.mapped_parameters.Sample[results[i]])
+                temp = copy.deepcopy(s.metadata.Sample[results[i]])
             temp = utils.stack(temp)
             if sum_elements:
                 temp = temp.sum(1)
@@ -1044,7 +1044,7 @@ def compare_results(specs, results, sum_elements=False,
     else:
         raise ValueError("specs is not a list")
 
-    check.mapped_parameters.title = 'Compared Results'
+    check.metadata.title = 'Compared Results'
     if plot_result:
         check.plot(navigator='slider')
     else:
@@ -1064,7 +1064,7 @@ def compare_histograms_results(specs,
     """
     Plot the histrogram for different results for one element.
 
-    The results are found in 'mapped.mapped_parameters.Sample['results_name']'.
+    The results are found in 'mapped.metadata.Sample['results_name']'.
 
     Paramters
     ---------
@@ -1106,7 +1106,7 @@ def compare_histograms_results(specs,
 
     legend: None | list of str | 'auto'
        If list of string, legend for "cascade" or title for "mosaic" is
-       displayed. If 'auto', the title of each spectra (mapped_parameters.title)
+       displayed. If 'auto', the title of each spectra (metadata.title)
        is used.
 
     fig : {matplotlib figure, None}
@@ -1126,24 +1126,24 @@ def compare_histograms_results(specs,
     hists = []
     for i, spec in enumerate(specs):
         if element == 'all':
-            re = copy.deepcopy(spec.mapped_parameters.Sample[results[i]])
+            re = copy.deepcopy(spec.metadata.Sample[results[i]])
             re = utils.stack(re)
             re = re.sum(1)
-            re.mapped_parameters.title = 'Sum ' + \
-                results[i] + ' ' + spec.mapped_parameters.title
+            re.metadata.title = 'Sum ' + \
+                results[i] + ' ' + spec.metadata.title
         elif isinstance(results[i], str):
             if normalizex:
                 re = spec.normalize_result(
-                    results[i])[list(spec.mapped_parameters.Sample.elements).index(element)]
+                    results[i])[list(spec.metadata.Sample.elements).index(element)]
             else:
                 re = spec.get_result(element, results[i])
-            re.mapped_parameters.title = element + ' ' + \
-                results[i] + ' ' + spec.mapped_parameters.title
+            re.metadata.title = element + ' ' + \
+                results[i] + ' ' + spec.metadata.title
         else:
             re = results[i].deepcopy()
             # print 'Normalise x not available yet'
-            re.mapped_parameters.title = (element + ' ' +
-                                          re.mapped_parameters.title + ' ' + spec.mapped_parameters.title)
+            re.metadata.title = (element + ' ' +
+                                          re.metadata.title + ' ' + spec.metadata.title)
         #data = re.data.flatten()
         #center, hist1 = _histo_data_plot(data,bins)
         hist_tmp = re.get_histogram(bins)
@@ -1189,7 +1189,7 @@ def compare_histograms(imgs,
 
     legend: None | list of str | 'auto'
        If list of string, legend for "cascade" or title for "mosaic" is
-       displayed. If 'auto', the title of each spectra (mapped_parameters.title)
+       displayed. If 'auto', the title of each spectra (metadata.title)
        is used.
 
     fig : {matplotlib figure, None}
@@ -1273,7 +1273,7 @@ def compare_signal(specs,
         legend_labels = []
         if isinstance(specs, list) or isinstance(specs, tuple):
             for spec in specs:
-                legend_labels.append(spec.mapped_parameters.title)
+                legend_labels.append(spec.metadata.title)
         else:
             for index in indexes:
                 legend_labels.append(str(index))
@@ -1375,10 +1375,10 @@ def simulate_linescan(nTraj,
         else:
             spec.set_elements(elements)
             spec.set_lines()
-        mp = spec.mapped_parameters
+        mp = spec.metadata
     else:
-        spec.mapped_parameters = mp.deepcopy()
-        mp = spec.mapped_parameters
+        spec.metadata = mp.deepcopy()
+        mp = spec.metadata
 
     if elements == 'auto':
         if hasattr(mp.Sample, 'elements'):
@@ -1565,7 +1565,7 @@ def simulate_linescan(nTraj,
             tmp, scale, offset, reso = simu_film(thck)
         spec_datas.append(tmp)
     spec = signals.EDSSEMSpectrum(np.array(spec_datas))
-    spec.mapped_parameters = mp
+    spec.metadata = mp
 
     mp.SEM.EDS.energy_resolution_MnKa = reso
     spec.axes_manager[-1].scale = scale / 1000
@@ -1576,7 +1576,7 @@ def simulate_linescan(nTraj,
     spec.axes_manager[0].offset = min_max[0]
     spec.axes_manager[0].name = 'Scan'
     spec.axes_manager[0].units = '${\mu}m$'
-    spec.mapped_parameters.title = 'Simulated linescan along ' + lscan_axis
+    spec.metadata.title = 'Simulated linescan along ' + lscan_axis
     mp.add_node('simulation')
     mp.simulation.nTraj = nTraj
     mp.simulation.software = 'NistMonte'
@@ -1629,12 +1629,12 @@ def plot_orthoview_animated(image, isotropic_voxel=True):
         im_xy, scale = get_isotropic_3D_image(image)
     else:
         im_xy = image.deepcopy()
-    im_xy.mapped_parameters.title = 'xy'
+    im_xy.metadata.title = 'xy'
     im_xy.axes_manager.set_signal_dimension(0)
 
     im_xz = im_xy.deepcopy()
     im_xz = im_xz.rollaxis(2, 1)
-    im_xz.mapped_parameters.title = 'xz'
+    im_xz.metadata.title = 'xz'
     im_xz.axes_manager.set_signal_dimension(0)
 
     im_xz.axes_manager._axes[2] = im_xy.axes_manager._axes[2]
@@ -1644,7 +1644,7 @@ def plot_orthoview_animated(image, isotropic_voxel=True):
     im_yz = im_xy.deepcopy()
     im_yz = im_yz.rollaxis(0, 2)
     im_yz = im_yz.rollaxis(1, 0)
-    im_yz.mapped_parameters.title = 'yz'
+    im_yz.metadata.title = 'yz'
     im_yz.axes_manager.set_signal_dimension(0)
 
     im_yz.axes_manager._axes = im_xy.axes_manager._axes[::-1]
@@ -1896,7 +1896,7 @@ def get_contrast_brightness_from(img, reference, return_factors=False):
         #img_data = np.rollaxis(img_data,0,3)
         #img_data = np.rollaxis(img_data,0,2)
         #src = mlab.pipeline.scalar_field(img_data)
-        #src.name = img_res.mapped_parameters.title
+        #src.name = img_res.metadata.title
 
         # if 'intensities' == result or isinstance(result,str) is False:
 
