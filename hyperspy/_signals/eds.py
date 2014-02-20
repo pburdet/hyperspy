@@ -262,14 +262,15 @@ class EDSSpectrum(Spectrum):
                     "Please provide a valid line symbol e.g. Fe_Ka")
             if element in elements_db:
                 elements.add(element)
-                if subshell in elements:db[element]['atomic']['Xray_lines']:
+                if subshell in elements:
+                    db[element]['atomic']['Xray_lines']:
                     lines_len = len(Xray_lines)
                     Xray_lines.add(line)
                     # if lines_len != len(Xray_lines):
                     #    print("%s line added," % line)
                     # else:
                     #    print("%s line already in." % line)
-                    if (elements:db[element]['atomic']['Xray_lines'][subshell]['energy'] >
+                    if (elements: db[element]['atomic']['Xray_lines'][subshell]['energy'] >
                             end_energy):
                         print("Warning: %s %s is above the data energy range."
                               % (element, subshell))
@@ -339,10 +340,11 @@ class EDSSpectrum(Spectrum):
         for element in elements:
             # Possible line (existing and excited by electron)
             element_lines = []
-            for subshell in elements:db[element]['atomic']['Xray_lines'].keys():
+            for subshell in elements:
+                db[element]['atomic']['Xray_lines'].keys():
                 if only_lines and subshell not in only_lines:
                     continue
-                if (elements:db[element]['atomic']['Xray_lines'][subshell]['energy'] <
+                if (elements: db[element]['atomic']['Xray_lines'][subshell]['energy'] <
                         end_energy):
 
                     element_lines.append(element + "_" + subshell)
@@ -350,7 +352,7 @@ class EDSSpectrum(Spectrum):
             # Choose the best line
                 select_this = -1
                 for i, line in enumerate(element_lines):
-                    if (elements:db[element]['atomic']['Xray_lines']
+                    if (elements: db[element]['atomic']['Xray_lines']
                             [line.split("_")[1]]['energy'] < beam_energy / 2):
                         select_this = i
                         break
@@ -624,12 +626,20 @@ class EDSSpectrum(Spectrum):
         if shape_convo == 'square':
             end_mirrors = [[0, 0], [-1, 0], [0, -1], [-1, -1]]
             for end_mirror in end_mirrors:
-                tmp_s = np.insert(self.data, end_mirror[0], self.data[..., end_mirror[0], :,:], axis=-3)
-                data_s += np.insert(tmp_s, end_mirror[1], tmp_s[..., end_mirror[1], :], axis=-2)
+                tmp_s = np.insert(
+                    self.data,
+                    end_mirror[0],
+                    self.data[...,
+                              end_mirror[0],
+                              :,
+                              :],
+                    axis=-3)
+                data_s += np.insert(tmp_s, end_mirror[1],
+                                    tmp_s[..., end_mirror[1], :], axis=-2)
             if corner == -1:
-                data_s = data_s[..., 1:, :,:][..., 1:,:]
+                data_s = data_s[..., 1:, :, :][..., 1:, :]
             else:
-                data_s = data_s[..., :-1, :,:][..., :-1,:]
+                data_s = data_s[..., :-1, :, :][..., :-1, :]
 
         elif shape_convo == 'cross':
             data_s = np.insert(data_s, 0, 0, axis=-3)
@@ -647,11 +657,32 @@ class EDSSpectrum(Spectrum):
                     [0, -1, -1, -1], [0, 0, 0, 0], [-1, -1, 0, 0], [0, 0, -1, -1], [-1, -1, -1, -1]]
 
             for end_mirror in end_mirrors:
-                tmp_s = np.insert(self.data, end_mirror[0], self.data[..., end_mirror[0], :,:], axis=-3)
-                tmp_s = np.insert(tmp_s, end_mirror[1], tmp_s[..., end_mirror[0], :,:], axis=-3)
-                tmp_s = np.insert(tmp_s, end_mirror[2], tmp_s[..., end_mirror[1], :], axis=-2)
-                data_s += np.insert(tmp_s, end_mirror[3], tmp_s[..., end_mirror[1], :], axis=-2)
-            data_s = data_s[..., 1:-2, :,:][..., 1:-2,:]
+                tmp_s = np.insert(
+                    self.data,
+                    end_mirror[0],
+                    self.data[...,
+                              end_mirror[0],
+                              :,
+                              :],
+                    axis=-3)
+                tmp_s = np.insert(
+                    tmp_s,
+                    end_mirror[1],
+                    tmp_s[...,
+                          end_mirror[0],
+                          :,
+                          :],
+                    axis=-3)
+                tmp_s = np.insert(
+                    tmp_s,
+                    end_mirror[2],
+                    tmp_s[...,
+                          end_mirror[1],
+                          :],
+                    axis=-2)
+                data_s += np.insert(tmp_s, end_mirror[3],
+                                    tmp_s[..., end_mirror[1], :], axis=-2)
+            data_s = data_s[..., 1:-2, :, :][..., 1:-2, :]
 
         if hasattr(self.mapped_parameters, 'SEM'):
             mp = self.mapped_parameters.SEM
