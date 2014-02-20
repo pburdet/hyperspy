@@ -25,7 +25,7 @@ from hyperspy import utils
 from hyperspy._signals.spectrum import Spectrum
 from hyperspy.signal import Signal
 from hyperspy._signals.image import Image
-from hyperspy.misc.eds.elements import elements as elements_db
+from hyperspy.misc.elements import elements_db
 from hyperspy.misc.eds import utils as utils_eds
 from hyperspy.misc.utils import isiterable
 import hyperspy.components as components
@@ -261,14 +261,14 @@ class EDSSpectrum(Spectrum):
                     "Please provide a valid line symbol e.g. Fe_Ka")
             if element in elements_db:
                 elements.add(element)
-                if subshell in elements_db[element]['Xray_energy']:
+                if subshell in elements_db[element].atomic.Xray_lines:
                     lines_len = len(Xray_lines)
                     Xray_lines.add(line)
                     # if lines_len != len(Xray_lines):
                     #    print("%s line added," % line)
                     # else:
                     #    print("%s line already in." % line)
-                    if (elements_db[element]['Xray_energy'][subshell] >
+                    if (elements_db[element].atomic.Xray_lines[subshell]['energy'] >
                             end_energy):
                         print("Warning: %s %s is above the data energy range."
                               % (element, subshell))
@@ -338,10 +338,10 @@ class EDSSpectrum(Spectrum):
         for element in elements:
             # Possible line (existing and excited by electron)
             element_lines = []
-            for subshell in elements_db[element]['Xray_energy'].keys():
+            for subshell in elements_db[element].atomic.Xray_lines.keys():
                 if only_lines and subshell not in only_lines:
                     continue
-                if (elements_db[element]['Xray_energy'][subshell] <
+                if (elements_db[element].atomic.Xray_lines[subshell]['energy'] <
                         end_energy):
 
                     element_lines.append(element + "_" + subshell)
@@ -349,8 +349,8 @@ class EDSSpectrum(Spectrum):
             # Choose the best line
                 select_this = -1
                 for i, line in enumerate(element_lines):
-                    if (elements_db[element]['Xray_energy']
-                            [line.split("_")[1]] < beam_energy / 2):
+                    if (elements_db[element].atomic.Xray_lines
+                            [line.split("_")[1]]['energy'] < beam_energy / 2):
                         select_this = i
                         break
                 element_lines = [element_lines[select_this], ]

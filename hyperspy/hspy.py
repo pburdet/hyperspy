@@ -25,9 +25,9 @@ from hyperspy import signals
 from hyperspy.io import load
 from hyperspy.defaults_parser import preferences
 from hyperspy import utils
+
+#dev
 from hyperspy.misc.eds import utils as utils_eds
-from hyperspy.misc.eels.elements import elements_db as elements_EELS
-from hyperspy.misc.eds.elements import elements_db as elements_EDS
 from hyperspy.misc.eds.MAC import MAC_db as MAC
 
 
