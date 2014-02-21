@@ -765,12 +765,8 @@ def stack(signal_list, axis=None, new_axis_name='stack_element',
     if axis_input is None:
         axis_input = signal.axes_manager[-1 + 1j].index_in_axes_manager
         step_sizes = 1
-    else:
-        step_sizes = [obj.axes_manager.shape[axis_input]
-                      for obj in signal_list]
-    signal.mapped_parameters.set_item('stacking_history.axis', axis_input)
-    signal.mapped_parameters.set_item(
-        'stacking_history.step_sizes',
-        step_sizes)
-
+    else:        
+        step_sizes = [obj.axes_manager.shape[axis_input] for obj in signal_list]
+    signal.metadata.set_item('stacking_history.axis',axis_input)
+    signal.metadata.set_item('stacking_history.step_sizes',step_sizes)
     return signal
