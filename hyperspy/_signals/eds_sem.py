@@ -925,7 +925,8 @@ class EDSSEMSpectrum(EDSSpectrum):
         for Xray_line in Xray_lines:
             el, line = utils_eds._get_element_and_line(Xray_line)
             elements = elements + '\t' + el
-            z_el = z_el + '\t' + str(elements_db[el]['General_properties']['Z'])
+            z_el = z_el + '\t' + \
+                str(elements_db[el]['General_properties']['Z'])
             if line == 'Ka':
                 line_el = line_el + '\t0'
             if line == 'La':
@@ -994,7 +995,8 @@ class EDSSEMSpectrum(EDSSpectrum):
         line_el = 'line'
         for elm in elements:
             el_str = el_str + '\t' + elm
-            z_el = z_el + '\t' + str(elements_db[elm]['General_properties']['Z'])
+            z_el = z_el + '\t' + \
+                str(elements_db[elm]['General_properties']['Z'])
             i = 0
             line_el = line_el + '\t'
             # for Xray_line in Xray_lines[::-1]:   #Inverse order line

@@ -825,8 +825,8 @@ class EDSSpectrum(Spectrum):
 
         res_MnKa = utils_eds.get_FWHM_at_Energy(fp.sigma.value * 2.355 * 1000,
                                                 elements_db['Mn'][
-                        'Atomic_properties']['Xray_lines'][
-                        'Ka']['energy (keV)'], Xray_line)
+                                                    'Atomic_properties']['Xray_lines'][
+                                                    'Ka']['energy (keV)'], Xray_line)
         if set_Mn_Ka:
             mp.SEM.EDS.energy_resolution_MnKa = res_MnKa * 1000
             print 'Resolution at Mn Ka ', res_MnKa * 1000
@@ -1132,7 +1132,7 @@ class EDSSpectrum(Spectrum):
             relative_factor = elements_db[element]['Atomic_properties']['Xray_lines'][
                 line]['factor']
             a_eng = elements_db[element]['Atomic_properties'][
-                'Xray_lines'][line[0] +'a']['energy (keV)']
+                'Xray_lines'][line[0] + 'a']['energy (keV)']
             # if fixed_height:
                 # intensity.append(self[..., a_eng].data.flatten().mean()
                              #* relative_factor)

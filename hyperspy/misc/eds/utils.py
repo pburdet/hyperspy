@@ -83,7 +83,10 @@ def xray_range(xray_line, beam_energy, density='auto'):
 
     element, line = _get_element_and_line(xray_line)
     if density == 'auto':
-        density = elements_db[element]['Physical_properties']['density (g/cm^3)']
+        density = elements_db[
+            element][
+            'Physical_properties'][
+            'density (g/cm^3)']
     Xray_energy = elements_db[
         element][
         'Atomic_properties'][
@@ -1156,7 +1159,7 @@ def compare_histograms_results(specs,
             re = results[i].deepcopy()
             # print 'Normalise x not available yet'
             re.metadata.title = (element + ' ' +
-                                          re.metadata.title + ' ' + spec.metadata.title)
+                                 re.metadata.title + ' ' + spec.metadata.title)
         #data = re.data.flatten()
         #center, hist1 = _histo_data_plot(data,bins)
         hist_tmp = re.get_histogram(bins)
