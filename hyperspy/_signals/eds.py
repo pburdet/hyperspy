@@ -262,7 +262,7 @@ class EDSSpectrum(Spectrum):
                     "Please provide a valid line symbol e.g. Fe_Ka")
             if element in elements_db:
                 elements.add(element)
-                if subshell in elements_db[element]['atomic']['Xray_lines']:
+                if subshell in elements_db[element]['Atomic_properties']['Xray_lines']:
                     lines_len = len(Xray_lines)
                     Xray_lines.add(line)
                     # if lines_len != len(Xray_lines):
@@ -339,10 +339,10 @@ class EDSSpectrum(Spectrum):
         for element in elements:
             # Possible line (existing and excited by electron)
             element_lines = []
-            for subshell in elements_db[element]['atomic']['Xray_lines'].keys():
+            for subshell in elements_db[element]['Atomic_properties']['Xray_lines'].keys():
                 if only_lines and subshell not in only_lines:
                     continue
-                if (elements_db[element]['atomic']['Xray_lines'][subshell]['energy'] <
+                if (elements_db[element]['Atomic_properties']['Xray_lines'][subshell]['energy (keV)'] <
                         end_energy):
 
                     element_lines.append(element + "_" + subshell)
@@ -350,8 +350,8 @@ class EDSSpectrum(Spectrum):
             # Choose the best line
                 select_this = -1
                 for i, line in enumerate(element_lines):
-                    if (elements_db[element]['atomic']['Xray_lines']
-                            [line.split("_")[1]]['energy'] < beam_energy / 2):
+                    if (elements_db[element]['Atomic_properties']['Xray_lines']
+                            [line.split("_")[1]]['energy (keV)'] < beam_energy / 2):
                         select_this = i
                         break
                 element_lines = [element_lines[select_this], ]
@@ -1133,27 +1133,12 @@ class EDSSpectrum(Spectrum):
         intensity = []
         for Xray_line in Xray_lines:
             element, line = utils_eds._get_element_and_line(Xray_line)
-            line_energy.append(
-                elements_db[
-                    element][
-                    'atomic'][
-                    'Xray_lines'][
-                    line][
-                    'energy'])
-            relative_factor = elements_db[
-                element][
-                'atomic'][
-                'Xray_lines'][
-                line][
-                'factor']
-            a_eng = elements_db[
-                element][
-                'atomic'][
-                'Xray_lines'][
-                line[
-                    0] +
-                'a'][
-                'energy']
+            line_energy.append(elements_db[element]['Atomic_properties']['Xray_lines'][
+                line]['energy (keV)'])
+            relative_factor = elements_db[element]['Atomic_properties']['Xray_lines'][
+                line]['factor']
+            a_eng = elements_db[element]['Atomic_properties'][
+                'Xray_lines'][line[0] +'a']['energy (keV)']
             # if fixed_height:
                 # intensity.append(self[..., a_eng].data.flatten().mean()
                              #* relative_factor)
