@@ -22,7 +22,7 @@ from nose.tools import assert_true, assert_equal, assert_not_equal
 from hyperspy.signals import EDSSEMSpectrum
 from hyperspy.defaults_parser import preferences
 from hyperspy.components import Gaussian
-from hyperspy.misc.eds.elements import elements as elements_EDS
+from hyperspy.misc.elements import elements_db as elements_EDS
 from hyperspy.misc.eds import utils as utils_eds
 from hyperspy import utils
 
@@ -175,7 +175,7 @@ class Test_quantification:
         s.metadata.SEM.beam_energy = 15.0
 
         gauss = Gaussian()
-        line_energy = elements_EDS['Al']['Xray_energy']['Ka']
+        line_energy = elements_EDS.Al.Atomic_properties.Xray_lines.Ka.energy_keV
         gauss.centre.value = line_energy
         gauss.A.value = 500
         FWHM_MnKa = s.metadata.SEM.EDS.energy_resolution_MnKa
@@ -184,7 +184,7 @@ class Test_quantification:
             line_energy)
 
         gauss2 = Gaussian()
-        line_energy = elements_EDS['Zn']['Xray_energy']['La']
+        line_energy = elements_EDS.Zn.Atomic_properties.Xray_lines.La.energy_keV
         gauss2.centre.value = line_energy
         gauss2.A.value = 300
         FWHM_MnKa = s.metadata.SEM.EDS.energy_resolution_MnKa

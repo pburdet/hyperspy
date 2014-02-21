@@ -14126,4 +14126,4 @@ MAC = {'Ru': {'La': {'Ru': 600.1,
 		'In': 1155.0,
 		'Mo': 673.3}}}
         
-MAC_db = utils.DictionaryBrowser(MAC)
+MAC_db = utils.DictionaryTreeBrowser(MAC)

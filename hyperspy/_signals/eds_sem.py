@@ -354,10 +354,10 @@ class EDSSEMSpectrum(EDSSpectrum):
             mp_std = std.metadata
             line_energy = elements_db[
                 element][
-                'atomic'][
+                'Atomic_properties'][
                 'Xray_lines'][
                 line][
-                'energy']
+                'energy (keV)']
             diff_ltime = mp.SEM.EDS.live_time / mp_std.SEM.EDS.live_time
             # Fit with least square
             m = create_model(self.top_hat(line_energy, width_windows))
@@ -558,10 +558,10 @@ class EDSSEMSpectrum(EDSSpectrum):
                 line_energy.append(
                     elements_db[
                         element][
-                        'atomic'][
+                        'Atomic_properties'][
                         'Xray_lines'][
                         line][
-                        'energy'])
+                        'energy (keV)'])
             width_energy = [0, 0]
             width_energy[0] = np.min(line_energy) - utils_eds.get_FWHM_at_Energy(
                 130, np.min(line_energy)) * 2
@@ -589,10 +589,10 @@ class EDSSEMSpectrum(EDSSpectrum):
             element, line = utils_eds._get_element_and_line(Xray_line)
             line_energy = elements_db[
                 element][
-                'atomic'][
+                'Atomic_properties'][
                 'Xray_lines'][
                 line][
-                'energy']
+                'energy (keV)']
             width_windows = [line_energy - width_energy[0], width_energy[1] -
                              line_energy]
 
@@ -925,7 +925,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         for Xray_line in Xray_lines:
             el, line = utils_eds._get_element_and_line(Xray_line)
             elements = elements + '\t' + el
-            z_el = z_el + '\t' + str(elements_db[el]['general']['Z'])
+            z_el = z_el + '\t' + str(elements_db[el]['General_properties']['Z'])
             if line == 'Ka':
                 line_el = line_el + '\t0'
             if line == 'La':
@@ -994,7 +994,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         line_el = 'line'
         for elm in elements:
             el_str = el_str + '\t' + elm
-            z_el = z_el + '\t' + str(elements_db[elm]['general']['Z'])
+            z_el = z_el + '\t' + str(elements_db[elm]['General_properties']['Z'])
             i = 0
             line_el = line_el + '\t'
             # for Xray_line in Xray_lines[::-1]:   #Inverse order line

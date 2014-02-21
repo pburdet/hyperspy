@@ -83,7 +83,7 @@ def xray_range(xray_line, beam_energy, density='auto'):
 
     element, line = _get_element_and_line(xray_line)
     if density == 'auto':
-        density = elements_db[element]['Physical_properties']['density']
+        density = elements_db[element]['Physical_properties']['density (g/cm^3)']
     Xray_energy = elements_db[
         element][
         'Atomic_properties'][
