@@ -1967,6 +1967,41 @@ def fft_ifft(self, s=None, axes=None):
 
     return im_ifft
     
+def _load_in_database(name):
+    from hyperspy.io import load
+    foldername = os.path.join(config_path, 'database//'+name)
+    return load(foldername)
+    
+def database_1Dspec():
+    """
+    load bam sample
+    """    
+    return _load_in_database('bam.hdf5')
+    
+def database_3Dspec():
+    """
+    load RR 46 PCA rec
+    """    
+    return _load_in_database('specImg3DBinPCAre46.hdf5')
+    
+def database_4Dspec():
+    """
+    load RR PCA rec (10:15)
+    """    
+    return _load_in_database('specImg3DBinPCArec.hdf5')
+    
+def database_2Dimage():
+    """
+    load RR SE 46
+    """    
+    return _load_in_database('img46.hdf5')
+    
+def database_3Dimage():
+    """
+    load RR SE (10:20)
+    """    
+    return _load_in_database('img3DA.hdf5')
+    
 
 def fft(self, s=None, axes=None):
     """Compute the discrete Fourier Transform.
