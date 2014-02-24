@@ -1170,157 +1170,159 @@ def compare_histograms_results(specs,
     return utils.plot.plot_spectra(hists, style='overlap', color=color,
                                    line_style=line_style, legend=legend, fig=fig)
 
+
 def compare_histograms(specs):
     print 'use utils.plot.plot_histograms'
-    
-#def compare_histograms(imgs,
-                       #bins='freedman',
-                       #color=None,
-                       #line_style=None,
-                       #legend='auto',
-                       #fig=None,
-                       #range_bins=None,
+
+# def compare_histograms(imgs,
+                       # bins='freedman',
+                       # color=None,
+                       # line_style=None,
+                       # legend='auto',
+                       # fig=None,
+                       # range_bins=None,
                        #**kwargs):
     #"""Compare the histogram of the list of image
 
-    #Parameters
+    # Parameters
     #----------
 
-    #bins : int or list or str (optional)
-        #If bins is a string, then it must be one of:
+    # bins : int or list or str (optional)
+        # If bins is a string, then it must be one of:
         #'knuth' : use Knuth's rule to determine bins
         #'scotts' : use Scott's rule to determine bins
         #'freedman' : use the Freedman-diaconis rule to determine bins
         #'blocks' : use bayesian blocks for dynamic bin widths
 
-    #color : valid matplotlib color or a list of them or `None`
-        #Sets the color of the lines of the plots when `style` is "cascade"
-        #or "mosaic". If a list, if its length is
-        #less than the number of spectra to plot, the colors will be cycled. If
-        #If `None`, use default matplotlib color cycle.
+    # color : valid matplotlib color or a list of them or `None`
+        # Sets the color of the lines of the plots when `style` is "cascade"
+        # or "mosaic". If a list, if its length is
+        # less than the number of spectra to plot, the colors will be cycled. If
+        # If `None`, use default matplotlib color cycle.
 
-    #line_style: valid matplotlib line style or a list of them or `None`
-        #The main line style are '-','--','steps','-.',':'.
-        #If a list, if its length is less than the number of
-        #spectra to plot, line_style will be cycled. If
-        #If `None`, use 'steps'.
+    # line_style: valid matplotlib line style or a list of them or `None`
+        # The main line style are '-','--','steps','-.',':'.
+        # If a list, if its length is less than the number of
+        # spectra to plot, line_style will be cycled. If
+        # If `None`, use 'steps'.
 
-    #legend: None | list of str | 'auto'
-       #If list of string, legend for "cascade" or title for "mosaic" is
-       #displayed. If 'auto', the title of each spectra (metadata.title)
-       #is used.
+    # legend: None | list of str | 'auto'
+       # If list of string, legend for "cascade" or title for "mosaic" is
+       # displayed. If 'auto', the title of each spectra (metadata.title)
+       # is used.
 
-    #fig : {matplotlib figure, None}
-        #If None, a default figure will be created.
+    # fig : {matplotlib figure, None}
+        # If None, a default figure will be created.
 
     #"""
     #hists = []
 
-    #for img in imgs:
-        #hists.append(img.get_histogram(bins=bins,
-                                       #range_bins=range_bins, **kwargs))
+    # for img in imgs:
+        # hists.append(img.get_histogram(bins=bins,
+                                       # range_bins=range_bins, **kwargs))
 
-    #if line_style is None:
+    # if line_style is None:
         #line_style = 'steps'
 
-    #return hyperspy.utils.plot.plot_spectra(
-        #hists, style='overlap', color=color,
-        #line_style=line_style, legend=legend, fig=fig)
+    # return hyperspy.utils.plot.plot_spectra(
+        # hists, style='overlap', color=color,
+        # line_style=line_style, legend=legend, fig=fig)
+
 
 def compare_signal(specs):
     print 'use utils.plot.plot_spectra'
 
-#def compare_signal(specs,
-                   #indexes=None,
-                   #legend_labels='auto',
-                   #colors='auto',
-                   #line_styles='auto'):
+# def compare_signal(specs,
+                   # indexes=None,
+                   # legend_labels='auto',
+                   # colors='auto',
+                   # line_styles='auto'):
     #"""Compare the signal from different indexes or|and from different
-    #spectra.
+    # spectra.
 
-    #Parameters
+    # Parameters
     #----------
 
-    #specs: list | spectrum
-        #A list of spectra or a spectrum
+    # specs: list | spectrum
+        # A list of spectra or a spectrum
 
-    #indexes: list | None
-        #The list of indexes to compares. If None, specs is a list of
-        #1D spectra that are ploted together
+    # indexes: list | None
+        # The list of indexes to compares. If None, specs is a list of
+        # 1D spectra that are ploted together
 
 
-    #legend_labels: 'auto' | list | None
-        #If legend_labels is auto, then the indexes are used.
+    # legend_labels: 'auto' | list | None
+        # If legend_labels is auto, then the indexes are used.
 
-    #colors: list
-        #If 'auto', automatically selected, eg: ('red','blue')
+    # colors: list
+        # If 'auto', automatically selected, eg: ('red','blue')
 
-    #line_styles: list
-        #If 'auto', continuous lines, eg: ('-','--','steps','-.',':')
+    # line_styles: list
+        # If 'auto', continuous lines, eg: ('-','--','steps','-.',':')
 
-    #Returns
+    # Returns
     #-------
 
-    #figure
+    # figure
 
     #"""
-    #print "obsolete, should use utils.plot.plot_spectra"
+    # print "obsolete, should use utils.plot.plot_spectra"
 
-    #if indexes is None:
+    # if indexes is None:
         #nb_signals = len(specs)
-    #elif isinstance(indexes[0], list) is False and isinstance(indexes[0], tuple) is False:
+    # elif isinstance(indexes[0], list) is False and isinstance(indexes[0], tuple) is False:
         #nb_signals = len(specs)
         #indexes = [indexes] * nb_signals
-    #else:
+    # else:
         #nb_signals = len(indexes)
 
-    #if colors == 'auto':
-        #colors = ['red', 'blue', 'green', 'orange', 'violet', 'magenta',
+    # if colors == 'auto':
+        # colors = ['red', 'blue', 'green', 'orange', 'violet', 'magenta',
                   #'cyan', 'violet', 'black', 'yellow', 'pink']
         #colors += colors
         #colors += colors
-    #elif isinstance(colors, list) is False:
+    # elif isinstance(colors, list) is False:
         #colors = [colors] * nb_signals
-    #if line_styles == 'auto':
+    # if line_styles == 'auto':
         #line_styles = ['-'] * nb_signals
-    #elif isinstance(line_styles, list) is False:
+    # elif isinstance(line_styles, list) is False:
         #line_styles = [line_styles] * nb_signals
 
     #fig = plt.figure()
-    #if legend_labels == 'auto':
+    # if legend_labels == 'auto':
         #legend_labels = []
-        #if isinstance(specs, list) or isinstance(specs, tuple):
-            #for spec in specs:
-                #legend_labels.append(spec.metadata.title)
-        #else:
-            #for index in indexes:
-                #legend_labels.append(str(index))
-    ## for i, index in enumerate(indexes):
-    #for i in range(nb_signals):
-        #if isinstance(specs, list) or isinstance(specs, tuple):
+        # if isinstance(specs, list) or isinstance(specs, tuple):
+            # for spec in specs:
+                # legend_labels.append(spec.metadata.title)
+        # else:
+            # for index in indexes:
+                # legend_labels.append(str(index))
+    # for i, index in enumerate(indexes):
+    # for i in range(nb_signals):
+        # if isinstance(specs, list) or isinstance(specs, tuple):
             #tmp = specs[i]
-        #else:
+        # else:
             #tmp = specs
 
-        #if indexes is not None:
-            #for ind in indexes[i]:
+        # if indexes is not None:
+            # for ind in indexes[i]:
                 #tmp = tmp[ind]
 
-        #maxx = (len(tmp.data) - 1) * \
+        # maxx = (len(tmp.data) - 1) * \
             #tmp.axes_manager[0].scale + tmp.axes_manager[0].offset
-        #xdata = mlab.frange(tmp.axes_manager[0].offset, maxx,
-                            #tmp.axes_manager[0].scale, npts=len(tmp.data))
+        # xdata = mlab.frange(tmp.axes_manager[0].offset, maxx,
+                            # tmp.axes_manager[0].scale, npts=len(tmp.data))
         #plt.plot(xdata, tmp.data, color=colors[i], ls=line_styles[i])
-    #plt.ylabel('Intensity')
+    # plt.ylabel('Intensity')
 
-    #plt.xlabel(str(tmp.axes_manager[0].name) +
+    # plt.xlabel(str(tmp.axes_manager[0].name) +
                #' (' + str(tmp.axes_manager[0].units) + ')')
 
-    #if legend_labels is not None:
-        #plt.legend(legend_labels)
-    #fig.show()
+    # if legend_labels is not None:
+        # plt.legend(legend_labels)
+    # fig.show()
 
-    #return fig
+    # return fig
 
 
 def simulate_linescan(nTraj,
