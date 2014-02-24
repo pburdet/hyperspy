@@ -1832,6 +1832,7 @@ def fft_mirror_center(self):
 
     1D,2D,3D
     """
+    from hyperspy import utils
     n = self.axes_manager.shape
     n = np.divide(n, 2)
     # dim=len(self.axes_manager.shape)
@@ -1874,10 +1875,40 @@ def fft_rtransform(self, n_dim=1, n_power=1, norm=True):
 
     norm:
         divide the content of each bin by the number of pixel
+        
+    Example
+    ------
+    
+    >>> im = signals.Image(random.random([150,100,80]))
+    >>> dim = 100
+    >>> scale = 0.1
+    >>> im_fft = utils_eds.fft(im,shape_fft=[dim]*3,scale=[scale]*3)
+    >>> im_fft2 = utils_eds.fft_mirror_center(im_fft)
+    >>> utils_eds.fft_power_spectrum(im_fft2)
+    >>> bins, ydat = utils_eds.fft_rtransform(im_fft2,norm=True)
+    >>> plot(bins,ydat)
+    >>> def scalef(x):
+    >>>     return dim*scale/x
+    >>> yscale('log')
+    >>> xscale('log')
+    >>> b=[2.0,0.75,0.35,0.15,0.075]
+    >>> a = map(scalef,b)
+    >>> xticks(a,b)
+    >>> ax = gca()
+
 
     """
-    dim = self.axes_manager.shape[0]
+    dim = self.axes_manager.shape
+    if dim[0] != dim[1]:
+        raise ValueError("All dimension should equal.")
+    if len(self.axes_manager.shape) == 3:
+        if dim[0] != dim[2]:
+            raise ValueError("All dimension should equal.")
+        
+    dim = dim[0]
+    #scaling=self.axes_manager[0].scale
     if len(self.axes_manager.shape) == 2:
+
         part1 = np.ones((dim, dim)) * \
             np.power(plt.mlab.frange(-(dim) / 2 + 0.5, (dim) / 2 - 0.5), 2)
         dist_mat = np.power(part1 + part1.T, 0.5)
@@ -1889,9 +1920,11 @@ def fft_rtransform(self, n_dim=1, n_power=1, norm=True):
             np.power(plt.mlab.frange(-(dim) / 2 + 0.5, (dim) / 2 - 0.5), 2)
         dist_mat = np.power(
             part1 + part1.T + np.array(map(np.transpose, part1)), 0.5)
+        #dist_mat/=scaling
         bins = np.power(
             plt.mlab.frange(0., np.power(dist_mat[-1, -1, -1], 1 / n_power),
-                            np.power(dist_mat[-1, -1, -1], 1 / n_power) / dim * 1.5 / n_dim), n_power)
+               np.power(dist_mat[-1, -1, -1], 1 / n_power) / dim * 1.5 / n_dim), n_power)
+        #bins/=scaling
     ydat = []
     for i in range(len(bins) - 1):
         mask_tmp = (dist_mat < bins[i + 1]) * (dist_mat > bins[i])
@@ -1904,6 +1937,12 @@ def fft_rtransform(self, n_dim=1, n_power=1, norm=True):
                 ydat.append(sum(tmp) / np.count_nonzero(tmp))
         else:
             ydat.append(sum(tmp))
+            
+    #def scalef(x):
+    #    return dim/self.axes_manager[0].scale/x           
+         
+    #bins = map(scalef,bins)
+    #bins/=self.axes_manager[0].scale
     return bins[:-1], ydat
 
 
@@ -1975,6 +2014,78 @@ def fft_ifft(self, s=None, axes=None):
     return im_ifft
 
 
+def fft(self, shape_fft=None, axes=None, scale=None):
+    """Compute the discrete Fourier Transform.
+
+    This function computes the discrete Fourier Transform over
+    any number of axes in an *M*-dimensional array by means of the Fast Fourier
+    Transform (FFT).
+
+    Parameters
+    ----------
+    shape_fft : int or sequence of ints, optional
+        Shape (length of each transformed axis) of the output
+        (`s[0]` refers to axis 0, `s[1]` to axis 1, etc.).
+        This corresponds to `n` for `fft(x, n)`.
+        Along any axis, if the given shape is smaller than that of the input,
+        the input is cropped.  If it is larger, the input is padded with zeros.
+        if `s` is not given, the shape of the input (along the axes specified
+        by `axes`) is used.
+    axes : int or sequence of ints, optional
+        Axes over which to compute the FFT.  If not given, the last ``len(s)``
+        axes are used, or all axes if `s` is also not specified.
+        Repeated indices in `axes` means that the transform over that axis is
+        performed multiple times.
+
+    Return
+    ------
+    signals.Signal
+
+    Notes
+    -----
+    For further information see the documentation of numpy.fft.fft,
+    numpy.fft.fft2 or numpy.fft.fftn
+    """
+
+    from hyperspy.signals import Signal, Spectrum, Image
+
+
+    dim = len(self.axes_manager.shape)
+    #if dim == 1:
+        #if axes is None:
+            #axis = -1
+        #im_fft = Signal(np.fft.fft(self.data, n=shape_fft, axis=axis))
+    #elif dim == 2:
+        #if axes is None:
+            #axes = (-2, -1)
+        #im_fft = Signal(np.fft.fft2(self.data, s=shape_fft, axes=axes))    
+    #else:
+        #if axes is None:
+            #axes = range(-dim,0)
+        #im_fft = Signal(np.fft.fftn(self.data, s=shape_fft, axes=axes))
+    if self.axes_manager.signal_dimension == 2:   
+        im_fft = Image(np.fft.fftn(self.data, s=shape_fft, axes=axes))
+    else:
+        im_fft = Spectrum(np.fft.fftn(self.data, s=shape_fft, axes=axes))
+
+    #if self.axes_manager.signal_dimension == 2:
+        #im_fft.axes_manager.set_signal_dimension(2)
+        #im_fft = im_fft.as_image([-2,-1])
+    #else: 
+    #    im_fft = im_fft.as_spectrum(-1)
+    # scale, to be verified
+    if scale is not None:
+        for i in range(dim):
+            im_fft.axes_manager[i].scale = scale[i]
+            #im_fft.axes_manager[i].scale = 1 / self.axes_manager[i].scale
+    elif shape_fft is None:
+        for i in range(dim):
+            im_fft.axes_manager[i].scale = 1 / self.axes_manager[i].scale
+    else:
+        print ('scale not given')
+
+    return im_fft
+    
 def _load_in_database(name):
     from hyperspy.io import load
     foldername = os.path.join(config_path, 'database//' + name)
@@ -2014,64 +2125,6 @@ def database_3Dimage():
     load RR SE (10:20)
     """
     return _load_in_database('img3DA.hdf5')
-
-
-def fft(self, s=None, axes=None):
-    """Compute the discrete Fourier Transform.
-
-    This function computes the discrete Fourier Transform over
-    any number of axes in an *M*-dimensional array by means of the Fast Fourier
-    Transform (FFT).
-
-    Parameters
-    ----------
-    s : int or sequence of ints, optional
-        Shape (length of each transformed axis) of the output
-        (`s[0]` refers to axis 0, `s[1]` to axis 1, etc.).
-        This corresponds to `n` for `fft(x, n)`.
-        Along any axis, if the given shape is smaller than that of the input,
-        the input is cropped.  If it is larger, the input is padded with zeros.
-        if `s` is not given, the shape of the input (along the axes specified
-        by `axes`) is used.
-    axes : int or sequence of ints, optional
-        Axes over which to compute the FFT.  If not given, the last ``len(s)``
-        axes are used, or all axes if `s` is also not specified.
-        Repeated indices in `axes` means that the transform over that axis is
-        performed multiple times.
-
-    Return
-    ------
-    signals.FourierTransformSignal
-
-    Notes
-    -----
-    For further information see the documentation of numpy.fft.fft,
-    numpy.fft.fft2 or numpy.fft.fftn
-    """
-
-    from hyperspy.signals import Signal
-
-    dim = len(self.axes_manager.shape)
-    if dim == 1:
-        if axes is None:
-            axis = -1
-        im_fft = Signal(np.fft.fft(self.data, n=s, axis=axis))
-    elif dim == 2:
-        if axes is None:
-            axes = (-2, -1)
-        im_fft = Signal(np.fft.fft2(self.data, s=s, axes=axes))
-    else:
-        im_fft = Signal(np.fft.fftn(self.data, s=s, axes=axes))
-
-    # im_fft.set_signal_origin('fourier_transform')
-    # im_fft=FourierTransformSignal(im_fft.data)
-    if self.axes_manager.signal_dimension == 2:
-        im_fft.axes_manager.set_signal_dimension(2)
-    # scale, to be verified
-    for i in range(dim):
-        im_fft.axes_manager[i].scale = 1 / self.axes_manager[i].scale
-
-    return im_fft
 
 # def animate_legend(figure='last'):
     #"""Animate the legend of a figure

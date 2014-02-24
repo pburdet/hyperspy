@@ -180,7 +180,7 @@ class Image(Signal):
         iso.compute_normals = False
 
         if outline:
-            # mlab.outline(color=(0.5,0.5,0.5))
-            mlab.outline()
+            mlab.outline(color=(0.5,0.5,0.5))
+            #mlab.outline()
 
         return figure, src, iso
