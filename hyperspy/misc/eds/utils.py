@@ -1875,10 +1875,10 @@ def fft_rtransform(self, n_dim=1, n_power=1, norm=True):
 
     norm:
         divide the content of each bin by the number of pixel
-        
+
     Example
     ------
-    
+
     >>> im = signals.Image(random.random([150,100,80]))
     >>> dim = 100
     >>> scale = 0.1
@@ -1904,9 +1904,9 @@ def fft_rtransform(self, n_dim=1, n_power=1, norm=True):
     if len(self.axes_manager.shape) == 3:
         if dim[0] != dim[2]:
             raise ValueError("All dimension should equal.")
-        
+
     dim = dim[0]
-    #scaling=self.axes_manager[0].scale
+    # scaling=self.axes_manager[0].scale
     if len(self.axes_manager.shape) == 2:
 
         part1 = np.ones((dim, dim)) * \
@@ -1920,11 +1920,11 @@ def fft_rtransform(self, n_dim=1, n_power=1, norm=True):
             np.power(plt.mlab.frange(-(dim) / 2 + 0.5, (dim) / 2 - 0.5), 2)
         dist_mat = np.power(
             part1 + part1.T + np.array(map(np.transpose, part1)), 0.5)
-        #dist_mat/=scaling
+        # dist_mat/=scaling
         bins = np.power(
             plt.mlab.frange(0., np.power(dist_mat[-1, -1, -1], 1 / n_power),
-               np.power(dist_mat[-1, -1, -1], 1 / n_power) / dim * 1.5 / n_dim), n_power)
-        #bins/=scaling
+                            np.power(dist_mat[-1, -1, -1], 1 / n_power) / dim * 1.5 / n_dim), n_power)
+        # bins/=scaling
     ydat = []
     for i in range(len(bins) - 1):
         mask_tmp = (dist_mat < bins[i + 1]) * (dist_mat > bins[i])
@@ -1937,12 +1937,12 @@ def fft_rtransform(self, n_dim=1, n_power=1, norm=True):
                 ydat.append(sum(tmp) / np.count_nonzero(tmp))
         else:
             ydat.append(sum(tmp))
-            
-    #def scalef(x):
-    #    return dim/self.axes_manager[0].scale/x           
-         
+
+    # def scalef(x):
+    #    return dim/self.axes_manager[0].scale/x
+
     #bins = map(scalef,bins)
-    #bins/=self.axes_manager[0].scale
+    # bins/=self.axes_manager[0].scale
     return bins[:-1], ydat
 
 
@@ -2049,29 +2049,28 @@ def fft(self, shape_fft=None, axes=None, scale=None):
 
     from hyperspy.signals import Signal, Spectrum, Image
 
-
     dim = len(self.axes_manager.shape)
-    #if dim == 1:
-        #if axes is None:
+    # if dim == 1:
+        # if axes is None:
             #axis = -1
         #im_fft = Signal(np.fft.fft(self.data, n=shape_fft, axis=axis))
-    #elif dim == 2:
-        #if axes is None:
+    # elif dim == 2:
+        # if axes is None:
             #axes = (-2, -1)
-        #im_fft = Signal(np.fft.fft2(self.data, s=shape_fft, axes=axes))    
-    #else:
-        #if axes is None:
+        #im_fft = Signal(np.fft.fft2(self.data, s=shape_fft, axes=axes))
+    # else:
+        # if axes is None:
             #axes = range(-dim,0)
         #im_fft = Signal(np.fft.fftn(self.data, s=shape_fft, axes=axes))
-    if self.axes_manager.signal_dimension == 2:   
+    if self.axes_manager.signal_dimension == 2:
         im_fft = Image(np.fft.fftn(self.data, s=shape_fft, axes=axes))
     else:
         im_fft = Spectrum(np.fft.fftn(self.data, s=shape_fft, axes=axes))
 
-    #if self.axes_manager.signal_dimension == 2:
-        #im_fft.axes_manager.set_signal_dimension(2)
+    # if self.axes_manager.signal_dimension == 2:
+        # im_fft.axes_manager.set_signal_dimension(2)
         #im_fft = im_fft.as_image([-2,-1])
-    #else: 
+    # else:
     #    im_fft = im_fft.as_spectrum(-1)
     # scale, to be verified
     if scale is not None:
@@ -2085,7 +2084,8 @@ def fft(self, shape_fft=None, axes=None, scale=None):
         print ('scale not given')
 
     return im_fft
-    
+
+
 def _load_in_database(name):
     from hyperspy.io import load
     foldername = os.path.join(config_path, 'database//' + name)
