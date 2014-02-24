@@ -18,7 +18,8 @@
 from nose.tools import assert_true, assert_equal, raises
 import numpy as np
 
-from hyperspy.signals import Spectrum, Image, Signal, FourierTransformSignal
+from hyperspy.signals import Spectrum, Image, Signal
+from hyperspy.misc.eds import utils as utils_eds
 
 class TestImageFFT():
     def setUp(self):
@@ -28,18 +29,17 @@ class TestImageFFT():
     def test_fft_ifft(self):
         im = self.signal
         
-        im_fft = im.fft()
-        im_ifft = im_fft.ifft()
-        assert_true(isinstance(im_fft, FourierTransformSignal))
+        im_fft = utils_eds.fft(im)
+        im_ifft = utils_eds.fft_ifft(im_fft)
         assert_true(isinstance(im_ifft, Signal))
         assert_true(np.allclose(im.data,  im_ifft.data, atol=1e-3))
         
-        im_fft = im[0].fft()
-        im_ifft = im_fft.ifft()
+        im_fft = utils_eds.fft(im[0])
+        im_ifft = utils_eds.fft_ifft(im_fft)
         assert_true(np.allclose(im[0].data,  im_ifft.data, atol=1e-3))
         
-        im_fft = im[0,0].fft()
-        im_ifft = im_fft.ifft()
+        im_fft = utils_eds.fft(im[0,0])
+        im_ifft = utils_eds.fft_ifft(im_fft)
         assert_true(np.allclose(im[0,0].data,  im_ifft.data, atol=1e-3))
         
 class TestSpectrumFFT():
@@ -50,22 +50,21 @@ class TestSpectrumFFT():
     def test_fft_ifft(self):
         s = self.signal
         
-        s_fft = s.fft()
-        s_ifft = s_fft.ifft()
-        assert_true(isinstance(s_fft, FourierTransformSignal))
+        s_fft = utils_eds.fft(s)
+        s_ifft = utils_eds.fft_ifft(s_fft)
         assert_true(isinstance(s_ifft, Signal))
         assert_true(np.allclose(s.data,  s_ifft.data, atol=1e-3))
         
-        s_fft = s[0].fft()
-        s_ifft = s_fft.ifft()
+        s_fft = utils_eds.fft(s[0])
+        s_ifft = utils_eds.fft_ifft(s_fft)
         assert_true(np.allclose(s[0].data,  s_ifft.data, atol=1e-3))
         
-        s_fft = s[0,0].fft()
-        s_ifft = s_fft.ifft()
+        s_fft = utils_eds.fft(s[0,0])
+        s_ifft = utils_eds.fft_ifft(s_fft)
         assert_true(np.allclose(s[0,0].data,  s_ifft.data, atol=1e-3))
         
-        s_fft = s[0,0,0].fft()
-        s_ifft = s_fft.ifft()
+        s_fft = utils_eds.fft(s[0,0,0])
+        s_ifft = utils_eds.fft_ifft(s_fft)
         assert_true(np.allclose(s[0,0,0].data,  s_ifft.data, atol=1e-3))
 
 
