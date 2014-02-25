@@ -1161,8 +1161,6 @@ def compare_histograms_results(specs,
                                    line_style=line_style, legend=legend, fig=fig)
 
 
-def compare_histograms(specs):
-    print 'use utils.plot.plot_histograms'
 
 # def compare_histograms(imgs,
                        # bins='freedman',
@@ -1218,9 +1216,6 @@ def compare_histograms(specs):
         # hists, style='overlap', color=color,
         # line_style=line_style, legend=legend, fig=fig)
 
-
-def compare_signal(specs):
-    print 'use utils.plot.plot_spectra'
 
 # def compare_signal(specs,
                    # indexes=None,
