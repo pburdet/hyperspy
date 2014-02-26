@@ -258,6 +258,8 @@ class EDSSEMSpectrum(EDSSpectrum):
             raise ValueError("Add elements first, see 'set_elements'")
         if not hasattr(self.metadata.Sample, 'elements'):
             raise ValueError("Add elements first, see 'set_elements'")
+        if not hasattr(self.metadata.Sample, 'Xray_lines'):
+            raise ValueError("Add lines first, see 'set_lines'")
 
         std_tot = load(
             std_folder +
@@ -272,7 +274,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             test_file_exist = False
             for std in std_tot:
                 mp_std = std.metadata
-                if hasattr(mp, 'original_filename'):
+                if hasattr(mp_std, 'original_filename'):
                     filename = mp_std.original_filename
                 else:
                     filename = mp_std.title

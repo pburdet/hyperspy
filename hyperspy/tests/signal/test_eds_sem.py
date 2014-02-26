@@ -148,19 +148,19 @@ class Test_get_lines_intentisity:
         sAl = s.get_lines_intensity(["Al_Ka"],
                                     plot_result=False,
                                     integration_window_factor=5)[0]
-        assert_true(np.allclose(1, sAl.data[0, 0, 0], atol=1e-3))
+        assert_true(np.allclose(24.99516, sAl.data[0, 0, 0], atol=1e-3))
         sAl = s[0].get_lines_intensity(["Al_Ka"],
                                        plot_result=False,
                                        integration_window_factor=5)[0]
-        assert_true(np.allclose(1, sAl.data[0, 0], atol=1e-3))
+        assert_true(np.allclose(24.99516, sAl.data[0, 0], atol=1e-3))
         sAl = s[0, 0].get_lines_intensity(["Al_Ka"],
                                           plot_result=False,
                                           integration_window_factor=5)[0]
-        assert_true(np.allclose(1, sAl.data[0], atol=1e-3))
+        assert_true(np.allclose(24.99516, sAl.data[0], atol=1e-3))
         sAl = s[0, 0, 0].get_lines_intensity(["Al_Ka"],
                                              plot_result=False,
                                              integration_window_factor=5)[0]
-        assert_true(np.allclose(1, sAl.data, atol=1e-3))
+        assert_true(np.allclose(24.99516, sAl.data, atol=1e-3))
 
 
 class Test_quantification:
@@ -343,7 +343,7 @@ class Test_electron_distribution:
                                          limit_x=[-0.250, 0.300], dx0=0.004, dx_increment=0.75)
 
 
-class Test_running_sum:
+class Test_convolve_sum:
 
     def setUp(self):
         s = EDSSEMSpectrum(np.ones((2, 2, 3, 1024)))
@@ -356,19 +356,33 @@ class Test_running_sum:
 
         self.signal = s
 
-    def test_running_sum(self):
-        s = self.signal
-        s.running_sum()
+    #def test_running_sum(self):
+        #s = self.signal
+        #s.running_sum()
 
-        assert_equal(s[0, 0, 0, 0].data[0], 4.)
+        #assert_equal(s[0, 0, 0, 0].data[0], 4.)
+
+        #s = self.signal
+        #s = s[0]
+
+        #s.running_sum()
+        #assert_equal(s[0, 0, 0].data[0], 16.)
+
+        #assert_equal(s.metadata.SEM.EDS.live_time, 49.6)
+    
+    def test_convolve_sum(self):
+        s = self.signal
+        res=s.convolve_sum()
+
+        assert_equal(res[0, 0, 0, 0].data[0], 9.)
 
         s = self.signal
         s = s[0]
 
-        s.running_sum()
-        assert_equal(s[0, 0, 0].data[0], 16.)
+        res=s.convolve_sum(size=4)
+        assert_equal(res[0, 0, 0].data[0], 16.)
 
-        assert_equal(s.metadata.SEM.EDS.live_time, 49.6)
+        assert_equal(res.metadata.SEM.EDS.live_time, 49.6)
 
 
 class Test_plot_Xray_lines:
