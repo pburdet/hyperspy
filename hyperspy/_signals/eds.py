@@ -568,7 +568,7 @@ class EDSSpectrum(Spectrum):
                     elif lines_deconvolution == 'standard':
                         data_res = fp.yscale.as_signal().data
                 img = self._set_result(Xray_line, 'Int',
-                                       data_res, plot_result=False, 
+                                       data_res, plot_result=False,
                                        store_in_mp=False)
 
                 #img = self[...,0]
@@ -611,7 +611,7 @@ class EDSSpectrum(Spectrum):
         if plot_result and img.axes_manager.signal_dimension != 0:
             utils.plot.plot_signals(intensities, **kwargs)
         return intensities
-        
+
     def convolve_sum(self, kernel='square', size=3, **kwargs):
         # bug for size = 5
         """
@@ -620,7 +620,7 @@ class EDSSpectrum(Spectrum):
         Parameters
         ----------
 
-        kernel: 'square' or 
+        kernel: 'square' or
             Define the kernel
 
         size : int,optional
@@ -629,138 +629,123 @@ class EDSSpectrum(Spectrum):
         import scipy.ndimage
         if kernel == 'square':
             #[[1/float(size*size)]*size]*size
-            kernel = [[1]*size]*size
-            
-        result=self.deepcopy()
-        result=result.as_image([0,1])
+            kernel = [[1] * size] * size
+
+        result = self.deepcopy()
+        result = result.as_image([0, 1])
         result.apply_function(scipy.ndimage.filters.convolve,
-                    weights=kernel,**kwargs)
-        result=result.as_spectrum(0)
-        
+                              weights=kernel, **kwargs)
+        result = result.as_spectrum(0)
+
         if hasattr(result.metadata, 'SEM'):
             mp = result.metadata.SEM
         else:
             mp = result.metadata.TEM
         if hasattr(mp, 'EDS') and hasattr(mp.EDS, 'live_time'):
             mp.EDS.live_time = mp.EDS.live_time * np.sum(kernel)
-        
+
         return result
-            
 
-    #def running_sum(self, shape_convo='square', corner=-1):
-        ## cross not tested
+    # def running_sum(self, shape_convo='square', corner=-1):
+        # cross not tested
         #"""
-        #Apply a running sum on the data.
-
-        #Parameters
+        # Apply a running sum on the data.
+        # Parameters
         #----------
-
-        #shape_convo: 'square'|'cross'
-            #Define the shape to convolve with
-
-        #corner : -1 || 1
-            #For square, running sum induce a shift of the images towards
-            #one of the corner: if -1, towards top left, if 1 towards
-            #bottom right.
-            #For 'cross', if -1 vertical/horizontal cross, if 1 from corner
-            #to corner.
-
+        # shape_convo: 'square'|'cross'
+            # Define the shape to convolve with
+        # corner : -1 || 1
+            # For square, running sum induce a shift of the images towards
+            # one of the corner: if -1, towards top left, if 1 towards
+            # bottom right.
+            # For 'cross', if -1 vertical/horizontal cross, if 1 from corner
+            # to corner.
         #"""
         #dim = self.data.shape
         #data_s = np.zeros_like(self.data)
         #data_s = np.insert(data_s, 0, 0, axis=-3)
         #data_s = np.insert(data_s, 0, 0, axis=-2)
-        #if shape_convo == 'square':
+        # if shape_convo == 'square':
             #end_mirrors = [[0, 0], [-1, 0], [0, -1], [-1, -1]]
-            #for end_mirror in end_mirrors:
-                #tmp_s = np.insert(
-                    #self.data,
-                    #end_mirror[0],
-                    #self.data[...,
-                              #end_mirror[0],
+            # for end_mirror in end_mirrors:
+                # tmp_s = np.insert(
+                    # self.data,
+                    # end_mirror[0],
+                    # self.data[...,
+                              # end_mirror[0],
                               #:,
                               #:],
-                    #axis=-3)
-                #data_s += np.insert(tmp_s, end_mirror[1],
-                                    #tmp_s[..., end_mirror[1], :], axis=-2)
-            #if corner == -1:
+                    # axis=-3)
+                # data_s += np.insert(tmp_s, end_mirror[1],
+                                    # tmp_s[..., end_mirror[1], :], axis=-2)
+            # if corner == -1:
                 #data_s = data_s[..., 1:, :, :][..., 1:, :]
-            #else:
+            # else:
                 #data_s = data_s[..., :-1, :, :][..., :-1, :]
-
-        #elif shape_convo == 'cross':
+        # elif shape_convo == 'cross':
             #data_s = np.insert(data_s, 0, 0, axis=-3)
             #data_s = np.insert(data_s, 0, 0, axis=-2)
-            #if corner == -1:
-                #end_mirrors = [[0, -1, 0, -1], [-1, -1, 0, -1],
+            # if corner == -1:
+                # end_mirrors = [[0, -1, 0, -1], [-1, -1, 0, -1],
                                #[0, 0, 0, -1], [0, -1, 0, 0], [0, -1, -1, -1]]
-            #elif corner == 1:
-                #end_mirrors = [[0, -1, 0, -1], [0, 0, 0, 0],
+            # elif corner == 1:
+                # end_mirrors = [[0, -1, 0, -1], [0, 0, 0, 0],
                                #[-1, -1, 0, 0], [0, 0, -1, -1], [-1, -1, -1, -1]]
-            #else:
-                #end_mirrors = [
+            # else:
+                # end_mirrors = [
                     #[0, -1, 0, -1], [-1, -1, 0, -1], [0,
-                                                      #0, 0, -1], [0, -1, 0, 0],
+                                                      # 0, 0, -1], [0, -1, 0, 0],
                     #[0, -1, -1, -1], [0, 0, 0, 0], [-1, -1, 0, 0], [0, 0, -1, -1], [-1, -1, -1, -1]]
-
-            #for end_mirror in end_mirrors:
-                #tmp_s = np.insert(
-                    #self.data,
-                    #end_mirror[0],
-                    #self.data[...,
-                              #end_mirror[0],
+            # for end_mirror in end_mirrors:
+                # tmp_s = np.insert(
+                    # self.data,
+                    # end_mirror[0],
+                    # self.data[...,
+                              # end_mirror[0],
                               #:,
                               #:],
-                    #axis=-3)
-                #tmp_s = np.insert(
-                    #tmp_s,
-                    #end_mirror[1],
-                    #tmp_s[...,
-                          #end_mirror[0],
+                    # axis=-3)
+                # tmp_s = np.insert(
+                    # tmp_s,
+                    # end_mirror[1],
+                    # tmp_s[...,
+                          # end_mirror[0],
                           #:,
                           #:],
-                    #axis=-3)
-                #tmp_s = np.insert(
-                    #tmp_s,
-                    #end_mirror[2],
-                    #tmp_s[...,
-                          #end_mirror[1],
+                    # axis=-3)
+                # tmp_s = np.insert(
+                    # tmp_s,
+                    # end_mirror[2],
+                    # tmp_s[...,
+                          # end_mirror[1],
                           #:],
-                    #axis=-2)
-                #data_s += np.insert(tmp_s, end_mirror[3],
-                                    #tmp_s[..., end_mirror[1], :], axis=-2)
+                    # axis=-2)
+                # data_s += np.insert(tmp_s, end_mirror[3],
+                                    # tmp_s[..., end_mirror[1], :], axis=-2)
             #data_s = data_s[..., 1:-2, :, :][..., 1:-2, :]
-
-        #if hasattr(self.metadata, 'SEM'):
+        # if hasattr(self.metadata, 'SEM'):
             #mp = self.metadata.SEM
-        #else:
+        # else:
             #mp = self.metadata.TEM
-        #if hasattr(mp, 'EDS') and hasattr(mp.EDS, 'live_time'):
+        # if hasattr(mp, 'EDS') and hasattr(mp.EDS, 'live_time'):
             #mp.EDS.live_time = mp.EDS.live_time * len(end_mirrors)
         #self.data = data_s
-
     # def plot_Xray_line(self, line_to_plot='selected'):
         #"""
         # Annotate a spec.plot() with the name of the selected X-ray
         # lines
-
         # Parameters
         #----------
-
         # line_to_plot: string 'selected'|'a'|'ab|'all'
             # Defined which lines to annotate. 'selected': the selected one,
             #'a': all alpha lines of the selected elements, 'ab': all alpha and
             # beta lines, 'all': all lines of the selected elements
-
         # See also
         #--------
-
         #set_elements, add_elements
-
         #"""
         # if self.axes_manager.navigation_dimension > 0:
             #raise ValueError("Works only for single spectrum")
-
         #mp = self.metadata
         # if hasattr(self.metadata, 'SEM') and\
                 # hasattr(self.metadata.SEM, 'beam_energy'):
@@ -770,7 +755,6 @@ class EDSSpectrum(Spectrum):
             #beam_energy = mp.TEM.beam_energy
         # else:
             #beam_energy = 300
-
         #elements = []
         #lines = []
         # if line_to_plot == 'selected':
@@ -779,7 +763,6 @@ class EDSSpectrum(Spectrum):
                 #element, line = utils_eds._get_element_and_line(Xray_line)
                 # elements.append(element)
                 # lines.append(line)
-
         # else:
             # for element in mp.Sample.elements:
                 # for line, en in elements_db[element]['Atomic_properties']['Xray_lines'].items():
@@ -794,7 +777,6 @@ class EDSSpectrum(Spectrum):
                         # elif line_to_plot == 'all':
                             # elements.append(element)
                             # lines.append(line)
-
         #Xray_lines = []
         #line_energy = []
         #intensity = []
@@ -807,13 +789,11 @@ class EDSSpectrum(Spectrum):
                 #a_eng = elements_db[element]['Atomic_properties']['Xray_lines'][lines[i][0] + 'a']
                 #intensity.append(self[a_eng].data[0] * relative_factor)
             #Xray_lines.append(element + '_' + lines[i])
-
         # self.plot()
         # for i in range(len(line_energy)):
             # plt.text(line_energy[i], intensity[i] * 1.1, Xray_lines[i],
                      # rotation=90)
             #plt.vlines(line_energy[i], 0, intensity[i] * 0.8, color='black')
-
     def calibrate_energy_resolution(self, Xray_line, bck='auto',
                                     set_Mn_Ka=True, model_plot=True):
         """
@@ -899,7 +879,7 @@ class EDSSpectrum(Spectrum):
         """
 
         mp = self.metadata
-        if mp.has_item('Sample'):            
+        if mp.has_item('Sample'):
             if mp.Sample.has_item('Xray_lines'):
                 if len(Xray_line) < 3:
                     Xray_lines = mp.Sample.elements

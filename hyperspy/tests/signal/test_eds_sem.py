@@ -356,30 +356,30 @@ class Test_convolve_sum:
 
         self.signal = s
 
-    #def test_running_sum(self):
+    # def test_running_sum(self):
         #s = self.signal
-        #s.running_sum()
+        # s.running_sum()
 
         #assert_equal(s[0, 0, 0, 0].data[0], 4.)
 
         #s = self.signal
         #s = s[0]
 
-        #s.running_sum()
+        # s.running_sum()
         #assert_equal(s[0, 0, 0].data[0], 16.)
 
         #assert_equal(s.metadata.SEM.EDS.live_time, 49.6)
-    
+
     def test_convolve_sum(self):
         s = self.signal
-        res=s.convolve_sum()
+        res = s.convolve_sum()
 
         assert_equal(res[0, 0, 0, 0].data[0], 9.)
 
         s = self.signal
         s = s[0]
 
-        res=s.convolve_sum(size=4)
+        res = s.convolve_sum(size=4)
         assert_equal(res[0, 0, 0].data[0], 16.)
 
         assert_equal(res.metadata.SEM.EDS.live_time, 49.6)
