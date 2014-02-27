@@ -1031,40 +1031,41 @@ class EDSSpectrum(Spectrum):
                           y1=intensity[i] * 1.1, text=Xray_lines[i])
             self._plot.signal_plot.add_marker(text)
             text.plot()
-#write test
+# write test
+
     def get_decomposition_model_from(self,
-            binned_signal,
-            components,
-            loadings_as_guess=True,
-            **kwargs):
+                                     binned_signal,
+                                     components,
+                                     loadings_as_guess=True,
+                                     **kwargs):
         """
         Return the spectrum generated with the selected number of principal
-        components from another spectrum (binned_signal). 
-        
+        components from another spectrum (binned_signal).
+
         The selected components are fitted on the spectrum
 
         Parameters
         ------------
-        
+
         binned_signal: signal
-            The components of the binned_signal are fitted to self. 
+            The components of the binned_signal are fitted to self.
             The dimension must have a common multiplicity.
-        
+
         components :  int or list of ints
              if int, rebuilds SI from components in range 0-given int
-             if list of ints, rebuilds SI from only components in given list             
+             if list of ints, rebuilds SI from only components in given list
         kwargs
             keyword argument for multifit
 
         Returns
         -------
         Signal instance
-        
+
         Example
-        -------   
-        
+        -------
+
         Quick example
-        
+
         >>> s = utils_eds.database_3Dspec()
         >>> s.change_dtype('float')
         >>> s=s[:6,:8]
@@ -1073,55 +1074,56 @@ class EDSSpectrum(Spectrum):
         >>> s2=s2.rebin((dim[0]/2, dim[1]/2,dim[2]))
         >>> s2.decomposition(True)
         >>> a=s.get_decomposition_model_from(s2,components=5)
-        
+
         Slower that makes sense
-                
+
         >>> s = utils_eds.database_4Dspec(False)[::,::,1]
         >>> s.change_dtype('float')
-        >>> dim=s.axes_manager.shape        
+        >>> dim=s.axes_manager.shape
         >>> s=s.rebin((dim[0]/4, dim[1]/4,dim[2]))
         >>> s2=s.deepcopy()
         >>> s2=s2.rebin((dim[0]/8, dim[1]/8,dim[2]))
         >>> s2.decomposition(True)
         >>> a=s.get_decomposition_model_from(s2,components=5)
-                
+
         """
         from hyperspy.hspy import create_model
-        if hasattr(binned_signal,'learning_results') is False:
+        if hasattr(binned_signal, 'learning_results') is False:
             raise ValueError(
                 "binned_signal must be decomposed")
-                
-        if isinstance(components,int):
+
+        if isinstance(components, int):
             components = range(components)
-            
-        m = create_model(self)   
+
+        m = create_model(self)
         factors = binned_signal.get_decomposition_factors()
         if loadings_as_guess:
             loadings = binned_signal.get_decomposition_loadings()
             dim_bin = np.array(binned_signal.axes_manager.shape)
             dim = np.array(self.axes_manager.shape)
-            bin_fact = dim[:-1]/dim_bin[:-1]
-            if np.all([isinstance(bin_f,int) 
-                        for bin_f in bin_fact]) is False:
+            bin_fact = dim[:-1] / dim_bin[:-1]
+            if np.all([isinstance(bin_f, int)
+                       for bin_f in bin_fact]) is False:
                 raise ValueError(
-                "The dimension of binned_signal doesn't not result"
-                "from a binning")                
+                    "The dimension of binned_signal doesn't not result"
+                    "from a binning")
         for i_comp in components:
             fp = create_component.ScalableFixedPattern(factors[i_comp])
             fp.set_parameters_not_free(['offset', 'xscale', 'shift'])
-            fp.name=str(i_comp)
+            fp.name = str(i_comp)
             if loadings_as_guess:
-                load_data=loadings[i_comp].data
+                load_data = loadings[i_comp].data
                 for i, bin_f in enumerate(bin_fact[::-1]):
                     load_data = np.repeat(load_data, bin_f, axis=i)
             m.append(fp)
             if loadings_as_guess:
                 m[str(i_comp)].yscale.map['values'] = load_data
-                m[str(i_comp)].yscale.map['is_set'] = [[True]*dim[0]]*dim[1]
+                m[str(i_comp)].yscale.map['is_set'] = [[True] * dim[0]] * \
+                    dim[1]
         m.multifit(**kwargs)
 
         return m.as_signal()
-            
+
 
 
     # def running_sum(self, shape_convo='square', corner=-1):
