@@ -1031,7 +1031,6 @@ class EDSSpectrum(Spectrum):
                           y1=intensity[i] * 1.1, text=Xray_lines[i])
             self._plot.signal_plot.add_marker(text)
             text.plot()
-# write test
 
     def get_decomposition_model_from(self,
                                      binned_signal,
@@ -1068,23 +1067,23 @@ class EDSSpectrum(Spectrum):
 
         >>> s = utils_eds.database_3Dspec()
         >>> s.change_dtype('float')
-        >>> s=s[:6,:8]
-        >>> s2=s.deepcopy()
-        >>> dim=s.axes_manager.shape
-        >>> s2=s2.rebin((dim[0]/2, dim[1]/2,dim[2]))
+        >>> s = s[:6,:8]
+        >>> s2 = s.deepcopy()
+        >>> dim = s.axes_manager.shape
+        >>> s2 = s2.rebin((dim[0]/2, dim[1]/2, dim[2]))
         >>> s2.decomposition(True)
-        >>> a=s.get_decomposition_model_from(s2,components=5)
+        >>> a = s.get_decomposition_model_from(s2, components=5)
 
         Slower that makes sense
 
         >>> s = utils_eds.database_4Dspec(False)[::,::,1]
         >>> s.change_dtype('float')
-        >>> dim=s.axes_manager.shape
-        >>> s=s.rebin((dim[0]/4, dim[1]/4,dim[2]))
-        >>> s2=s.deepcopy()
-        >>> s2=s2.rebin((dim[0]/8, dim[1]/8,dim[2]))
+        >>> dim = s.axes_manager.shape
+        >>> s = s.rebin((dim[0]/4, dim[1]/4, dim[2]))
+        >>> s2 = s.deepcopy()
+        >>> s2 = s2.rebin((dim[0]/8, dim[1]/8, dim[2]))
         >>> s2.decomposition(True)
-        >>> a=s.get_decomposition_model_from(s2,components=5)
+        >>> a = s.get_decomposition_model_from(s2, components=5)
 
         """
         from hyperspy.hspy import create_model
