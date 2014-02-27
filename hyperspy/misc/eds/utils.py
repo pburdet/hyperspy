@@ -193,7 +193,7 @@ def get_index_from_names(self, axis_names, index_name, axis_name_in_mp=True):
 
 
 def phase_inspector(self, bins=[20, 20, 20], plot_result=True):
-    # must go in Image
+    # to be further improved. 
     """
     Generate an binary image of different channel
     """
@@ -754,8 +754,11 @@ def load_EDSSEMSpectrum(filenames=None,
 
     return s
 
-
+#might be simplified with auto split...
 def _set_result_signal_list(mp, result):
+    """
+    signal to list of signal use to load()
+    """
     std = mp.Sample[result]
     # if '_' in std.metadata.title:
     #    number_of_parts=len(mp.Sample.Xray_lines)
@@ -963,10 +966,9 @@ def _read_alignement_file(path_align_file='auto'):
 
     return shiftIcumu
 
-
+#must be more general, compare image
 def compare_results(specs, results, sum_elements=False,
                     normalize=False, plot_result=True, expand=False):
-    # must be the main function in Image, specs = image. EDSSpec for results
     """
     Plot different results side by side
 
@@ -1056,7 +1058,7 @@ def compare_results(specs, results, sum_elements=False,
     else:
         return check
 
-
+#Should use utils.plot.plot_histograms
 def compare_histograms_results(specs,
                                element,
                                results,
@@ -1161,122 +1163,7 @@ def compare_histograms_results(specs,
                                    line_style=line_style, legend=legend, fig=fig)
 
 
-# def compare_histograms(imgs,
-                       # bins='freedman',
-                       # color=None,
-                       # line_style=None,
-                       # legend='auto',
-                       # fig=None,
-                       # range_bins=None,
-                       #**kwargs):
-    #"""Compare the histogram of the list of image
-    # Parameters
-    #----------
-    # bins : int or list or str (optional)
-        # If bins is a string, then it must be one of:
-        #'knuth' : use Knuth's rule to determine bins
-        #'scotts' : use Scott's rule to determine bins
-        #'freedman' : use the Freedman-diaconis rule to determine bins
-        #'blocks' : use bayesian blocks for dynamic bin widths
-    # color : valid matplotlib color or a list of them or `None`
-        # Sets the color of the lines of the plots when `style` is "cascade"
-        # or "mosaic". If a list, if its length is
-        # less than the number of spectra to plot, the colors will be cycled. If
-        # If `None`, use default matplotlib color cycle.
-    # line_style: valid matplotlib line style or a list of them or `None`
-        # The main line style are '-','--','steps','-.',':'.
-        # If a list, if its length is less than the number of
-        # spectra to plot, line_style will be cycled. If
-        # If `None`, use 'steps'.
-    # legend: None | list of str | 'auto'
-       # If list of string, legend for "cascade" or title for "mosaic" is
-       # displayed. If 'auto', the title of each spectra (metadata.title)
-       # is used.
-    # fig : {matplotlib figure, None}
-        # If None, a default figure will be created.
-    #"""
-    #hists = []
-    # for img in imgs:
-        # hists.append(img.get_histogram(bins=bins,
-                                       # range_bins=range_bins, **kwargs))
-    # if line_style is None:
-        #line_style = 'steps'
-    # return hyperspy.utils.plot.plot_spectra(
-        # hists, style='overlap', color=color,
-        # line_style=line_style, legend=legend, fig=fig)
-# def compare_signal(specs,
-                   # indexes=None,
-                   # legend_labels='auto',
-                   # colors='auto',
-                   # line_styles='auto'):
-    #"""Compare the signal from different indexes or|and from different
-    # spectra.
-    # Parameters
-    #----------
-    # specs: list | spectrum
-        # A list of spectra or a spectrum
-    # indexes: list | None
-        # The list of indexes to compares. If None, specs is a list of
-        # 1D spectra that are ploted together
-    # legend_labels: 'auto' | list | None
-        # If legend_labels is auto, then the indexes are used.
-    # colors: list
-        # If 'auto', automatically selected, eg: ('red','blue')
-    # line_styles: list
-        # If 'auto', continuous lines, eg: ('-','--','steps','-.',':')
-    # Returns
-    #-------
-    # figure
-    #"""
-    # print "obsolete, should use utils.plot.plot_spectra"
-    # if indexes is None:
-        #nb_signals = len(specs)
-    # elif isinstance(indexes[0], list) is False and isinstance(indexes[0], tuple) is False:
-        #nb_signals = len(specs)
-        #indexes = [indexes] * nb_signals
-    # else:
-        #nb_signals = len(indexes)
-    # if colors == 'auto':
-        # colors = ['red', 'blue', 'green', 'orange', 'violet', 'magenta',
-                  #'cyan', 'violet', 'black', 'yellow', 'pink']
-        #colors += colors
-        #colors += colors
-    # elif isinstance(colors, list) is False:
-        #colors = [colors] * nb_signals
-    # if line_styles == 'auto':
-        #line_styles = ['-'] * nb_signals
-    # elif isinstance(line_styles, list) is False:
-        #line_styles = [line_styles] * nb_signals
-    #fig = plt.figure()
-    # if legend_labels == 'auto':
-        #legend_labels = []
-        # if isinstance(specs, list) or isinstance(specs, tuple):
-            # for spec in specs:
-                # legend_labels.append(spec.metadata.title)
-        # else:
-            # for index in indexes:
-                # legend_labels.append(str(index))
-    # for i, index in enumerate(indexes):
-    # for i in range(nb_signals):
-        # if isinstance(specs, list) or isinstance(specs, tuple):
-            #tmp = specs[i]
-        # else:
-            #tmp = specs
-        # if indexes is not None:
-            # for ind in indexes[i]:
-                #tmp = tmp[ind]
-        # maxx = (len(tmp.data) - 1) * \
-            #tmp.axes_manager[0].scale + tmp.axes_manager[0].offset
-        # xdata = mlab.frange(tmp.axes_manager[0].offset, maxx,
-                            # tmp.axes_manager[0].scale, npts=len(tmp.data))
-        #plt.plot(xdata, tmp.data, color=colors[i], ls=line_styles[i])
-    # plt.ylabel('Intensity')
-    # plt.xlabel(str(tmp.axes_manager[0].name) +
-               #' (' + str(tmp.axes_manager[0].units) + ')')
-    # if legend_labels is not None:
-        # plt.legend(legend_labels)
-    # fig.show()
-    # return fig
+
 def simulate_linescan(nTraj,
                       compos_at,
                       min_max,
@@ -2090,7 +1977,72 @@ def database_3Dimage():
     load RR SE (10:20)
     """
     return _load_in_database('img3DA.hdf5')
+    
+def tv_denoise(self,
+               weight=50,
+               n_iter_max=200,
+               eps=0.0002,
+               method='bregman'):
+    """
+    Perform total-variation denoising on 2D and 3D images.
 
+    Parameters
+    ---------
+
+    weight : float, optional
+        Denoising weight. The greater `weight`, the more denoising (at
+        the expense of fidelity to `input`).
+    eps : float, optional
+        Relative difference of the value of the cost function that
+        determines the stop criterion. The algorithm stops when:
+
+        (E_(n-1) - E_n) < eps * E_0
+
+    n_iter_max : int, optional
+        Maximal number of iterations used for the optimization.
+
+    method: 'chambolle' | 'bregman'
+
+    See also:
+    -----
+
+    skimage.filter.denoise_tv_chambolle
+    skimage.filter.denoise_tv_bregman
+
+    """
+
+    import skimage.filter
+
+    if method == 'bregman':
+        img = self.apply(skimage.filter.denoise_tv_bregman, weight=weight,
+                         eps=eps, max_iter=n_iter_max)
+    elif method == 'chambolle':
+        img = self.apply(skimage.filter.denoise_tv_chambolle, img.data,
+                         weight=weight, eps=eps, n_iter_max=n_iter_max)
+    return img
+
+def mean_filter(self, size):
+    """ Apply a mean filter.
+
+    Parameters
+    ----------
+
+    size : int | list or tuple
+        `size` gives the shape that is taken from the input array,
+        at every element position, to define the input to the filter
+        function.
+
+    """
+    import scipy.ndimage
+    dim = self.axes_manager.shape
+    if isinstance(size, int):
+        kernel = np.ones([size] * len(dim))
+    else:
+        kernel = np.ones(size)
+    kernel = kernel / kernel.sum()
+    img = self.apply(scipy.ndimage.convolve, weights=kernel)
+    return img
+############################
 # def animate_legend(figure='last'):
     #"""Animate the legend of a figure
 
@@ -2129,7 +2081,7 @@ def database_3Dimage():
     #fig.canvas.mpl_connect('pick_event', onpick)
 
     # plt.show()
-
+############################
 # def plot_3D_iso_surface(self,threshold,
             #color = 'auto',
             # figure='new',
@@ -2202,3 +2154,121 @@ def database_3Dimage():
          ##   iso.actor.property.color = color
         ##iso.actor.property.opacity = 0.5
         # return figure, src, iso
+############################        
+# def compare_histograms(imgs,
+                       # bins='freedman',
+                       # color=None,
+                       # line_style=None,
+                       # legend='auto',
+                       # fig=None,
+                       # range_bins=None,
+                       #**kwargs):
+    #"""Compare the histogram of the list of image
+    # Parameters
+    #----------
+    # bins : int or list or str (optional)
+        # If bins is a string, then it must be one of:
+        #'knuth' : use Knuth's rule to determine bins
+        #'scotts' : use Scott's rule to determine bins
+        #'freedman' : use the Freedman-diaconis rule to determine bins
+        #'blocks' : use bayesian blocks for dynamic bin widths
+    # color : valid matplotlib color or a list of them or `None`
+        # Sets the color of the lines of the plots when `style` is "cascade"
+        # or "mosaic". If a list, if its length is
+        # less than the number of spectra to plot, the colors will be cycled. If
+        # If `None`, use default matplotlib color cycle.
+    # line_style: valid matplotlib line style or a list of them or `None`
+        # The main line style are '-','--','steps','-.',':'.
+        # If a list, if its length is less than the number of
+        # spectra to plot, line_style will be cycled. If
+        # If `None`, use 'steps'.
+    # legend: None | list of str | 'auto'
+       # If list of string, legend for "cascade" or title for "mosaic" is
+       # displayed. If 'auto', the title of each spectra (metadata.title)
+       # is used.
+    # fig : {matplotlib figure, None}
+        # If None, a default figure will be created.
+    #"""
+    #hists = []
+    # for img in imgs:
+        # hists.append(img.get_histogram(bins=bins,
+                                       # range_bins=range_bins, **kwargs))
+    # if line_style is None:
+        #line_style = 'steps'
+    # return hyperspy.utils.plot.plot_spectra(
+        # hists, style='overlap', color=color,
+        # line_style=line_style, legend=legend, fig=fig)
+############################
+# def compare_signal(specs,
+                   # indexes=None,
+                   # legend_labels='auto',
+                   # colors='auto',
+                   # line_styles='auto'):
+    #"""Compare the signal from different indexes or|and from different
+    # spectra.
+    # Parameters
+    #----------
+    # specs: list | spectrum
+        # A list of spectra or a spectrum
+    # indexes: list | None
+        # The list of indexes to compares. If None, specs is a list of
+        # 1D spectra that are ploted together
+    # legend_labels: 'auto' | list | None
+        # If legend_labels is auto, then the indexes are used.
+    # colors: list
+        # If 'auto', automatically selected, eg: ('red','blue')
+    # line_styles: list
+        # If 'auto', continuous lines, eg: ('-','--','steps','-.',':')
+    # Returns
+    #-------
+    # figure
+    #"""
+    # print "obsolete, should use utils.plot.plot_spectra"
+    # if indexes is None:
+        #nb_signals = len(specs)
+    # elif isinstance(indexes[0], list) is False and isinstance(indexes[0], tuple) is False:
+        #nb_signals = len(specs)
+        #indexes = [indexes] * nb_signals
+    # else:
+        #nb_signals = len(indexes)
+    # if colors == 'auto':
+        # colors = ['red', 'blue', 'green', 'orange', 'violet', 'magenta',
+                  #'cyan', 'violet', 'black', 'yellow', 'pink']
+        #colors += colors
+        #colors += colors
+    # elif isinstance(colors, list) is False:
+        #colors = [colors] * nb_signals
+    # if line_styles == 'auto':
+        #line_styles = ['-'] * nb_signals
+    # elif isinstance(line_styles, list) is False:
+        #line_styles = [line_styles] * nb_signals
+    #fig = plt.figure()
+    # if legend_labels == 'auto':
+        #legend_labels = []
+        # if isinstance(specs, list) or isinstance(specs, tuple):
+            # for spec in specs:
+                # legend_labels.append(spec.metadata.title)
+        # else:
+            # for index in indexes:
+                # legend_labels.append(str(index))
+    # for i, index in enumerate(indexes):
+    # for i in range(nb_signals):
+        # if isinstance(specs, list) or isinstance(specs, tuple):
+            #tmp = specs[i]
+        # else:
+            #tmp = specs
+        # if indexes is not None:
+            # for ind in indexes[i]:
+                #tmp = tmp[ind]
+        # maxx = (len(tmp.data) - 1) * \
+            #tmp.axes_manager[0].scale + tmp.axes_manager[0].offset
+        # xdata = mlab.frange(tmp.axes_manager[0].offset, maxx,
+                            # tmp.axes_manager[0].scale, npts=len(tmp.data))
+        #plt.plot(xdata, tmp.data, color=colors[i], ls=line_styles[i])
+    # plt.ylabel('Intensity')
+    # plt.xlabel(str(tmp.axes_manager[0].name) +
+               #' (' + str(tmp.axes_manager[0].units) + ')')
+    # if legend_labels is not None:
+        # plt.legend(legend_labels)
+    # fig.show()
+    # return fig

@@ -43,71 +43,7 @@ class Image(Signal):
 
         """
         return self.as_spectrum(0 + 3j)
-
-    def tv_denoise(self,
-                   weight=50,
-                   n_iter_max=200,
-                   eps=0.0002,
-                   method='bregman'):
-        """
-        Perform total-variation denoising on 2D and 3D images.
-
-        Parameters
-        ---------
-
-        weight : float, optional
-            Denoising weight. The greater `weight`, the more denoising (at
-            the expense of fidelity to `input`).
-        eps : float, optional
-            Relative difference of the value of the cost function that
-            determines the stop criterion. The algorithm stops when:
-
-            (E_(n-1) - E_n) < eps * E_0
-
-        n_iter_max : int, optional
-            Maximal number of iterations used for the optimization.
-
-        method: 'chambolle' | 'bregman'
-
-        See also:
-        -----
-
-        skimage.filter.denoise_tv_chambolle
-        skimage.filter.denoise_tv_bregman
-
-        """
-
-        import skimage.filter
-
-        if method == 'bregman':
-            img = self.apply(skimage.filter.denoise_tv_bregman, weight=weight,
-                             eps=eps, max_iter=n_iter_max)
-        elif method == 'chambolle':
-            img = self.apply(skimage.filter.denoise_tv_chambolle, img.data,
-                             weight=weight, eps=eps, n_iter_max=n_iter_max)
-        return img
-
-    def mean_filter(self, size):
-        """ Apply a mean filter.
-
-        Parameters
-        ----------
-
-        size : int | list or tuple
-            `size` gives the shape that is taken from the input array,
-            at every element position, to define the input to the filter
-            function.
-
-        """
-        import scipy.ndimage
-        dim = self.axes_manager.shape
-        if isinstance(size, int):
-            kernel = np.ones([size] * len(dim))
-        else:
-            kernel = np.ones(size)
-        kernel = kernel / kernel.sum()
-        img = self.apply(scipy.ndimage.convolve, weights=kernel)
-        return img
+    
 
     def plot_3D_iso_surface(self,
                             threshold,

@@ -468,6 +468,7 @@ class EDSSEMSpectrum(EDSSpectrum):
                                  plot_result)
             i += 1
 
+    #should use get_lines_intensity
     def deconvolve_intensity(self, width_windows='all', plot_result=True):
         """
         Calculate the intensity by fitting standard spectra to the spectrum.
@@ -494,6 +495,7 @@ class EDSSEMSpectrum(EDSSpectrum):
 
 
         """
+        print 'This is obsolete, use get_lines_intensity instead'
         from hyperspy.hspy import create_model
         m = create_model(self)
         mp = self.metadata
@@ -628,7 +630,8 @@ class EDSSEMSpectrum(EDSSpectrum):
         if new_figure:
             fig.show()
             return fig
-
+            
+    #shouldn't be needed
     def save_result(self, result, filename, Xray_lines='all',
                     extension='hdf5'):
         """
@@ -655,7 +658,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         get_kratio, deconvolove_intensity, quant
 
         """
-
+        print 'This is obsolete, it will desapear'
         mp = self.metadata
         if Xray_lines is 'all':
             if result == 'intensities':
@@ -1048,16 +1051,6 @@ class EDSSEMSpectrum(EDSSpectrum):
         #pixSize = self.axes_manager[2].scale
         pixLat = int((limit_x[1] - limit_x[0]) / dx0 + 1)
 
-    # def check_total(self):
-        #img_0 = self.get_result(Xray_lines[0],'kratios')
-
-        #data_total = np.zeros_like(img_0.data)
-        # for Xray_line in Xray_lines:
-            #data_total += self.get_result(Xray_line,'kratios').data
-
-        #img_total = img_0.deepcopy
-        #img_total.data = data_total
-        # return img_total
 
     def simulate_electron_distribution(self,
                                        nb_traj,
@@ -1792,3 +1785,15 @@ class EDSSEMSpectrum(EDSSpectrum):
             return figure, src, iso
         else:
             return figure, srcs, isos
+            
+    # def check_total(self):
+        #img_0 = self.get_result(Xray_lines[0],'kratios')
+
+        #data_total = np.zeros_like(img_0.data)
+        # for Xray_line in Xray_lines:
+            #data_total += self.get_result(Xray_line,'kratios').data
+
+        #img_total = img_0.deepcopy
+        #img_total.data = data_total
+        # return img_total
+
