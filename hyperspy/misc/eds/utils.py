@@ -193,7 +193,7 @@ def get_index_from_names(self, axis_names, index_name, axis_name_in_mp=True):
 
 
 def phase_inspector(self, bins=[20, 20, 20], plot_result=True):
-    # to be further improved. 
+    # to be further improved.
     """
     Generate an binary image of different channel
     """
@@ -754,7 +754,9 @@ def load_EDSSEMSpectrum(filenames=None,
 
     return s
 
-#might be simplified with auto split...
+# might be simplified with auto split...
+
+
 def _set_result_signal_list(mp, result):
     """
     signal to list of signal use to load()
@@ -966,7 +968,9 @@ def _read_alignement_file(path_align_file='auto'):
 
     return shiftIcumu
 
-#must be more general, compare image
+# must be more general, compare image
+
+
 def compare_results(specs, results, sum_elements=False,
                     normalize=False, plot_result=True, expand=False):
     """
@@ -1058,7 +1062,9 @@ def compare_results(specs, results, sum_elements=False,
     else:
         return check
 
-#Should use utils.plot.plot_histograms
+# Should use utils.plot.plot_histograms
+
+
 def compare_histograms_results(specs,
                                element,
                                results,
@@ -1161,7 +1167,6 @@ def compare_histograms_results(specs,
 
     return utils.plot.plot_spectra(hists, style='overlap', color=color,
                                    line_style=line_style, legend=legend, fig=fig)
-
 
 
 def simulate_linescan(nTraj,
@@ -1977,7 +1982,8 @@ def database_3Dimage():
     load RR SE (10:20)
     """
     return _load_in_database('img3DA.hdf5')
-    
+
+
 def tv_denoise(self,
                weight=50,
                n_iter_max=200,
@@ -2020,6 +2026,7 @@ def tv_denoise(self,
         img = self.apply(skimage.filter.denoise_tv_chambolle, img.data,
                          weight=weight, eps=eps, n_iter_max=n_iter_max)
     return img
+
 
 def mean_filter(self, size):
     """ Apply a mean filter.
@@ -2154,7 +2161,7 @@ def mean_filter(self, size):
          ##   iso.actor.property.color = color
         ##iso.actor.property.opacity = 0.5
         # return figure, src, iso
-############################        
+############################
 # def compare_histograms(imgs,
                        # bins='freedman',
                        # color=None,

@@ -43,7 +43,6 @@ class Image(Signal):
 
         """
         return self.as_spectrum(0 + 3j)
-    
 
     def plot_3D_iso_surface(self,
                             threshold,

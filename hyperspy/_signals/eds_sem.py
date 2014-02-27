@@ -468,7 +468,7 @@ class EDSSEMSpectrum(EDSSpectrum):
                                  plot_result)
             i += 1
 
-    #should use get_lines_intensity
+    # should use get_lines_intensity
     def deconvolve_intensity(self, width_windows='all', plot_result=True):
         """
         Calculate the intensity by fitting standard spectra to the spectrum.
@@ -630,8 +630,8 @@ class EDSSEMSpectrum(EDSSpectrum):
         if new_figure:
             fig.show()
             return fig
-            
-    #shouldn't be needed
+
+    # shouldn't be needed
     def save_result(self, result, filename, Xray_lines='all',
                     extension='hdf5'):
         """
@@ -1050,7 +1050,6 @@ class EDSSEMSpectrum(EDSSpectrum):
         stat = distr_dic['distr']
         #pixSize = self.axes_manager[2].scale
         pixLat = int((limit_x[1] - limit_x[0]) / dx0 + 1)
-
 
     def simulate_electron_distribution(self,
                                        nb_traj,
@@ -1785,7 +1784,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             return figure, src, iso
         else:
             return figure, srcs, isos
-            
+
     # def check_total(self):
         #img_0 = self.get_result(Xray_lines[0],'kratios')
 
@@ -1796,4 +1795,3 @@ class EDSSEMSpectrum(EDSSpectrum):
         #img_total = img_0.deepcopy
         #img_total.data = data_total
         # return img_total
-

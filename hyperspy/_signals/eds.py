@@ -645,7 +645,8 @@ class EDSSpectrum(Spectrum):
             mp.EDS.live_time = mp.EDS.live_time * np.sum(kernel)
 
         return result
-    #can be improved, other fit
+    # can be improved, other fit
+
     def calibrate_energy_resolution(self, Xray_line, bck='auto',
                                     set_Mn_Ka=True, model_plot=True):
         """
@@ -722,7 +723,7 @@ class EDSSpectrum(Spectrum):
             if Xray_line in res.metadata.title:
                 return res
         raise ValueError("Didn't find it")
-        
+
 #_get_navigation_signal do a great job, should use it
     def _set_result(self, Xray_line, result, data_res, plot_result,
                     store_in_mp=True):
@@ -730,7 +731,6 @@ class EDSSpectrum(Spectrum):
         Transform data_res (a result) into an image or a signal and
         stored it in 'metadata.Sample'
         """
-        
 
         mp = self.metadata
         if mp.has_item('Sample'):
@@ -858,13 +858,13 @@ class EDSSpectrum(Spectrum):
         """
         mp = self.metadata
         res = copy.deepcopy(mp.Sample[result])
-        
+
         return plot_histograms(res, bins=bins, legend=legend,
-                                            color=color, 
-                                            line_style=line_style, fig=fig,
-                                            **kwargs)
-                                            
-#should use plot ortho_animate
+                               color=color,
+                               line_style=line_style, fig=fig,
+                               **kwargs)
+
+# should use plot ortho_animate
     def plot_orthoview_result(self,
                               element,
                               result,
@@ -1031,8 +1031,8 @@ class EDSSpectrum(Spectrum):
                           y1=intensity[i] * 1.1, text=Xray_lines[i])
             self._plot.signal_plot.add_marker(text)
             text.plot()
-            
-    
+
+
     # def running_sum(self, shape_convo='square', corner=-1):
         # cross not tested
         #"""
