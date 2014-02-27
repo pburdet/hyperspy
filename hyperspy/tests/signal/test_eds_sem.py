@@ -437,31 +437,31 @@ class Test_tools_bulk:
             mp.SEM.beam_energy,
             density=4.37499648818)
         assert_equal(xr_range, 0.19002078834050035)
-        
+
+
 class Test_decomposition_model_from:
-    
+
     def setUp(self):
         s = utils_eds.database_3Dspec()
         s.change_dtype('float')
-        s = s[:4,:6,:10]
+        s = s[:4, :6, :10]
         self.signal = s
-        
+
     def test_decomposition_model_from_2D(self):
         s = self.signal
         s2 = s.deepcopy()
         dim = s.axes_manager.shape
-        s2 = s2.rebin((dim[0]/2, dim[1]/2, dim[2]))
+        s2 = s2.rebin((dim[0] / 2, dim[1] / 2, dim[2]))
         s2.decomposition(True)
         a = s.get_decomposition_model_from(s2, components=3)
-        assert_true(a.axes_manager.shape==s.axes_manager.shape)
-    
+        assert_true(a.axes_manager.shape == s.axes_manager.shape)
+
     def test_decomposition_model_from_2D(self):
         s = self.signal
-        s=utils.stack([s,s])
+        s = utils.stack([s, s])
         s2 = s.deepcopy()
         dim = s.axes_manager.shape
-        s2 = s2.rebin((dim[0]/2, dim[1]/2, dim[2], dim[3]))
+        s2 = s2.rebin((dim[0] / 2, dim[1] / 2, dim[2], dim[3]))
         s2.decomposition(True)
         a = s.get_decomposition_model_from(s2, components=3)
-        assert_true(a.axes_manager.shape==s.axes_manager.shape)
-    
+        assert_true(a.axes_manager.shape == s.axes_manager.shape)
