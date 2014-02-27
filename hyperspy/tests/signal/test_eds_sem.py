@@ -25,6 +25,7 @@ from hyperspy.components import Gaussian
 from hyperspy.misc.elements import elements_db as elements_EDS
 from hyperspy.misc.eds import utils as utils_eds
 from hyperspy import utils
+from hyperspy.misc.config_dir import config_path
 
 
 class Test_metadata:
@@ -454,8 +455,8 @@ class Test_decomposition_model_from:
         s2 = s2.rebin((dim[0] / 2, dim[1] / 2, dim[2]))
         s2.decomposition(True)
         a = s.get_decomposition_model_from(s2, components=3)
-        assert_true(a.axes_manager.shape == s.axes_manager.shape)
-
+        assert_true(a.axes_manager.shape == s.axes_manager.shape)    
+    
     def test_decomposition_model_from_2D(self):
         s = self.signal
         s = utils.stack([s, s])
@@ -465,3 +466,32 @@ class Test_decomposition_model_from:
         s2.decomposition(True)
         a = s.get_decomposition_model_from(s2, components=3)
         assert_true(a.axes_manager.shape == s.axes_manager.shape)
+        
+class Test_add_standards_to_signal:
+    
+    def setUp(self):
+        s = EDSSEMSpectrum(np.ones([3,4,5,1024]))
+        self.signal = s
+        
+    def test_add_standards_to_signal_3D(self):
+        s = self.signal
+        dim = s.axes_manager.shape
+        elements=['Hf','Ta']
+        s.add_elements(elements)
+        s.link_standard(config_path+'/database/std_RR')
+        res = s.add_standards_to_signal('all') 
+        dim = np.array(s.axes_manager.navigation_shape)
+        dim_res = np.array(res.axes_manager.navigation_shape)
+        assert_true(np.all(dim_res == dim + [len(elements),0,0]))   
+        
+    def test_add_standards_to_signal_3D(self):
+        s = self.signal[0]
+        dim = s.axes_manager.shape
+        elements=['Hf','Ta']
+        s.add_elements(elements)
+        s.link_standard(config_path+'/database/std_RR')
+        res = s.add_standards_to_signal('all') 
+        dim = np.array(s.axes_manager.navigation_shape)
+        dim_res = np.array(res.axes_manager.navigation_shape)
+        assert_true(np.all(dim_res == dim + [len(elements),0])) 
+
