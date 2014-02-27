@@ -877,6 +877,7 @@ class EDSSpectrum(Spectrum):
         Transform data_res (a result) into an image or a signal and
         stored it in 'metadata.Sample'
         """
+        #_get_navigation_signal do a great job, should use it
 
         mp = self.metadata
         if mp.has_item('Sample'):

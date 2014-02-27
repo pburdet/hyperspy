@@ -2061,11 +2061,14 @@ def database_1Dspec():
     return _load_in_database('bam.hdf5')
 
 
-def database_3Dspec():
+def database_3Dspec(PCA_treated=False):
     """
     load RR 46 PCA rec
     """
-    return _load_in_database('specImg3DBinPCAre46.hdf5')
+    if PCA_treated:
+        return _load_in_database('specImg3DBinPCAre46.hdf5')
+    else:
+        return _load_in_database('TiFeNi10.hdf5')
 
 
 def database_4Dspec():
