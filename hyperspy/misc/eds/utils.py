@@ -1955,7 +1955,7 @@ def database_1Dspec():
 
 def database_3Dspec(PCA_treated=False):
     """
-    load RR 46 PCA rec
+    load RR 46 PCA rec or TiFeNi no PCA
     """
     if PCA_treated:
         return _load_in_database('specImg3DBinPCAre46.hdf5')
@@ -1963,11 +1963,14 @@ def database_3Dspec(PCA_treated=False):
         return _load_in_database('TiFeNi10.hdf5')
 
 
-def database_4Dspec():
+def database_4Dspec(PCA_treated=True):
     """
-    load RR PCA rec (10:15)
+    load RR PCA rec (10:15) or Cat (TEM) no PCA
     """
-    return _load_in_database('specImg3DBinPCArec.hdf5')
+    if PCA_treated:
+        return _load_in_database('specImg3DBinPCArec.hdf5')
+    else:
+        return _load_in_database('cate_3D_bin_reduced.hdf5')
 
 
 def database_2Dimage():
