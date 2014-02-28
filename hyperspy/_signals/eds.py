@@ -1123,69 +1123,68 @@ class EDSSpectrum(Spectrum):
 
         return m.as_signal()
 
-
     def add_standards_to_signal(self, std_names):
         """
         Add to the data extra lines containing the selected standard.
-        
+
         The added standard have Poisson noise
-        
+
         Parameters
         ----------
-        
+
         std_names: list of string or 'all'
-        
+
         Example
         -------
-        
+
         >>> s = utils_eds.database_3Dspec(spec=1)
         >>> from hyperspy.misc.config_dir import config_path
         >>> s.add_elements(['Hf','Ta'])
         >>> s.link_standard(config_path+'/database/std_RR')
-        >>> s2 = s.add_standards_to_signal('all') 
-        
+        >>> s2 = s.add_standards_to_signal('all')
+
         To show that works
-        
+
         >>> s2.change_dtype('float')
         >>> s2.decomposition(True)
-        >>> s3=s2.get_decomposition_model(5)
+        >>> s3 = s2.get_decomposition_model(5)
         >>> s3[102:134,125:152].get_lines_intensity(
         >>>     plot_result=True,lines_deconvolution='standard')
-        
+
         """
-        
+
         mp = self.metadata
-        if mp.has_item('Sample') is False: 
+        if mp.has_item('Sample') is False:
             if mp.Sample.has_item('standard_spec') is False:
                 raise ValueError(
                     "The Sample.standard_spec needs to be set")
-            
+
         if std_names == 'all':
             if mp.Sample.has_item('elements'):
                 std_names = mp.Sample.elements
             else:
                 raise ValueError(
                     "With std_names = 'all', the Sample.elements need to be set")
-        
+
         s_temp = self.deepcopy()
-        dim_nav=list(self.axes_manager.navigation_shape)
+        dim_nav = list(self.axes_manager.navigation_shape)
         for i in dim_nav:
             s_temp = s_temp.mean(0)
-        mean_counts = s_temp.sum(0).data           
+        mean_counts = s_temp.sum(0).data
         spec_result = self.deepcopy()
         for std in std_names:
-            std_spec = self.get_result(std,'standard_spec').deepcopy()
+            std_spec = self.get_result(std, 'standard_spec').deepcopy()
             fact = mean_counts / std_spec.sum(0).data
-            std_noise=std_spec*fact
-            for dim in [1]+dim_nav[1:]:
-                std_noise = utils.stack([std_noise]*dim)
+            std_noise = std_spec * fact
+            for dim in [1] + dim_nav[1:]:
+                std_noise = utils.stack([std_noise] * dim)
                 del std_noise.original_metadata.stack_elements
-            std_noise.add_poissonian_noise()    
-            spec_result = utils.stack([spec_result,std_noise],axis=0)
+            std_noise.add_poissonian_noise()
+            spec_result = utils.stack([spec_result, std_noise], axis=0)
         del spec_result.original_metadata.stack_elements
-        
+
         return spec_result
-                    
+
 
 
     # def running_sum(self, shape_convo='square', corner=-1):

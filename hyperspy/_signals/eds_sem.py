@@ -258,7 +258,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             raise ValueError("Add elements first, see 'set_elements'")
         if not hasattr(self.metadata.Sample, 'elements'):
             raise ValueError("Add elements first, see 'set_elements'")
-        #if not hasattr(self.metadata.Sample, 'Xray_lines'):
+        # if not hasattr(self.metadata.Sample, 'Xray_lines'):
             #raise ValueError("Add lines first, see 'set_lines'")
 
         std_tot = load(
@@ -269,7 +269,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         mp = self.metadata
         mp.Sample.standard_spec = []
         for element in mp.Sample.elements:
-        #for Xray_line in mp.Sample.Xray_lines:
+        # for Xray_line in mp.Sample.Xray_lines:
             #element, line = utils_eds._get_element_and_line(Xray_line)
             test_file_exist = False
             for std in std_tot:
