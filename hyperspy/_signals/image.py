@@ -72,7 +72,7 @@ class Image(Signal):
 
         Example
         --------
-        
+
         >>> img = utils_eds.database_3Dimage()
         >>> # Plot two iso-surfaces from one stack of images
         >>> fig,src,iso = img.plot_3D_iso_surface([0.2,0.8])
@@ -99,11 +99,14 @@ class Image(Signal):
 
         if figure is None:
             figure = mlab.figure()
-            
 
-        colors=[(1,0,0),(0,1,0),(0,0.1,0.9),(0,0.5,0.5),(0.5,0,0.5),(0.5,0.5,0),
-            (0.3,0,0.7),(0.7,0,0.3),(0.0,0.3,0.7),(0.0,0.7,0.3),
-            (0.3,0.7,0.0),(0.7,0.3,0.0)]
+        colors = [(
+            1, 0, 0), (
+            0, 1, 0), (
+            0, 0.1, 0.9), (0, 0.5, 0.5), (0.5, 0, 0.5), (0.5, 0.5, 0),
+            (0.3, 0, 0.7), (0.7, 0, 0.3), (0.0,
+                                           0.3, 0.7), (0.0, 0.7, 0.3),
+            (0.3, 0.7, 0.0), (0.7, 0.3, 0.0)]
 
         img_res = self.deepcopy()
 
@@ -115,9 +118,9 @@ class Image(Signal):
 
         if hasattr(threshold, "__iter__") is False:
             threshold = [threshold]
-            
-            if color == None:
-                color = colors[len(figure.children)-1]
+
+            if color is None:
+                color = colors[len(figure.children) - 1]
                 print color
 
         threshold = [img_data.max() - thr * img_data.ptp()
@@ -125,13 +128,13 @@ class Image(Signal):
 
         scale = [img_res.axes_manager[i].scale for i in [1, 2, 0]]
         src.spacing = scale
-        
+
         if color is None:
             iso = mlab.pipeline.iso_surface(src,
-                            contours=threshold, **kwargs)
+                                            contours=threshold, **kwargs)
         else:
             iso = mlab.pipeline.iso_surface(src,
-                            contours=threshold,color = color, **kwargs)
+                                            contours=threshold, color=color, **kwargs)
         iso.compute_normals = False
 
         if outline:

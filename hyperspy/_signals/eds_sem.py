@@ -1715,13 +1715,14 @@ class EDSSEMSpectrum(EDSSpectrum):
         else:
             raise ValueError('Dimension for suported yet')
             return 0
-    #to be improved, colors are the same
+    # to be improved, colors are the same
+
     def plot_3D_iso_surface_result(self, elements, result, thresholds,
                                    outline=True,
                                    colors=None,
                                    figure=None,
                                    tv_denoise=False,
-                                    **kwargs):
+                                   **kwargs):
         """
         Generate an iso-surface in Mayavi.
 
@@ -1731,7 +1732,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         elements: str or list
             The element to select.
         result: str
-            The name of the result, or an image in 3D.            
+            The name of the result, or an image in 3D.
         threshold: float or list
             The threshold value(s) used to generate the contour(s).
             Between 0 (min intensity) and 1 (max intensity).
@@ -1746,12 +1747,12 @@ class EDSSEMSpectrum(EDSSpectrum):
         kwargs:
             other keyword arguments of mlab.pipeline.iso_surface (eg.
             'color=(R,G,B)','name=','opacity=','transparent=',...)
-            
+
         Examples
-        --------      
-        
+        --------
+
         >>> s = utils_eds.database_3Dresult()
-        >>> fig,src,iso = s.plot_3D_iso_surface_result(['Hf','Ta','Ni'],'quant',                
+        >>> fig,src,iso = s.plot_3D_iso_surface_result(['Hf','Ta','Ni'],'quant',
         >>>     [0.8,0.8,0.3])
         >>> # Change the threshold of the second iso-surface
         >>> iso[1].contour.contours = [0.1,]
@@ -1771,29 +1772,32 @@ class EDSSEMSpectrum(EDSSpectrum):
                 thresholds = [thresholds] * len(elements)
         elif isinstance(thresholds, list):
             if isinstance(elements, list) is False:
-                elements = [elements] * len(thresholds)        
+                elements = [elements] * len(thresholds)
         else:
             elements = [elements]
-            thresholds = [thresholds]        
+            thresholds = [thresholds]
         if isinstance(colors, list) is False:
                 colors = [colors] * len(elements)
 
         srcs = []
         isos = []
-        
+
         for i, el in enumerate(elements):
-            
+
             if tv_denoise:
                 import skimage.filter
                 img = self.get_result(el, result).deepcopy()
-                img.data = skimage.filter.denoise_tv_chambolle(img.data,weight=0.5,n_iter_max=3)
+                img.data = skimage.filter.denoise_tv_chambolle(
+                    img.data,
+                    weight=0.5,
+                    n_iter_max=3)
                 #img = utils_eds.tv_denoise(img)
             else:
                 img = self.get_result(el, result)
             figure, src, iso = img.plot_3D_iso_surface(
                 threshold=thresholds[i], outline=outline, figure=figure,
-                                    color= colors[i],**kwargs)
-            outline=False
+                color=colors[i], **kwargs)
+            outline = False
             srcs.append(src)
             isos.append(iso)
 
