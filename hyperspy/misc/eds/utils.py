@@ -1940,10 +1940,13 @@ def fft(self, shape_fft=None, axes=None, scale=None):
     return im_fft
 
 
-def _load_in_database(name):
+def _load_in_database(name,result=False):
     from hyperspy.io import load
     foldername = os.path.join(config_path, 'database//' + name)
-    return load(foldername)
+    if result:
+        return load_EDSSEMSpectrum(foldername)
+    else:
+        return load(foldername)
 
 
 def database_1Dspec():
@@ -2004,6 +2007,12 @@ def database_3Dimage():
     load RR SE (10:20)
     """
     return _load_in_database('img3DA.hdf5')
+    
+def database_3Dresult():
+    """
+    load RR 2 3D
+    """
+    return _load_in_database('2res3DrsAH.hdf5',result=True)
 
 
 def tv_denoise(self,
@@ -2042,10 +2051,10 @@ def tv_denoise(self,
     import skimage.filter
 
     if method == 'bregman':
-        img = self.apply(skimage.filter.denoise_tv_bregman, weight=weight,
+        img = self.apply_function(skimage.filter.denoise_tv_bregman, weight=weight,
                          eps=eps, max_iter=n_iter_max)
     elif method == 'chambolle':
-        img = self.apply(skimage.filter.denoise_tv_chambolle, img.data,
+        img = self.apply_function(skimage.filter.denoise_tv_chambolle, img.data,
                          weight=weight, eps=eps, n_iter_max=n_iter_max)
     return img
 

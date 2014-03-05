@@ -48,6 +48,7 @@ class Image(Signal):
                             threshold,
                             outline=True,
                             figure=None,
+                            color=None,
                             **kwargs):
         """
         Generate an iso-surface with Mayavi of a stack of images.
@@ -63,19 +64,25 @@ class Image(Signal):
             If None, generate a new scene/figure.
         outline: bool
             If True, draw an outline.
+        colors: None or  (r,g,b)
+            None generate different color
         kwargs:
             other keyword arguments of mlab.pipeline.iso_surface (eg.
-            'color=(R,G,B)','name=','opacity=','transparent=',...)
+            'name=','opacity=','transparent=',...)
 
         Example
         --------
-
+        
+        >>> img = utils_eds.database_3Dimage()
         >>> # Plot two iso-surfaces from one stack of images
-        >>> [fig,src,iso] = img.plot_3D_iso_surface([0.2,0.8])
+        >>> fig,src,iso = img.plot_3D_iso_surface([0.2,0.8])
         >>> # Plot an iso-surface from another stack of images
-        >>> [fig,src2,iso2] = img2.plot_3D_iso_surface(0.2,figure=fig)
+        >>> s = utils_eds.database_3Dresult()
+        >>> img2 = s.get_result('Ni','quant')
+        >>> fig,src2,iso2 = img2.plot_3D_iso_surface(0.2, figure=fig,
+        >>>     outline=False)
         >>> # Change the threshold of the second iso-surface
-        >>> iso2.contour.contours=[0.3, ]
+        >>> iso2.contour.contours=[0.73, ]
 
         Return
         ------
@@ -92,6 +99,11 @@ class Image(Signal):
 
         if figure is None:
             figure = mlab.figure()
+            
+
+        colors=[(1,0,0),(0,1,0),(0,0.1,0.9),(0,0.5,0.5),(0.5,0,0.5),(0.5,0.5,0),
+            (0.3,0,0.7),(0.7,0,0.3),(0.0,0.3,0.7),(0.0,0.7,0.3),
+            (0.3,0.7,0.0),(0.7,0.3,0.0)]
 
         img_res = self.deepcopy()
 
@@ -103,15 +115,23 @@ class Image(Signal):
 
         if hasattr(threshold, "__iter__") is False:
             threshold = [threshold]
+            
+            if color == None:
+                color = colors[len(figure.children)-1]
+                print color
 
         threshold = [img_data.max() - thr * img_data.ptp()
                      for thr in threshold]
 
-        scale = [1 / img_res.axes_manager[i].scale for i in [1, 2, 0]]
+        scale = [img_res.axes_manager[i].scale for i in [1, 2, 0]]
         src.spacing = scale
-
-        iso = mlab.pipeline.iso_surface(src,
-                                        contours=threshold, **kwargs)
+        
+        if color is None:
+            iso = mlab.pipeline.iso_surface(src,
+                            contours=threshold, **kwargs)
+        else:
+            iso = mlab.pipeline.iso_surface(src,
+                            contours=threshold,color = color, **kwargs)
         iso.compute_normals = False
 
         if outline:

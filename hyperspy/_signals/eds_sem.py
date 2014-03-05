@@ -1715,38 +1715,46 @@ class EDSSEMSpectrum(EDSSpectrum):
         else:
             raise ValueError('Dimension for suported yet')
             return 0
-
+    #to be improved, colors are the same
     def plot_3D_iso_surface_result(self, elements, result, thresholds,
-                                   color='auto',
-                                   figure='new',
-                                   scale='auto',
-                                   tv_denoise=False):
+                                   outline=True,
+                                   colors=None,
+                                   figure=None,
+                                   tv_denoise=False,
+                                    **kwargs):
         """
         Generate an iso-surface in Mayavi.
 
         Parameters
         ----------
 
-        elements: str || list
+        elements: str or list
             The element to select.
-
         result: str
-            The name of the result, or an image in 3D.
-
-        threshold: float || list
+            The name of the result, or an image in 3D.            
+        threshold: float or list
+            The threshold value(s) used to generate the contour(s).
             Between 0 (min intensity) and 1 (max intensity).
-            If result == quant, 1 == 100%.
-
-        color: list
-            The color of the surface, (R,G,B). If 'auto', automatically
-            selected.
-
-        figure: str
-            If 'new', generate a new scene/figure. Else, use the old one.
-
-        scale: str || list
-            If 'auto', scale with axes_manager.scale. Else, scale with
-            the given list (x,y,z).
+        colors: 'auto' or list of (r,g,b)
+            'Auto' generate different color
+        figure: None or mayavi.core.scene.Scene
+            If None, generate a new scene/figure.
+        outline: bool
+            If True, draw an outline.
+        tv_denoise:
+            denoise the data
+        kwargs:
+            other keyword arguments of mlab.pipeline.iso_surface (eg.
+            'color=(R,G,B)','name=','opacity=','transparent=',...)
+            
+        Examples
+        --------      
+        
+        >>> s = utils_eds.database_3Dresult()
+        >>> fig,src,iso = s.plot_3D_iso_surface_result(['Hf','Ta','Ni'],'quant',                
+        >>>     [0.8,0.8,0.3])
+        >>> # Change the threshold of the second iso-surface
+        >>> iso[1].contour.contours = [0.1,]
 
         Return
         ------
@@ -1763,20 +1771,29 @@ class EDSSEMSpectrum(EDSSpectrum):
                 thresholds = [thresholds] * len(elements)
         elif isinstance(thresholds, list):
             if isinstance(elements, list) is False:
-                elements = [elements] * len(thresholds)
+                elements = [elements] * len(thresholds)        
         else:
             elements = [elements]
-            thresholds = [thresholds]
+            thresholds = [thresholds]        
+        if isinstance(colors, list) is False:
+                colors = [colors] * len(elements)
 
         srcs = []
         isos = []
-
+        
         for i, el in enumerate(elements):
-            img = self.get_result(el, result)
+            
             if tv_denoise:
-                img = img.tv_denoise()
+                import skimage.filter
+                img = self.get_result(el, result).deepcopy()
+                img.data = skimage.filter.denoise_tv_chambolle(img.data,weight=0.5,n_iter_max=3)
+                #img = utils_eds.tv_denoise(img)
+            else:
+                img = self.get_result(el, result)
             figure, src, iso = img.plot_3D_iso_surface(
-                threshold=thresholds[i], color=color, figure=figure, scale=scale)
+                threshold=thresholds[i], outline=outline, figure=figure,
+                                    color= colors[i],**kwargs)
+            outline=False
             srcs.append(src)
             isos.append(iso)
 
