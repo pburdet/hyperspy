@@ -100,13 +100,13 @@ class Image(Signal):
         if figure is None:
             figure = mlab.figure()
 
-        colors = [(1, 0, 0), (0, 1, 0), (0, 0.1, 0.9), 
-            (0, 0.5, 0.5), (0.5, 0, 0.5), (0.5, 0.5, 0),
-            (0.3, 0, 0.7), (0.7, 0, 0.3), (0.0, 0.3, 0.7), 
-            (0.0, 0.7, 0.3), (0.3, 0.7, 0.0), (0.7, 0.3, 0.0)]
+        colors = [(1, 0, 0), (0, 1, 0), (0, 0.1, 0.9),
+                  (0, 0.5, 0.5), (0.5, 0, 0.5), (0.5, 0.5, 0),
+                  (0.3, 0, 0.7), (0.7, 0, 0.3), (0.0, 0.3, 0.7),
+                  (0.0, 0.7, 0.3), (0.3, 0.7, 0.0), (0.7, 0.3, 0.0)]
 
         img_res = self.deepcopy()
-        
+
         src = img_res._get_mayavi_scalar_field()
         img_data = self.data
 
@@ -132,21 +132,21 @@ class Image(Signal):
             # mlab.outline()
 
         return figure, src, iso
-        
-    def _get_mayavi_scalar_field(self,return_data=False):
+
+    def _get_mayavi_scalar_field(self, return_data=False):
         """
         Return a mayavi scalar field from an image
-        
+
         Parameters
         ----------
         return_data:bool
             If return_data is True, return the data
             if False return the scalarfield
-        
+
         """
         from mayavi import mlab
-        
-        scale = [self.axes_manager[i].scale for i in [1, 2, 0]]       
+
+        scale = [self.axes_manager[i].scale for i in [1, 2, 0]]
 
         img_data = self.data
         img_data = np.rollaxis(img_data, 0, 3)
