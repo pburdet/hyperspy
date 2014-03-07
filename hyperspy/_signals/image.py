@@ -100,34 +100,24 @@ class Image(Signal):
         if figure is None:
             figure = mlab.figure()
 
-        colors = [(
-            1, 0, 0), (
-            0, 1, 0), (
-            0, 0.1, 0.9), (0, 0.5, 0.5), (0.5, 0, 0.5), (0.5, 0.5, 0),
-            (0.3, 0, 0.7), (0.7, 0, 0.3), (0.0,
-                                           0.3, 0.7), (0.0, 0.7, 0.3),
-            (0.3, 0.7, 0.0), (0.7, 0.3, 0.0)]
+        colors = [(1, 0, 0), (0, 1, 0), (0, 0.1, 0.9), 
+            (0, 0.5, 0.5), (0.5, 0, 0.5), (0.5, 0.5, 0),
+            (0.3, 0, 0.7), (0.7, 0, 0.3), (0.0, 0.3, 0.7), 
+            (0.0, 0.7, 0.3), (0.3, 0.7, 0.0), (0.7, 0.3, 0.0)]
 
         img_res = self.deepcopy()
-
-        img_data = img_res.data
-        img_data = np.rollaxis(img_data, 0, 3)
-        img_data = np.rollaxis(img_data, 0, 2)
-        src = mlab.pipeline.scalar_field(img_data)
-        src.name = img_res.metadata.title
+        
+        src = img_res._get_mayavi_scalar_field()
+        img_data = self.data
 
         if hasattr(threshold, "__iter__") is False:
             threshold = [threshold]
 
             if color is None:
                 color = colors[len(figure.children) - 1]
-                print color
 
         threshold = [img_data.max() - thr * img_data.ptp()
                      for thr in threshold]
-
-        scale = [img_res.axes_manager[i].scale for i in [1, 2, 0]]
-        src.spacing = scale
 
         if color is None:
             iso = mlab.pipeline.iso_surface(src,
@@ -142,3 +132,29 @@ class Image(Signal):
             # mlab.outline()
 
         return figure, src, iso
+        
+    def _get_mayavi_scalar_field(self,return_data=False):
+        """
+        Return a mayavi scalar field from an image
+        
+        Parameters
+        ----------
+        return_data:bool
+            If return_data is True, return the data
+            if False return the scalarfield
+        
+        """
+        from mayavi import mlab
+        
+        scale = [self.axes_manager[i].scale for i in [1, 2, 0]]       
+
+        img_data = self.data
+        img_data = np.rollaxis(img_data, 0, 3)
+        img_data = np.rollaxis(img_data, 0, 2)
+        src = mlab.pipeline.scalar_field(img_data)
+        src.name = self.metadata.title
+        src.spacing = scale
+        if return_data:
+            return img_data
+        else:
+            return src
