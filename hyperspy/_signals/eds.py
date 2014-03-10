@@ -1138,9 +1138,9 @@ class EDSSpectrum(Spectrum):
         ----------
 
         std_names: list of string or 'all'
-        
-        dtype: If dtype == None, get the highest dtype between spec and 
-            self. 
+
+        dtype: If dtype == None, get the highest dtype between spec and
+            self.
 
         Example
         -------
@@ -1173,7 +1173,6 @@ class EDSSpectrum(Spectrum):
             else:
                 raise ValueError(
                     "With std_names = 'all', the Sample.elements need to be set")
-
 
         dim_nav = list(self.axes_manager.navigation_shape)
         mean_counts = self.data.mean() * self.axes_manager.signal_shape[0]

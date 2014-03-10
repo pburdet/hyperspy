@@ -757,6 +757,7 @@ def load_EDSSEMSpectrum(filenames=None,
 # might be simplified with auto split...
 # must desappear
 
+
 def _set_result_signal_list(mp, result):
     """
     signal to list of signal use to load()
@@ -787,7 +788,7 @@ def _set_result_signal_list(mp, result):
         if result == 'standard_spec':
             # to change
             if number_of_parts == len(mp.Sample.Xray_lines):
-            #if number_of_parts == len(mp.Sample.elements):
+            # if number_of_parts == len(mp.Sample.elements):
                 el, li = _get_element_and_line(mp.Sample.Xray_lines[i])
                 #el, li = _get_element_and_line(mp.Sample.elements[i])
             else:
