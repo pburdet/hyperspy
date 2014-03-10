@@ -775,5 +775,5 @@ def stack(signal_list, axis=None, new_axis_name='stack_element',
     signal.metadata._Internal_parameters.set_item(
         'stacking_history.step_sizes',
         step_sizes)
-        
+
     return signal
