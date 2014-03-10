@@ -755,7 +755,7 @@ def load_EDSSEMSpectrum(filenames=None,
     return s
 
 # might be simplified with auto split...
-
+# must desappear
 
 def _set_result_signal_list(mp, result):
     """
@@ -787,7 +787,9 @@ def _set_result_signal_list(mp, result):
         if result == 'standard_spec':
             # to change
             if number_of_parts == len(mp.Sample.Xray_lines):
+            #if number_of_parts == len(mp.Sample.elements):
                 el, li = _get_element_and_line(mp.Sample.Xray_lines[i])
+                #el, li = _get_element_and_line(mp.Sample.elements[i])
             else:
                 el = mp.Sample.elements[i]
             tp.metadata.title = el + '_std'

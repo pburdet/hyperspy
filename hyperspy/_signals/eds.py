@@ -373,6 +373,7 @@ class EDSSpectrum(Spectrum):
                             lines_deconvolution=None,
                             bck=0,
                             plot_fit=False,
+                            signal_range=None,
                             **kwargs):
         """Return the intensity map of selected Xray lines.
 
@@ -415,6 +416,8 @@ class EDSSpectrum(Spectrum):
             Deconvolution of the line with a gaussian model. Take time
         bck : float
             background to substract. Only for deconvolution
+        signal_range:
+            For line_deconvolution, set the min max energy range
         kwargs
             The extra keyword arguments for plotting. See
             `utils.plot.plot_signals`
@@ -548,6 +551,8 @@ class EDSSpectrum(Spectrum):
                             fp.A.twin_inverse_function = lambda x: x / \
                                 ratio_line
                             m.append(fp)
+            if signal_range is not None:
+                m.set_signal_range(signal_range[0], signal_range[1])
             m.multifit()
             if plot_fit:
                 m.plot()
@@ -1123,7 +1128,7 @@ class EDSSpectrum(Spectrum):
 
         return m.as_signal()
 
-    def add_standards_to_signal(self, std_names):
+    def add_standards_to_signal(self, std_names, dtype=None):
         """
         Add to the data extra lines containing the selected standard.
 
@@ -1133,6 +1138,9 @@ class EDSSpectrum(Spectrum):
         ----------
 
         std_names: list of string or 'all'
+        
+        dtype: If dtype == None, get the highest dtype between spec and 
+            self. 
 
         Example
         -------
@@ -1166,21 +1174,24 @@ class EDSSpectrum(Spectrum):
                 raise ValueError(
                     "With std_names = 'all', the Sample.elements need to be set")
 
-        s_temp = self.deepcopy()
+
         dim_nav = list(self.axes_manager.navigation_shape)
-        for i in dim_nav:
-            s_temp = s_temp.mean(0)
-        mean_counts = s_temp.sum(0).data
+        mean_counts = self.data.mean() * self.axes_manager.signal_shape[0]
         spec_result = self.deepcopy()
+
         for std in std_names:
             std_spec = self.get_result(std, 'standard_spec').deepcopy()
-            fact = mean_counts / std_spec.sum(0).data
+            fact = mean_counts / std_spec.data.sum()
             std_noise = std_spec * fact
+
             for dim in [1] + dim_nav[1:]:
                 std_noise = utils.stack([std_noise] * dim)
                 del std_noise.original_metadata.stack_elements
             std_noise.add_poissonian_noise()
+            if dtype is not None:
+                std_noise.change_dtype(dtype)
             spec_result = utils.stack([spec_result, std_noise], axis=0)
+
         del spec_result.original_metadata.stack_elements
 
         return spec_result

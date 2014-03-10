@@ -468,63 +468,7 @@ class EDSSEMSpectrum(EDSSpectrum):
                                  plot_result)
             i += 1
 
-    # should use get_lines_intensity
-    def deconvolve_intensity(self, width_windows='all', plot_result=True):
-        """
-        Calculate the intensity by fitting standard spectra to the spectrum.
-
-        Deconvoluted intensity is thus obtained compared to
-        get_intensity_map
-
-        Needs standard to be set
-
-        Parameters
-        ----------
-
-        width_windows: 'all' | [min energy, max energy]
-            Set the energy windows in which the fit is done. If 'all'
-            (default option), the whole energy range is used.
-
-        plot_result : bool
-            If True (default option), plot the intensity maps.
-
-        See also
-        --------
-
-        set_elements, link_standard, get_intensity_map
-
-
-        """
-        print 'This is obsolete, use get_lines_intensity instead'
-        from hyperspy.hspy import create_model
-        m = create_model(self)
-        mp = self.metadata
-
-        elements = mp.Sample.elements
-
-        fps = []
-        for element in elements:
-            std = self.get_result(element, 'standard_spec')
-            fp = components.ScalableFixedPattern(std)
-            fp.set_parameters_not_free(['offset', 'xscale', 'shift'])
-            fps.append(fp)
-            m.append(fps[-1])
-        if width_windows != 'all':
-            m.set_signal_range(width_windows[0], width_windows[1])
-        m.multifit(fitter='leastsq')
-        mp.Sample.intensities = list(np.zeros(len(elements)))
-        i = 0
-        for element in elements:
-            if (self.axes_manager.navigation_dimension == 0):
-                self._set_result(element, 'intensities',
-                                 fps[i].yscale.value, plot_result)
-                if plot_result and i == 0:
-                    m.plot()
-                    plt.title('Fitted standard')
-            else:
-                self._set_result(element, 'intensities',
-                                 fps[i].yscale.as_signal().data, plot_result)
-            i += 1
+  
 
     def check_kratio(self, Xray_lines, width_energy='auto',
                      top_hat_applied=False,
@@ -1363,8 +1307,8 @@ class EDSSEMSpectrum(EDSSpectrum):
         if hasattr(mp, 'Sample'):
             if hasattr(mp.Sample, 'standard_spec'):
                 l_time = []
-                # for el in range(len(mp.Sample.elements)):
-                for el in range(len(mp.Sample.Xray_lines)):
+                for el in range(len(mp.Sample.elements)):
+                #for el in range(len(mp.Sample.Xray_lines)):
                     l_time.append(
                         mp.Sample.standard_spec[el].metadata.SEM.EDS.live_time)
                 std = copy.deepcopy(mp.Sample.standard_spec)
@@ -1816,3 +1760,62 @@ class EDSSEMSpectrum(EDSSpectrum):
         #img_total = img_0.deepcopy
         #img_total.data = data_total
         # return img_total
+        
+        
+      # should use get_lines_intensity
+    #def deconvolve_intensity(self, width_windows='all', plot_result=True):
+        #"""
+        #Calculate the intensity by fitting standard spectra to the spectrum.
+
+        #Deconvoluted intensity is thus obtained compared to
+        #get_intensity_map
+
+        #Needs standard to be set
+
+        #Parameters
+        #----------
+
+        #width_windows: 'all' | [min energy, max energy]
+            #Set the energy windows in which the fit is done. If 'all'
+            #(default option), the whole energy range is used.
+
+        #plot_result : bool
+            #If True (default option), plot the intensity maps.
+
+        #See also
+        #--------
+
+        #set_elements, link_standard, get_intensity_map
+
+
+        #"""
+        #print 'This is obsolete, use get_lines_intensity instead'
+        #from hyperspy.hspy import create_model
+        #m = create_model(self)
+        #mp = self.metadata
+
+        #elements = mp.Sample.elements
+
+        #fps = []
+        #for element in elements:
+            #std = self.get_result(element, 'standard_spec')
+            #fp = components.ScalableFixedPattern(std)
+            #fp.set_parameters_not_free(['offset', 'xscale', 'shift'])
+            #fps.append(fp)
+            #m.append(fps[-1])
+        #if width_windows != 'all':
+            #m.set_signal_range(width_windows[0], width_windows[1])
+        #m.multifit(fitter='leastsq')
+        #mp.Sample.intensities = list(np.zeros(len(elements)))
+        #i = 0
+        #for element in elements:
+            #if (self.axes_manager.navigation_dimension == 0):
+                #self._set_result(element, 'intensities',
+                                 #fps[i].yscale.value, plot_result)
+                #if plot_result and i == 0:
+                    #m.plot()
+                    #plt.title('Fitted standard')
+            #else:
+                #self._set_result(element, 'intensities',
+                                 #fps[i].yscale.as_signal().data, plot_result)
+            #i += 1
