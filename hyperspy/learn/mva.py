@@ -143,6 +143,10 @@ class MVA():
                 ' e.g. s.change_dtype(\'float64\')\n'
                 'Nothing done.')
             return
+
+        if self.axes_manager.navigation_size < 2:
+            raise AttributeError("It is not possible to decompose a dataset "
+                                 "with navigation_dimension < 2")
         # backup the original data
         self._data_before_treatments = self.data.copy()
 
@@ -334,7 +338,7 @@ class MVA():
 
             if self._unfolded4decomposition is True:
                 folding = \
-                    self.metadata._internal_parameters.folding
+                    self.metadata._Internal_parameters.folding
                 target.original_shape = folding.original_shape
 
             # Reproject

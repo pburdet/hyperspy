@@ -251,6 +251,7 @@ class DictionaryTreeBrowser(object):
         self.__setattr__(key, value)
 
     def __getattribute__(self, name):
+        name = slugify(name, valid_variable_name=True)
         item = super(DictionaryTreeBrowser, self).__getattribute__(name)
         if isinstance(item, dict) and 'value' in item:
             return item['value']
@@ -768,7 +769,11 @@ def stack(signal_list, axis=None, new_axis_name='stack_element',
     else:
         step_sizes = [obj.axes_manager.shape[axis_input]
                       for obj in signal_list]
-    signal.metadata.set_item('stacking_history.axis', axis_input)
-    signal.metadata.set_item('stacking_history.step_sizes', step_sizes)
-
+    signal.metadata._Internal_parameters.set_item(
+        'stacking_history.axis',
+        axis_input)
+    signal.metadata._Internal_parameters.set_item(
+        'stacking_history.step_sizes',
+        step_sizes)
+        
     return signal
