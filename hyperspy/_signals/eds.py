@@ -439,7 +439,7 @@ class EDSSpectrum(Spectrum):
         """
 
         from hyperspy.hspy import create_model
-        
+
         if xray_lines is None:
             if 'Sample.xray_lines' in self.metadata:
                 xray_lines = self.metadata.Sample.xray_lines
@@ -682,8 +682,9 @@ class EDSSpectrum(Spectrum):
         element, line = utils_eds._get_element_and_line(xray_line)
         Xray_energy = elements_db[element]['Atomic_properties'][
             'xray_lines'][line]['energy (keV)']
-        FWHM = utils_eds.get_FWHM_at_Energy(mp.SEM.Detector.EDS.energy_resolution_MnKa,
-                                            Xray_energy)
+        FWHM = utils_eds.get_FWHM_at_Energy(
+            mp.SEM.Detector.EDS.energy_resolution_MnKa,
+            Xray_energy)
         if bck == 'auto':
             spec_bck = self[Xray_energy + 2.5 * FWHM:Xray_energy + 2.7 * FWHM]
             bck = spec_bck.sum(0).data / spec_bck.axes_manager.shape[0]

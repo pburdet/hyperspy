@@ -355,8 +355,11 @@ def simulate_one_spectrum(nTraj, dose=100, mp='gui',
     tilt = np.radians(mp.Acquisition_instrument.SEM.tilt_stage)
     #tilt = np.radians(abs(mp.Acquisition_instrument.SEM.tilt_stage))
     ltime = mp.Acquisition_instrument.SEM.Detector.EDS.live_time
-    elevation = np.radians(mp.Acquisition_instrument.SEM.Detector.EDS.elevation_angle)
-    azim = np.radians(90 - mp.Acquisition_instrument.SEM.Detector.EDS.azimuth_angle)
+    elevation = np.radians(
+        mp.Acquisition_instrument.SEM.Detector.EDS.elevation_angle)
+    azim = np.radians(
+        90 -
+        mp.Acquisition_instrument.SEM.Detector.EDS.azimuth_angle)
     # if mp.Acquisition_instrument.SEM.Detector.EDS.azimuth_angle==90:
     #    tilt = np.radians(abs(mp.Acquisition_instrument.SEM.tilt_stage))
     TOangle = np.radians(spec.get_take_off_angle())
@@ -597,8 +600,11 @@ def simulate_Xray_depth_distribution(nTraj, bins=120, mp='gui',
     e0 = mp.Acquisition_instrument.SEM.beam_energy
     tilt = np.radians(mp.Acquisition_instrument.SEM.tilt_stage)
     ltime = mp.Acquisition_instrument.SEM.Detector.EDS.live_time
-    elevation = np.radians(mp.Acquisition_instrument.SEM.Detector.EDS.elevation_angle)
-    azim = np.radians(90 - mp.Acquisition_instrument.SEM.Detector.EDS.azimuth_angle)
+    elevation = np.radians(
+        mp.Acquisition_instrument.SEM.Detector.EDS.elevation_angle)
+    azim = np.radians(
+        90 -
+        mp.Acquisition_instrument.SEM.Detector.EDS.azimuth_angle)
 
     if gateway == 'auto':
         gateway = get_link_to_jython()
@@ -794,7 +800,8 @@ def _set_result_signal_list(mp, result):
             else:
                 el = mp.Sample.elements[i]
             tp.metadata.General.title = el + '_std'
-            tp.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time = l_time[i]
+            tp.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time = l_time[
+                i]
         elif number_of_parts == len(mp.Sample.xray_lines):
             tp.metadata.General.title = result + ' ' + mp.Sample.xray_lines[i]
         elif number_of_parts == len(mp.Sample.elements):
@@ -1160,7 +1167,7 @@ def compare_histograms_results(specs,
             re = results[i].deepcopy()
             # print 'Normalise x not available yet'
             re.metadata.General.title = (element + ' ' +
-                                 re.metadata.General.title + ' ' + spec.metadata.General.title)
+                                         re.metadata.General.title + ' ' + spec.metadata.General.title)
         #data = re.data.flatten()
         #center, hist1 = _histo_data_plot(data,bins)
         hist_tmp = re.get_histogram(bins)
@@ -1278,8 +1285,11 @@ def simulate_linescan(nTraj,
     e0 = mp.Acquisition_instrument.SEM.beam_energy
     tilt = np.radians(mp.Acquisition_instrument.SEM.tilt_stage)
     ltime = mp.Acquisition_instrument.SEM.Detector.EDS.live_time
-    elevation = np.radians(mp.Acquisition_instrument.SEM.Detector.EDS.elevation_angle)
-    azim = np.radians(90 - mp.Acquisition_instrument.SEM.Detector.EDS.azimuth_angle)
+    elevation = np.radians(
+        mp.Acquisition_instrument.SEM.Detector.EDS.elevation_angle)
+    azim = np.radians(
+        90 -
+        mp.Acquisition_instrument.SEM.Detector.EDS.azimuth_angle)
 
     if gateway == 'auto':
         gateway = get_link_to_jython()
