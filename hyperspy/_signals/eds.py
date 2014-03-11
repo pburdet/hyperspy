@@ -471,7 +471,7 @@ class EDSSpectrum(Spectrum):
                 line_energy = elements_db[
                     element][
                     'Atomic_properties'][
-                    'xray_lines'][
+                    'Xray_lines'][
                     line][
                     'energy (keV)']
                 line_FWHM = utils_eds.get_FWHM_at_Energy(
@@ -510,7 +510,7 @@ class EDSSpectrum(Spectrum):
                 line_energy = elements_db[
                     element][
                     'Atomic_properties'][
-                    'xray_lines'][
+                    'Xray_lines'][
                     line][
                     'energy (keV)']
                 line_FWHM = utils_eds.get_FWHM_at_Energy(
@@ -562,7 +562,7 @@ class EDSSpectrum(Spectrum):
                 xray_line = xray_lines[i]
                 element, line = utils_eds._get_element_and_line(xray_line)
                 line_energy = elements_db[element]['Atomic_properties'][
-                    'xray_lines'][line]['energy (keV)']
+                    'Xray_lines'][line]['energy (keV)']
 
                 if self.axes_manager.navigation_dimension == 0:
                     if lines_deconvolution == 'model':
@@ -643,12 +643,12 @@ class EDSSpectrum(Spectrum):
                               weights=kernel, **kwargs)
         result = result.as_spectrum(0)
 
-        if hasattr(result.metadata, 'SEM'):
-            mp = result.metadata.SEM
+        if hasattr(result.metadata.Acquisition_instrument, 'SEM'):
+            mp = result.metadata.Acquisition_instrument.SEM
         else:
-            mp = result.metadata.TEM
-        if hasattr(mp, 'EDS') and hasattr(mp.EDS, 'live_time'):
-            mp.EDS.live_time = mp.EDS.live_time * np.sum(kernel)
+            mp = result.metadata.Acquisition_instrument.TEM
+        if 'Detector.EDS.live_time' in mp:
+            mp.Detector.EDS.live_time = mp.Detector.EDS.live_time * np.sum(kernel)
 
         return result
     # can be improved, other fit
@@ -681,7 +681,7 @@ class EDSSpectrum(Spectrum):
         mp = self.metadata
         element, line = utils_eds._get_element_and_line(xray_line)
         Xray_energy = elements_db[element]['Atomic_properties'][
-            'xray_lines'][line]['energy (keV)']
+            'Xray_lines'][line]['energy (keV)']
         FWHM = utils_eds.get_FWHM_at_Energy(
             mp.SEM.Detector.EDS.energy_resolution_MnKa,
             Xray_energy)
@@ -953,7 +953,7 @@ class EDSSpectrum(Spectrum):
                                        elevation_angle)
         return TOA
 
-    def plot_xray_lines(self,
+    def plot_Xray_lines(self,
                         xray_lines=None,
                         only_one=False,
                         only_lines=("a", "b"),
@@ -1017,7 +1017,7 @@ class EDSSpectrum(Spectrum):
             relative_factor = elements_db[element]['Atomic_properties']['Xray_lines'][
                 line]['factor']
             a_eng = elements_db[element]['Atomic_properties'][
-                'xray_lines'][line[0] + 'a']['energy (keV)']
+                'Xray_lines'][line[0] + 'a']['energy (keV)']
             # if fixed_height:
                 # intensity.append(self[..., a_eng].data.flatten().mean()
                              #* relative_factor)
@@ -1281,8 +1281,8 @@ class EDSSpectrum(Spectrum):
             #mp = self.metadata.Acquisition_instrument.SEM
         # else:
             #mp = self.metadata.TEM
-        # if hasattr(mp, 'EDS') and hasattr(mp.EDS, 'live_time'):
-            #mp.EDS.live_time = mp.EDS.live_time * len(end_mirrors)
+        # if hasattr(mp, 'EDS') and hasattr(mp.Detector.EDS, 'live_time'):
+            #mp.Detector.EDS.live_time = mp.Detector.EDS.live_time * len(end_mirrors)
         #self.data = data_s
 ############################
     # def plot_xray_line(self, line_to_plot='selected'):

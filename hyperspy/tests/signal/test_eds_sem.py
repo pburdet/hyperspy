@@ -181,14 +181,14 @@ class Test_quantification:
         energy_axis.scale = 1e-2
         energy_axis.units = 'keV'
         energy_axis.name = "Energy"
-        s.metadata.SEM.EDS.live_time = 3.1
-        s.metadata.SEM.beam_energy = 15.0
+        s.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time = 3.1
+        s.metadata.Acquisition_instrument.SEM.beam_energy = 15.0
 
         gauss = Gaussian()
         line_energy = elements_EDS.Al.Atomic_properties.Xray_lines.Ka.energy_keV
         gauss.centre.value = line_energy
         gauss.A.value = 500
-        FWHM_MnKa = s.metadata.SEM.EDS.energy_resolution_MnKa
+        FWHM_MnKa = s.metadata.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa
         gauss.sigma.value = utils_eds.get_FWHM_at_Energy(
             FWHM_MnKa,
             line_energy)
@@ -197,7 +197,7 @@ class Test_quantification:
         line_energy = elements_EDS.Zn.Atomic_properties.Xray_lines.La.energy_keV
         gauss2.centre.value = line_energy
         gauss2.A.value = 300
-        FWHM_MnKa = s.metadata.SEM.EDS.energy_resolution_MnKa
+        FWHM_MnKa = s.metadata.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa
         gauss2.sigma.value = utils_eds.get_FWHM_at_Energy(
             FWHM_MnKa,
             line_energy)
@@ -210,13 +210,13 @@ class Test_quantification:
 
         stdAl = s[0, 0, 0].deepcopy()
         gauss.A.value = 12000
-        stdAl.metadata.SEM.EDS.live_time = 31
+        stdAl.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time = 31
         stdAl.data[:] = gauss.function(energy_axis.axis)
         stdAl.metadata.title = 'Al_std'
 
         stdZn = s[0, 0, 0].deepcopy()
         gauss2.A.value = 13000
-        stdZn.metadata.SEM.EDS.live_time = 32
+        stdZn.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time = 32
         stdZn.data[:] = gauss2.function(energy_axis.axis)
         stdZn.metadata.title = 'Zn_std'
 
@@ -307,8 +307,8 @@ class Test_simulation:
         energy_axis.scale = 1e-2
         energy_axis.units = 'keV'
         energy_axis.name = "Energy"
-        s.metadata.SEM.EDS.live_time = 3.1
-        s.metadata.SEM.beam_energy = 15.0
+        s.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time = 3.1
+        s.metadata.Acquisition_instrument.SEM.beam_energy = 15.0
 
         s.set_elements(('Al', 'Zn'))
         s.add_lines()
@@ -332,8 +332,8 @@ class Test_electron_distribution:
         energy_axis.scale = 1e-2
         energy_axis.units = 'keV'
         energy_axis.name = "Energy"
-        s.metadata.SEM.EDS.live_time = 3.1
-        s.metadata.SEM.beam_energy = 5.0
+        s.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time = 3.1
+        s.metadata.Acquisition_instrument.SEM.beam_energy = 5.0
 
         nav_axis = s.axes_manager.navigation_axes
         units_name = '${\mu}m$'
@@ -361,8 +361,8 @@ class Test_convolve_sum:
         energy_axis.scale = 1e-2
         energy_axis.units = 'keV'
         energy_axis.name = "Energy"
-        s.metadata.SEM.EDS.live_time = 3.1
-        s.metadata.SEM.beam_energy = 15.0
+        s.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time = 3.1
+        s.metadata.Acquisition_instrument.SEM.beam_energy = 15.0
 
         self.signal = s
 
@@ -378,7 +378,7 @@ class Test_convolve_sum:
         # s.running_sum()
         #assert_equal(s[0, 0, 0].data[0], 16.)
 
-        #assert_equal(s.metadata.SEM.EDS.live_time, 49.6)
+        #assert_equal(s.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time, 49.6)
 
     def test_convolve_sum(self):
         s = self.signal
@@ -392,7 +392,7 @@ class Test_convolve_sum:
         res = s.convolve_sum(size=4)
         assert_equal(res[0, 0, 0].data[0], 16.)
 
-        assert_equal(res.metadata.SEM.EDS.live_time, 49.6)
+        assert_equal(res.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time, 49.6)
 
 
 class Test_plot_Xray_lines:
@@ -403,8 +403,8 @@ class Test_plot_Xray_lines:
         energy_axis.scale = 1e-2
         energy_axis.units = 'keV'
         energy_axis.name = "Energy"
-        s.metadata.SEM.EDS.live_time = 3.1
-        s.metadata.SEM.beam_energy = 15.0
+        s.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time = 3.1
+        s.metadata.Acquisition_instrument.SEM.beam_energy = 15.0
 
         s.set_elements(('Al', 'Zn'))
         s.add_lines()
