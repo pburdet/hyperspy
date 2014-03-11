@@ -265,9 +265,9 @@ class EDSSpectrum(Spectrum):
             if element in elements_db:
                 elements.add(element)
                 if subshell in elements_db[element]['Atomic_properties']['Xray_lines']:
-                    lines_len = len(Xray_lines)
-                    Xray_lines.add(line)
-                    # if lines_len != len(Xray_lines):
+                    lines_len = len(xray_lines)
+                    xray_lines.add(line)
+                    # if lines_len != len(xray_lines):
                     #    print("%s line added," % line)
                     # else:
                     #    print("%s line already in." % line)
@@ -466,12 +466,12 @@ class EDSSpectrum(Spectrum):
         # test 1D Spectrum (0D problem)
             #signal_to_index = self.axes_manager.navigation_dimension - 2
         if lines_deconvolution is None:
-            for Xray_line in Xray_lines:
-                element, line = utils_eds._get_element_and_line(Xray_line)
+            for xray_line in xray_lines:
+                element, line = utils_eds._get_element_and_line(xray_line)
                 line_energy = elements_db[
                     element][
                     'Atomic_properties'][
-                    'Xray_lines'][
+                    'xray_lines'][
                     line][
                     'energy (keV)']
                 line_FWHM = utils_eds.get_FWHM_at_Energy(
@@ -480,19 +480,19 @@ class EDSSpectrum(Spectrum):
                 det = integration_window_factor * line_FWHM / 2.
                 img = self[..., line_energy - det:line_energy + det
                            ].sum(-1)
-                img.metadata.title = (
+                img.metadata.General.title = (
                     'Intensity of %s at %.2f %s from %s' %
-                    (Xray_line,
+                    (xray_line,
                      line_energy,
                      self.axes_manager.signal_axes[0].units,
-                     self.metadata.title))
+                     self.metadata.General.title))
                 if img.axes_manager.navigation_dimension >= 2:
                     img = img.as_image([0, 1])
                 elif img.axes_manager.navigation_dimension == 1:
                     img.axes_manager.set_signal_dimension(1)
                 if plot_result and img.axes_manager.signal_dimension == 0:
                     print("%s at %s %s : Intensity = %.2f"
-                          % (Xray_line,
+                          % (xray_line,
                              line_energy,
                              self.axes_manager.signal_axes[0].units,
                              img.data))
@@ -505,12 +505,12 @@ class EDSSpectrum(Spectrum):
                 s = self - bck
                 m = create_model(s)
 
-            for Xray_line in Xray_lines:
-                element, line = utils_eds._get_element_and_line(Xray_line)
+            for xray_line in xray_lines:
+                element, line = utils_eds._get_element_and_line(xray_line)
                 line_energy = elements_db[
                     element][
                     'Atomic_properties'][
-                    'Xray_lines'][
+                    'xray_lines'][
                     line][
                     'energy (keV)']
                 line_FWHM = utils_eds.get_FWHM_at_Energy(
@@ -519,7 +519,7 @@ class EDSSpectrum(Spectrum):
                 if lines_deconvolution == 'model':
                     fp = create_component.Gaussian()
                     fp.centre.value = line_energy
-                    fp.name = Xray_line
+                    fp.name = xray_line
                     fp.sigma.value = line_FWHM / 2.355
                     fp.centre.free = False
                     fp.sigma.free = False
@@ -559,10 +559,10 @@ class EDSSpectrum(Spectrum):
                 m.plot()
                 plt.title('Fit')
             for i, fp in enumerate(fps):
-                Xray_line = Xray_lines[i]
-                element, line = utils_eds._get_element_and_line(Xray_line)
+                xray_line = xray_lines[i]
+                element, line = utils_eds._get_element_and_line(xray_line)
                 line_energy = elements_db[element]['Atomic_properties'][
-                    'Xray_lines'][line]['energy (keV)']
+                    'xray_lines'][line]['energy (keV)']
 
                 if self.axes_manager.navigation_dimension == 0:
                     if lines_deconvolution == 'model':
@@ -574,7 +574,7 @@ class EDSSpectrum(Spectrum):
                         data_res = fp.A.as_signal().data
                     elif lines_deconvolution == 'standard':
                         data_res = fp.yscale.as_signal().data
-                img = self._set_result(Xray_line, 'Int',
+                img = self._set_result(xray_line, 'Int',
                                        data_res, plot_result=False,
                                        store_in_mp=False)
 
@@ -598,19 +598,19 @@ class EDSSpectrum(Spectrum):
                     # elif lines_deconvolution == 'standard':
                         #img.data = fp.yscale.value
 
-                img.metadata.title = (
+                img.metadata.General.title = (
                     'Intensity of %s at %.2f %s from %s' %
-                    (Xray_line,
+                    (xray_line,
                      line_energy,
                      self.axes_manager.signal_axes[0].units,
-                     self.metadata.title))
+                     self.metadata.General.title))
                 if img.axes_manager.navigation_dimension >= 2:
                     img = img.as_image([0, 1])
                 elif img.axes_manager.navigation_dimension == 1:
                     img.axes_manager.set_signal_dimension(1)
                 if plot_result and img.axes_manager.signal_dimension == 0:
                     print("%s at %s %s : Intensity = %.2f"
-                          % (Xray_line,
+                          % (xray_line,
                              line_energy,
                              self.axes_manager.signal_axes[0].units,
                              img.data))
@@ -653,7 +653,7 @@ class EDSSpectrum(Spectrum):
         return result
     # can be improved, other fit
 
-    def calibrate_energy_resolution(self, Xray_line, bck='auto',
+    def calibrate_energy_resolution(self, xray_line, bck='auto',
                                     set_Mn_Ka=True, model_plot=True):
         """
         Calibrate the energy resolution from a peak
@@ -662,7 +662,7 @@ class EDSSpectrum(Spectrum):
         extrapolate to FWHM of Mn Ka
 
         Parameters:
-        Xray_line : str
+        xray_line : str
             the selected X-ray line. It shouldn't have peak around
 
         bck: float | 'auto'
@@ -679,10 +679,10 @@ class EDSSpectrum(Spectrum):
 
         from hyperspy.hspy import create_model
         mp = self.metadata
-        element, line = utils_eds._get_element_and_line(Xray_line)
+        element, line = utils_eds._get_element_and_line(xray_line)
         Xray_energy = elements_db[element]['Atomic_properties'][
-            'Xray_lines'][line]['energy (keV)']
-        FWHM = utils_eds.get_FWHM_at_Energy(mp.SEM.EDS.energy_resolution_MnKa,
+            'xray_lines'][line]['energy (keV)']
+        FWHM = utils_eds.get_FWHM_at_Energy(mp.SEM.Detector.EDS.energy_resolution_MnKa,
                                             Xray_energy)
         if bck == 'auto':
             spec_bck = self[Xray_energy + 2.5 * FWHM:Xray_energy + 2.7 * FWHM]
@@ -702,15 +702,15 @@ class EDSSpectrum(Spectrum):
         res_MnKa = utils_eds.get_FWHM_at_Energy(fp.sigma.value * 2.355 * 1000,
                                                 elements_db['Mn'][
                                                     'Atomic_properties']['Xray_lines'][
-                                                    'Ka']['energy (keV)'], Xray_line)
+                                                    'Ka']['energy (keV)'], xray_line)
         if set_Mn_Ka:
-            mp.SEM.EDS.energy_resolution_MnKa = res_MnKa * 1000
+            mp.SEM.Detector.EDS.energy_resolution_MnKa = res_MnKa * 1000
             print 'Resolution at Mn Ka ', res_MnKa * 1000
             print 'Shift eng eV ', (Xray_energy - fp.centre.value) * 1000
         else:
             return res_MnKa * 1000
 
-    def get_result(self, Xray_line, result):
+    def get_result(self, xray_line, result):
         """
         get the result of one X-ray line (result stored in
         'metadata.Sample'):
@@ -720,18 +720,18 @@ class EDSSpectrum(Spectrum):
         result : string {'kratios'|'quant'|'intensities'}
             The result to get
 
-        Xray_lines: string
+        xray_lines: string
             the X-ray line to get.
 
         """
         mp = self.metadata
         for res in mp.Sample[result]:
-            if Xray_line in res.metadata.title:
+            if xray_line in res.metadata.General.title:
                 return res
         raise ValueError("Didn't find it")
 
 #_get_navigation_signal do a great job, should use it
-    def _set_result(self, Xray_line, result, data_res, plot_result,
+    def _set_result(self, xray_line, result, data_res, plot_result,
                     store_in_mp=True):
         """
         Transform data_res (a result) into an image or a signal and
@@ -740,14 +740,14 @@ class EDSSpectrum(Spectrum):
 
         mp = self.metadata
         if mp.has_item('Sample'):
-            if mp.Sample.has_item('Xray_lines'):
-                if len(Xray_line) < 3:
-                    Xray_lines = mp.Sample.elements
+            if mp.Sample.has_item('xray_lines'):
+                if len(xray_line) < 3:
+                    xray_lines = mp.Sample.elements
                 else:
-                    Xray_lines = mp.Sample.Xray_lines
+                    xray_lines = mp.Sample.xray_lines
 
-                for j in range(len(Xray_lines)):
-                    if Xray_line == Xray_lines[j]:
+                for j in range(len(xray_lines)):
+                    if xray_line == xray_lines[j]:
                         break
 
         axes_res = self.axes_manager.deepcopy()
@@ -760,15 +760,15 @@ class EDSSpectrum(Spectrum):
             res_img.axes_manager = axes_res
             if self.axes_manager.navigation_dimension > 1:
                 res_img = res_img.as_image([0, 1])
-        res_img.metadata.title = result + ' ' + Xray_line
+        res_img.metadata.General.title = result + ' ' + xray_line
         if plot_result:
             if self.axes_manager.navigation_dimension == 0:
                 # to be changed with new version
-                print("%s of %s : %s" % (result, Xray_line, data_res))
+                print("%s of %s : %s" % (result, xray_line, data_res))
             else:
                 res_img.plot(None)
         # else:
-        #    print("%s of %s calculated" % (result, Xray_line))
+        #    print("%s of %s calculated" % (result, xray_line))
 
         res_img.get_dimensions_from_data()
 
@@ -814,7 +814,7 @@ class EDSSpectrum(Spectrum):
             return res
         else:
             for el in res:
-                if return_element in el.metadata.title:
+                if return_element in el.metadata.General.title:
                     return el
 
     def plot_histogram_result(self,
@@ -856,7 +856,7 @@ class EDSSpectrum(Spectrum):
 
         legend: None | list of str | 'auto'
            If list of string, legend for "cascade" or title for "mosaic" is
-           displayed. If 'auto', the title of each spectra (metadata.title)
+           displayed. If 'auto', the title of each spectra (metadata.General.title)
            is used.
 
         fig : {matplotlib figure, None}
@@ -952,8 +952,8 @@ class EDSSpectrum(Spectrum):
                                        elevation_angle)
         return TOA
 
-    def plot_Xray_lines(self,
-                        Xray_lines=None,
+    def plot_xray_lines(self,
+                        xray_lines=None,
                         only_one=False,
                         only_lines=("a", "b"),
                         **kwargs):
@@ -963,11 +963,11 @@ class EDSSpectrum(Spectrum):
 
         Parameters
         ----------
-        Xray_lines: None or list of string
+        xray_lines: None or list of string
             If None,
-            if `mapped.parameters.Sample.elements.Xray_lines` contains a
+            if `mapped.parameters.Sample.elements.xray_lines` contains a
             list of lines use those.
-            If `mapped.parameters.Sample.elements.Xray_lines` is undefined
+            If `mapped.parameters.Sample.elements.xray_lines` is undefined
             or empty but `mapped.parameters.Sample.elements` is defined,
             use the same syntax as `add_line` to select a subset of lines
             for the operation.
@@ -995,11 +995,11 @@ class EDSSpectrum(Spectrum):
                 elif only_line == 'b':
                     only_lines.extend(['Kb', 'Lb1', 'Mb'])
 
-        if Xray_lines is None:
-            if 'Sample.Xray_lines' in self.metadata:
-                Xray_lines = self.metadata.Sample.Xray_lines
+        if xray_lines is None:
+            if 'Sample.xray_lines' in self.metadata:
+                xray_lines = self.metadata.Sample.xray_lines
             elif 'Sample.elements' in self.metadata:
-                Xray_lines = self._get_lines_from_elements(
+                xray_lines = self._get_lines_from_elements(
                     self.metadata.Sample.elements,
                     only_one=only_one,
                     only_lines=only_lines)
@@ -1009,14 +1009,14 @@ class EDSSpectrum(Spectrum):
 
         line_energy = []
         intensity = []
-        for Xray_line in Xray_lines:
-            element, line = utils_eds._get_element_and_line(Xray_line)
+        for xray_line in xray_lines:
+            element, line = utils_eds._get_element_and_line(xray_line)
             line_energy.append(elements_db[element]['Atomic_properties']['Xray_lines'][
                 line]['energy (keV)'])
             relative_factor = elements_db[element]['Atomic_properties']['Xray_lines'][
                 line]['factor']
             a_eng = elements_db[element]['Atomic_properties'][
-                'Xray_lines'][line[0] + 'a']['energy (keV)']
+                'xray_lines'][line[0] + 'a']['energy (keV)']
             # if fixed_height:
                 # intensity.append(self[..., a_eng].data.flatten().mean()
                              #* relative_factor)
@@ -1035,7 +1035,7 @@ class EDSSpectrum(Spectrum):
             text.type = 'text'
             text.set_marker_properties(rotation=90)
             text.set_data(x1=line_energy[i],
-                          y1=intensity[i] * 1.1, text=Xray_lines[i])
+                          y1=intensity[i] * 1.1, text=xray_lines[i])
             self._plot.signal_plot.add_marker(text)
             text.plot()
 
@@ -1277,14 +1277,14 @@ class EDSSpectrum(Spectrum):
                                     # tmp_s[..., end_mirror[1], :], axis=-2)
             #data_s = data_s[..., 1:-2, :, :][..., 1:-2, :]
         # if hasattr(self.metadata, 'SEM'):
-            #mp = self.metadata.SEM
+            #mp = self.metadata.Acquisition_instrument.SEM
         # else:
             #mp = self.metadata.TEM
         # if hasattr(mp, 'EDS') and hasattr(mp.EDS, 'live_time'):
             #mp.EDS.live_time = mp.EDS.live_time * len(end_mirrors)
         #self.data = data_s
 ############################
-    # def plot_Xray_line(self, line_to_plot='selected'):
+    # def plot_xray_line(self, line_to_plot='selected'):
         #"""
         # Annotate a spec.plot() with the name of the selected X-ray
         # lines
@@ -1302,8 +1302,8 @@ class EDSSpectrum(Spectrum):
             #raise ValueError("Works only for single spectrum")
         #mp = self.metadata
         # if hasattr(self.metadata, 'SEM') and\
-                # hasattr(self.metadata.SEM, 'beam_energy'):
-            #beam_energy = mp.SEM.beam_energy
+                # hasattr(self.metadata.Acquisition_instrument.SEM, 'beam_energy'):
+            #beam_energy = mp.Acquisition_instrument.SEM.beam_energy
         # elif hasattr(self.metadata, 'TEM') and\
                 # hasattr(self.metadata.TEM, 'beam_energy'):
             #beam_energy = mp.TEM.beam_energy
@@ -1312,9 +1312,9 @@ class EDSSpectrum(Spectrum):
         #elements = []
         #lines = []
         # if line_to_plot == 'selected':
-            #Xray_lines = mp.Sample.Xray_lines
-            # for Xray_line in Xray_lines:
-                #element, line = utils_eds._get_element_and_line(Xray_line)
+            #xray_lines = mp.Sample.xray_lines
+            # for xray_line in xray_lines:
+                #element, line = utils_eds._get_element_and_line(xray_line)
                 # elements.append(element)
                 # lines.append(line)
         # else:
@@ -1331,7 +1331,7 @@ class EDSSpectrum(Spectrum):
                         # elif line_to_plot == 'all':
                             # elements.append(element)
                             # lines.append(line)
-        #Xray_lines = []
+        #xray_lines = []
         #line_energy = []
         #intensity = []
         # for i, element in enumerate(elements):
@@ -1342,9 +1342,9 @@ class EDSSpectrum(Spectrum):
                 #relative_factor = elements_db['lines']['ratio_line'][lines[i]]
                 #a_eng = elements_db[element]['Atomic_properties']['Xray_lines'][lines[i][0] + 'a']
                 #intensity.append(self[a_eng].data[0] * relative_factor)
-            #Xray_lines.append(element + '_' + lines[i])
+            #xray_lines.append(element + '_' + lines[i])
         # self.plot()
         # for i in range(len(line_energy)):
-            # plt.text(line_energy[i], intensity[i] * 1.1, Xray_lines[i],
+            # plt.text(line_energy[i], intensity[i] * 1.1, xray_lines[i],
                      # rotation=90)
             #plt.vlines(line_energy[i], 0, intensity[i] * 0.8, color='black')

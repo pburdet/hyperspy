@@ -278,7 +278,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             raise ValueError("Add elements first, see 'set_elements'")
         if not hasattr(self.metadata.Sample, 'elements'):
             raise ValueError("Add elements first, see 'set_elements'")
-        # if not hasattr(self.metadata.Sample, 'Xray_lines'):
+        # if not hasattr(self.metadata.Sample, 'xray_lines'):
             #raise ValueError("Add lines first, see 'set_lines'")
 
         std_tot = load(
@@ -289,8 +289,8 @@ class EDSSEMSpectrum(EDSSpectrum):
         mp = self.metadata
         mp.Sample.standard_spec = []
         for element in mp.Sample.elements:
-        # for Xray_line in mp.Sample.Xray_lines:
-            #element, line = utils_eds._get_element_and_line(Xray_line)
+        # for xray_line in mp.Sample.xray_lines:
+            #element, line = utils_eds._get_element_and_line(xray_line)
             test_file_exist = False
             for std in std_tot:
                 mp_std = std.metadata
@@ -331,7 +331,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         """
         offset = np.copy(self.axes_manager.signal_axes[0].offset)
         scale_s = np.copy(self.axes_manager.signal_axes[0].scale)
-        FWHM_MnKa = self.metadata.SEM.EDS.energy_resolution_MnKa
+        FWHM_MnKa = self.metadata.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa
         line_FWHM = utils_eds.get_FWHM_at_Energy(FWHM_MnKa, line_energy)
         if np.ndim(width_windows) == 0:
             det = [width_windows * line_FWHM, width_windows * line_FWHM]
@@ -362,7 +362,7 @@ class EDSSEMSpectrum(EDSSpectrum):
 
         return spec_th
 
-    def _get_kratio(self, Xray_lines, plot_result):
+    def _get_kratio(self, xray_lines, plot_result):
         """
         Calculate the k-ratio without deconvolution
         """
@@ -370,8 +370,8 @@ class EDSSEMSpectrum(EDSSpectrum):
         width_windows = 0.75
         mp = self.metadata
 
-        for Xray_line in Xray_lines:
-            element, line = utils_eds._get_element_and_line(Xray_line)
+        for xray_line in xray_lines:
+            element, line = utils_eds._get_element_and_line(xray_line)
             std = self.get_result(element, 'standard_spec')
             mp_std = std.metadata
             line_energy = elements_db[
@@ -380,7 +380,7 @@ class EDSSEMSpectrum(EDSSpectrum):
                 'Xray_lines'][
                 line][
                 'energy (keV)']
-            diff_ltime = mp.SEM.EDS.live_time / mp_std.SEM.EDS.live_time
+            diff_ltime = mp.Acquisition_instrument.SEM.Detector.EDS.live_time / mp_std.Acquisition_instrument.SEM.Detector.EDS.live_time
             # Fit with least square
             m = create_model(self.top_hat(line_energy, width_windows))
             fp = components.ScalableFixedPattern(std.top_hat(line_energy,
@@ -390,10 +390,10 @@ class EDSSEMSpectrum(EDSSpectrum):
             m.multifit(fitter='leastsq')
             # store k-ratio
             if (self.axes_manager.navigation_dimension == 0):
-                self._set_result(Xray_line, 'kratios',
+                self._set_result(xray_line, 'kratios',
                                  fp.yscale.value / diff_ltime, plot_result)
             else:
-                self._set_result(Xray_line, 'kratios',
+                self._set_result(xray_line, 'kratios',
                                  fp.yscale.as_signal().data / diff_ltime, plot_result)
 
     def get_kratio(self, deconvolution=None, plot_result=True):
@@ -423,8 +423,8 @@ class EDSSEMSpectrum(EDSSpectrum):
             raise ValueError("Add Standard, see 'link_standard'")
 
         mp = self.metadata
-        mp.Sample.kratios = list(np.zeros(len(mp.Sample.Xray_lines)))
-        Xray_lines = list(mp.Sample.Xray_lines)
+        mp.Sample.kratios = list(np.zeros(len(mp.Sample.xray_lines)))
+        xray_lines = list(mp.Sample.xray_lines)
 
         if deconvolution is not None:
             for deconvo in deconvolution:
@@ -434,13 +434,13 @@ class EDSSEMSpectrum(EDSSpectrum):
                 else:
                     self._deconvolve_kratio(deconvo[0], deconvo[1],
                                             deconvo[2], top_hat_applied=deconvo[3], plot_result=plot_result)
-                for Xray_line in deconvo[0]:
-                    Xray_lines.remove(Xray_line)
-        if len(Xray_lines) > 0:
-            self._get_kratio(Xray_lines, plot_result)
+                for xray_line in deconvo[0]:
+                    xray_lines.remove(xray_line)
+        if len(xray_lines) > 0:
+            self._get_kratio(xray_lines, plot_result)
 
     def _deconvolve_kratio(self,
-                           Xray_lines,
+                           xray_lines,
                            elements,
                            width_energy,
                            top_hat_applied=True,
@@ -473,22 +473,22 @@ class EDSSEMSpectrum(EDSSpectrum):
             fp.set_parameters_not_free(['offset', 'xscale', 'shift'])
             fps.append(fp)
             m.append(fps[-1])
-            diff_ltime.append(mp.SEM.EDS.live_time /
-                              std.metadata.SEM.EDS.live_time)
+            diff_ltime.append(mp.Acquisition_instrument.SEM.Detector.EDS.live_time /
+                              std.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time)
         m.multifit(fitter='leastsq')
         i = 0
-        for Xray_line in Xray_lines:
+        for xray_line in xray_lines:
             if (self.axes_manager.navigation_dimension == 0):
-                self._set_result(Xray_line, 'kratios',
+                self._set_result(xray_line, 'kratios',
                                  fps[i].yscale.value / diff_ltime[i], plot_result)
             else:
-                self._set_result(Xray_line, 'kratios',
+                self._set_result(xray_line, 'kratios',
                                  fps[i].yscale.as_signal().data /
                                  diff_ltime[i],
                                  plot_result)
             i += 1
 
-    def check_kratio(self, Xray_lines, width_energy='auto',
+    def check_kratio(self, xray_lines, width_energy='auto',
                      top_hat_applied=False,
                      plot_all_standard=False,
                      plot_legend=True,
@@ -502,7 +502,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         Parameters
         ----------
 
-        Xray_lines: list of string
+        xray_lines: list of string
             the X-ray lines to display.
 
         width_windows: 'auto' | [min energy, max energy]
@@ -519,8 +519,8 @@ class EDSSEMSpectrum(EDSSpectrum):
         """
         if width_energy == 'auto':
             line_energy = []
-            for Xray_line in Xray_lines:
-                element, line = utils_eds._get_element_and_line(Xray_line)
+            for xray_line in xray_lines:
+                element, line = utils_eds._get_element_and_line(xray_line)
                 line_energy.append(
                     elements_db[
                         element][
@@ -551,8 +551,8 @@ class EDSSEMSpectrum(EDSSpectrum):
         intensities = []
         spec_sum = np.zeros(len(self.top_hat(line_energy,
                                              width_windows).data))
-        for Xray_line in Xray_lines:
-            element, line = utils_eds._get_element_and_line(Xray_line)
+        for xray_line in xray_lines:
+            element, line = utils_eds._get_element_and_line(xray_line)
             line_energy = elements_db[
                 element][
                 'Atomic_properties'][
@@ -563,9 +563,9 @@ class EDSSEMSpectrum(EDSSpectrum):
                              line_energy]
 
             std_spec = self.get_result(element, 'standard_spec')
-            kratio = self.get_result(Xray_line, 'kratios').data
-            diff_ltime = mp.SEM.EDS.live_time /\
-                std_spec.metadata.SEM.EDS.live_time
+            kratio = self.get_result(xray_line, 'kratios').data
+            diff_ltime = mp.Acquisition_instrument.SEM.Detector.EDS.live_time /\
+                std_spec.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time
             if top_hat_applied:
                 std_data = std_spec.top_hat(line_energy,
                                             width_windows).data * kratio * diff_ltime
@@ -574,7 +574,7 @@ class EDSSEMSpectrum(EDSSpectrum):
                     * kratio * diff_ltime
             if plot_all_standard:
                 plt.plot(std_data)
-                leg_plot.append(Xray_line)
+                leg_plot.append(xray_line)
             line_energies.append((line_energy - width_energy[0]) /
                                  self.axes_manager[0].scale - self.axes_manager[0].offset)
             intensities.append(std_data[int(line_energies[-1])])
@@ -587,14 +587,14 @@ class EDSSEMSpectrum(EDSSpectrum):
             plt.legend(leg_plot)
         print("Tot residual: %s" % np.abs(self_data - spec_sum).sum())
         for i in range(len(line_energies)):
-            plt.annotate(Xray_lines[i], xy=(line_energies[i],
+            plt.annotate(xray_lines[i], xy=(line_energies[i],
                                             intensities[i]))
         if new_figure:
             fig.show()
             return fig
 
     # shouldn't be needed
-    def save_result(self, result, filename, Xray_lines='all',
+    def save_result(self, result, filename, xray_lines='all',
                     extension='hdf5'):
         """
         Save the result in a file (results stored in
@@ -609,7 +609,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             the file path + the file name. The result and the Xray-lines
             is added at the end.
 
-        Xray_lines: list of string
+        xray_lines: list of string
             the X-ray lines to save. If 'all' (default), save all X-ray lines
 
         Extension:
@@ -622,21 +622,21 @@ class EDSSEMSpectrum(EDSSpectrum):
         """
         print 'This is obsolete, it will desapear'
         mp = self.metadata
-        if Xray_lines is 'all':
+        if xray_lines is 'all':
             if result == 'intensities':
-                Xray_lines = mp.Sample.elements
+                xray_lines = mp.Sample.elements
             else:
-                Xray_lines = mp.Sample.Xray_lines
-        for Xray_line in Xray_lines:
+                xray_lines = mp.Sample.xray_lines
+        for xray_line in xray_lines:
             if result == 'intensitiesS':
-                res = self.intensity_map([Xray_line], plot_result=False)[0]
+                res = self.intensity_map([xray_line], plot_result=False)[0]
             else:
-                res = self.get_result(Xray_line, result)
+                res = self.get_result(xray_line, result)
             if res.data.dtype == 'float64':
                 a = 1
                 res.change_dtype('float32')
                 # res.change_dtype('uint32')
-            res.save(filename=filename + "_" + result + "_" + Xray_line,
+            res.save(filename=filename + "_" + result + "_" + xray_line,
                      extension=extension, overwrite=True)
 
     def quant(
@@ -683,7 +683,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         """
         mp = self.metadata
         if enh is False:
-            if len(mp.Sample.Xray_lines) != len(mp.Sample.elements):
+            if len(mp.Sample.xray_lines) != len(mp.Sample.elements):
                 raise ValueError("Only one X-ray lines should be " +
                                  "attributed per element.")
                 return 0
@@ -726,11 +726,11 @@ class EDSSEMSpectrum(EDSSpectrum):
         f = codecs.open(foldername + '//result.tsv', encoding=encoding,
                         errors='replace')
         #dim = list(self.data.shape)
-        Xray_lines = mp.Sample.Xray_lines
+        xray_lines = mp.Sample.xray_lines
         elements = mp.Sample.elements
         nbElem = len(elements)
         #dim = list(self.axes_manager.navigation_shape)[::-1]
-        dim = np.copy(self.get_result(Xray_lines[0],
+        dim = np.copy(self.get_result(xray_lines[0],
                                       'kratios').data.shape).tolist()
         raw_data = []
         for el in elements:
@@ -776,9 +776,9 @@ class EDSSEMSpectrum(EDSSpectrum):
         f = codecs.open(foldername + '//result.tsv', encoding=encoding,
                         errors='replace')
 
-        Xray_lines = mp.Sample.Xray_lines
+        xray_lines = mp.Sample.xray_lines
 
-        dim = np.copy(self.get_result(Xray_lines[0],
+        dim = np.copy(self.get_result(xray_lines[0],
                                       'kratios').data.shape).tolist()
         raw_data = []
         for el in [-3, -2, -1]:
@@ -806,34 +806,34 @@ class EDSSEMSpectrum(EDSSpectrum):
     def _write_donnee_tsv(self, foldername):
         encoding = 'latin-1'
         mp = self.metadata
-        Xray_lines = mp.Sample.Xray_lines
+        xray_lines = mp.Sample.xray_lines
         elements = mp.Sample.elements
         f = codecs.open(foldername + '//donnee.tsv', 'w',
                         encoding=encoding, errors='ignore')
-        dim = np.copy(self.get_result(Xray_lines[0],
+        dim = np.copy(self.get_result(xray_lines[0],
                                       'kratios').data.shape).tolist()
         #dim = np.copy(self.axes_manager.navigation_shape).tolist()
-        # dim = np.copy(self.get_result(Xray_lines[0],
+        # dim = np.copy(self.get_result(xray_lines[0],
         #    'kratios').axes_manager.navigation_shape).tolist()
         # dim.reverse()
         if self.axes_manager.navigation_dimension == 0:
             f.write("1_1\r\n")
-            for i in range(len(Xray_lines)):
+            for i in range(len(xray_lines)):
                 f.write("%s\t" % mp.Sample.kratios[i].data)
         elif self.axes_manager.navigation_dimension == 1:
             for x in range(dim[0]):
                 y = 0
                 f.write("%s_%s\r\n" % (x + 1, y + 1))
-                for Xray_line in Xray_lines:
-                    f.write("%s\t" % self.get_result(Xray_line,
+                for xray_line in xray_lines:
+                    f.write("%s\t" % self.get_result(xray_line,
                                                      'kratios').data[x])
                 f.write('\r\n')
         elif self.axes_manager.navigation_dimension == 2:
             for x in range(dim[1]):
                 for y in range(dim[0]):
                     f.write("%s_%s\r\n" % (x + 1, y + 1))
-                    for Xray_line in Xray_lines:
-                        f.write("%s\t" % self.get_result(Xray_line,
+                    for xray_line in xray_lines:
+                        f.write("%s\t" % self.get_result(xray_line,
                                                          'kratios').data[y, x])
                     f.write('\r\n')
         elif self.axes_manager.navigation_dimension == 3:
@@ -842,14 +842,14 @@ class EDSSEMSpectrum(EDSSpectrum):
                     f.write("%s_%s\r\n" % (x + 1, y + 1))
                     for z in range(dim[0]):
                         # for elm in elements: # Inverse order line
-                        #    for Xray_line in Xray_lines[::-1]:  #
-                        #        if elm + '_' in Xray_line:#
+                        #    for xray_line in xray_lines[::-1]:  #
+                        #        if elm + '_' in xray_line:#
                         # f.write("%s\t" % self.get_result(elm +
-                        # Xray_line[2::],
-                        for Xray_line in Xray_lines:
+                        # xray_line[2::],
+                        for xray_line in xray_lines:
                             f.write(
                                 "%s\t" %
-                                self.get_result(Xray_line, 'kratios').data[z, y, x])
+                                self.get_result(xray_line, 'kratios').data[z, y, x])
                         f.write('\r\n')
         f.close()
 
@@ -859,8 +859,8 @@ class EDSSEMSpectrum(EDSSpectrum):
         f = codecs.open(foldername + '//nbData.tsv', 'w',
                         encoding=encoding, errors='ignore')
 
-        Xray_lines = mp.Sample.Xray_lines
-        dim = np.copy(self.get_result(Xray_lines[0],
+        xray_lines = mp.Sample.xray_lines
+        dim = np.copy(self.get_result(xray_lines[0],
                                       'kratios').data.shape).tolist()
         dim.reverse()
         #dim = np.copy(self.axes_manager.navigation_shape).tolist()
@@ -880,17 +880,17 @@ class EDSSEMSpectrum(EDSSpectrum):
         f.write('Limitcompsame\t0.00001\r\n')
         f.write('Itermax\t49\r\n')
         f.write('\r\n')
-        f.write('HV\t%s\r\n' % mp.SEM.beam_energy)
-        f.write('Elevation\t%s\r\n' % mp.SEM.EDS.elevation_angle)
-        f.write('azimuth\t%s\r\n' % mp.SEM.EDS.azimuth_angle)
-        f.write('tilt\t%s\r\n' % mp.SEM.tilt_stage)
+        f.write('HV\t%s\r\n' % mp.Acquisition_instrument.SEM.beam_energy)
+        f.write('Elevation\t%s\r\n' % mp.Acquisition_instrument.SEM.Detector.EDS.elevation_angle)
+        f.write('azimuth\t%s\r\n' % mp.Acquisition_instrument.SEM.Detector.EDS.azimuth_angle)
+        f.write('tilt\t%s\r\n' % mp.Acquisition_instrument.SEM.tilt_stage)
         f.write('\r\n')
-        f.write('nbelement\t%s\r\n' % len(Xray_lines))
+        f.write('nbelement\t%s\r\n' % len(xray_lines))
         elements = 'Element'
         z_el = 'Z'
         line_el = 'line'
-        for Xray_line in Xray_lines:
-            el, line = utils_eds._get_element_and_line(Xray_line)
+        for xray_line in xray_lines:
+            el, line = utils_eds._get_element_and_line(xray_line)
             elements = elements + '\t' + el
             z_el = z_el + '\t' + \
                 str(elements_db[el]['General_properties']['Z'])
@@ -910,8 +910,8 @@ class EDSSEMSpectrum(EDSSpectrum):
         mp = self.metadata
         f = codecs.open(foldername + '//nbData.tsv', 'w',
                         encoding=encoding, errors='ignore')
-        Xray_lines = mp.Sample.Xray_lines
-        dim = np.copy(self.get_result(Xray_lines[0],
+        xray_lines = mp.Sample.xray_lines
+        dim = np.copy(self.get_result(xray_lines[0],
                                       'kratios').data.shape).tolist()
         dim.reverse()
         #dim = np.copy(self.axes_manager.navigation_shape).tolist()
@@ -951,12 +951,12 @@ class EDSSEMSpectrum(EDSSpectrum):
         f.write('Limitcompsame\t%s\r\n' % mp.enh_param['limit_comp_same'])
         f.write('Itermax\t%s\r\n' % mp.enh_param['iter_max'])
         f.write('\r\n')
-        f.write('HV\t%s\r\n' % mp.SEM.beam_energy)
-        f.write('Elevation\t%s\r\n' % mp.SEM.EDS.elevation_angle)
-        f.write('azimuth\t%s\r\n' % mp.SEM.EDS.azimuth_angle)
-        f.write('tilt\t%s\r\n' % mp.SEM.tilt_stage)
+        f.write('HV\t%s\r\n' % mp.Acquisition_instrument.SEM.beam_energy)
+        f.write('Elevation\t%s\r\n' % mp.Acquisition_instrument.SEM.Detector.EDS.elevation_angle)
+        f.write('azimuth\t%s\r\n' % mp.Acquisition_instrument.SEM.Detector.EDS.azimuth_angle)
+        f.write('tilt\t%s\r\n' % mp.Acquisition_instrument.SEM.tilt_stage)
         f.write('\r\n')
-        f.write('nbelement\t%s\t%s\r\n' % (len(elements), len(Xray_lines)))
+        f.write('nbelement\t%s\t%s\r\n' % (len(elements), len(xray_lines)))
         el_str = 'Element'
         z_el = 'Z'
         line_el = 'line'
@@ -966,10 +966,10 @@ class EDSSEMSpectrum(EDSSpectrum):
                 str(elements_db[elm]['General_properties']['Z'])
             i = 0
             line_el = line_el + '\t'
-            # for Xray_line in Xray_lines[::-1]:   #Inverse order line
-            for Xray_line in Xray_lines:
-                if elm + '_' in Xray_line:
-                    tmp, line = utils_eds._get_element_and_line(Xray_line)
+            # for xray_line in xray_lines[::-1]:   #Inverse order line
+            for xray_line in xray_lines:
+                if elm + '_' in xray_line:
+                    tmp, line = utils_eds._get_element_and_line(xray_line)
                     if i == 1:
                         line_el = line_el + '_'
                     if line == 'Ka':
@@ -979,7 +979,7 @@ class EDSSEMSpectrum(EDSSpectrum):
                     if line == 'Ma':
                         line_el = line_el + '2'
                     i = 1
-            #el, line = utils_eds._get_element_and_line(Xray_line)
+            #el, line = utils_eds._get_element_and_line(xray_line)
             # if line == 'Ka':
                 #line_el = line_el + '\t0'
             # if line== 'La':
@@ -1066,8 +1066,8 @@ class EDSSEMSpectrum(EDSSpectrum):
         #e0 = dic['SEM']['beam_energy']
         #tilt = dic['SEM']['tilt_stage']
         elements = list(mp.Sample.elements)
-        e0 = mp.SEM.beam_energy
-        tilt = np.radians(mp.SEM.tilt_stage)
+        e0 = mp.Acquisition_instrument.SEM.beam_energy
+        tilt = np.radians(mp.Acquisition_instrument.SEM.tilt_stage)
 
         # Units!!
         pixSize = [dx0 * 1.0e-6, 0.2 * 1.0e-6,
@@ -1326,13 +1326,13 @@ class EDSSEMSpectrum(EDSSpectrum):
             if hasattr(mp.Sample, 'standard_spec'):
                 l_time = []
                 for el in range(len(mp.Sample.elements)):
-                # for el in range(len(mp.Sample.Xray_lines)):
+                # for el in range(len(mp.Sample.xray_lines)):
                     l_time.append(
-                        mp.Sample.standard_spec[el].metadata.SEM.EDS.live_time)
+                        mp.Sample.standard_spec[el].metadata.Acquisition_instrument.SEM.Detector.EDS.live_time)
                 std = copy.deepcopy(mp.Sample.standard_spec)
                 mp.Sample.standard_spec = utils.stack(mp.Sample.standard_spec)
                 del mp.Sample.standard_spec.original_parameters.stack_elements
-                mp.Sample.standard_spec.metadata.SEM.EDS.live_time = l_time
+                mp.Sample.standard_spec.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time = l_time
             result_store = []
             for result in ['kratios', 'quant', 'quant_enh', 'intensities']:
                 if hasattr(mp.Sample, result):
@@ -1398,7 +1398,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         if isinstance(reference, signals.Image) is False:
             ref_is_result = True
             if isinstance(reference[1], basestring) is False:
-                reference[1] = mp.Sample.Xray_lines[reference[1]]
+                reference[1] = mp.Sample.xray_lines[reference[1]]
             reference = self.get_result(reference[1], reference[0])
         else:
             ref_is_result = False
@@ -1518,12 +1518,12 @@ class EDSSEMSpectrum(EDSSpectrum):
             If 'auto', generate automatically the connection to jython.
         """
         mp = self.metadata
-        if hasattr(mp.Sample, 'Xray_lines'):
-            Xray_lines = mp.Sample.Xray_lines
+        if hasattr(mp.Sample, 'xray_lines'):
+            xray_lines = mp.Sample.xray_lines
             xrts = []
             elements = []
-            for Xray_line in Xray_lines:
-                el, li = utils_eds._get_element_and_line(Xray_line)
+            for xray_line in xray_lines:
+                el, li = utils_eds._get_element_and_line(xray_line)
                 elements.append(el)
                 if li == 'Ka':
                     xrts.append(u'K\u03b1')
@@ -1532,25 +1532,25 @@ class EDSSEMSpectrum(EDSSpectrum):
                 elif li == 'Ma':
                     xrts.append(u'M\u03b1')
                 else:
-                    raise ValueError('Xray_lines not translated')
+                    raise ValueError('xray_lines not translated')
                     return 0
         else:
-            raise ValueError('Xray_lines need to be defined')
+            raise ValueError('xray_lines need to be defined')
             return 0
 
         if hasattr(mp.Sample, 'kratios') is False:
             raise ValueError('kratios need to be defined')
             return 0
 
-        e0 = mp.SEM.beam_energy
-        tilt = np.radians(mp.SEM.tilt_stage)
-        elevation = np.radians(mp.SEM.EDS.elevation_angle)
-        azim = np.radians(90 - mp.SEM.EDS.azimuth_angle)
+        e0 = mp.Acquisition_instrument.SEM.beam_energy
+        tilt = np.radians(mp.Acquisition_instrument.SEM.tilt_stage)
+        elevation = np.radians(mp.Acquisition_instrument.SEM.Detector.EDS.elevation_angle)
+        azim = np.radians(90 - mp.Acquisition_instrument.SEM.Detector.EDS.azimuth_angle)
 
         if gateway == 'auto':
             gateway = utils_eds.get_link_to_jython()
 
-        dim = self.get_result(Xray_lines[0], 'kratios').data.shape
+        dim = self.get_result(xray_lines[0], 'kratios').data.shape
 
         def _quant_with_dtsa(kratios):
             channel = gateway.remote_exec("""
@@ -1653,9 +1653,9 @@ class EDSSEMSpectrum(EDSSpectrum):
 
         if len(dim) == 0:
             kratios = []
-            for Xray_line in Xray_lines:
+            for xray_line in xray_lines:
                 kratios.append(
-                    float(self.get_result(Xray_line, 'kratios').data))
+                    float(self.get_result(xray_line, 'kratios').data))
 
             comp, ZAF = _quant_with_dtsa(kratios)
 
@@ -1769,11 +1769,11 @@ class EDSSEMSpectrum(EDSSpectrum):
             return figure, srcs, isos
 
     # def check_total(self):
-        #img_0 = self.get_result(Xray_lines[0],'kratios')
+        #img_0 = self.get_result(xray_lines[0],'kratios')
 
         #data_total = np.zeros_like(img_0.data)
-        # for Xray_line in Xray_lines:
-            #data_total += self.get_result(Xray_line,'kratios').data
+        # for xray_line in xray_lines:
+            #data_total += self.get_result(xray_line,'kratios').data
 
         #img_total = img_0.deepcopy
         #img_total.data = data_total

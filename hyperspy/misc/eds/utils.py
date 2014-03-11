@@ -14,9 +14,9 @@ import hyperspy.components as components
 from hyperspy.misc.elements import elements as elements_db
 
 
-def _get_element_and_line(Xray_line):
-    lim = Xray_line.find('_')
-    return Xray_line[:lim], Xray_line[lim + 1:]
+def _get_element_and_line(xray_line):
+    lim = xray_line.find('_')
+    return xray_line[:lim], xray_line[lim + 1:]
 
 
 def get_FWHM_at_Energy(energy_resolution_MnKa, E):
@@ -249,7 +249,7 @@ def phase_inspector(self, bins=[20, 20, 20], plot_result=True):
     img = utils.stack(dataBin)
 
     for i in range(len(self)):
-        img.axes_manager[i].name = self[i].metadata.title
+        img.axes_manager[i].name = self[i].metadata.General.title
         img.axes_manager[i].scale = (minmax[i][1] - minmax[i][0]) / bins[i]
         img.axes_manager[i].offest = minmax[i][0]
         img.axes_manager[i].units = '-'
@@ -351,14 +351,14 @@ def simulate_one_spectrum(nTraj, dose=100, mp='gui',
             compo_wt)
     mp.Sample.density = density
 
-    e0 = mp.SEM.beam_energy
-    tilt = np.radians(mp.SEM.tilt_stage)
-    #tilt = np.radians(abs(mp.SEM.tilt_stage))
-    ltime = mp.SEM.EDS.live_time
-    elevation = np.radians(mp.SEM.EDS.elevation_angle)
-    azim = np.radians(90 - mp.SEM.EDS.azimuth_angle)
-    # if mp.SEM.EDS.azimuth_angle==90:
-    #    tilt = np.radians(abs(mp.SEM.tilt_stage))
+    e0 = mp.Acquisition_instrument.SEM.beam_energy
+    tilt = np.radians(mp.Acquisition_instrument.SEM.tilt_stage)
+    #tilt = np.radians(abs(mp.Acquisition_instrument.SEM.tilt_stage))
+    ltime = mp.Acquisition_instrument.SEM.Detector.EDS.live_time
+    elevation = np.radians(mp.Acquisition_instrument.SEM.Detector.EDS.elevation_angle)
+    azim = np.radians(90 - mp.Acquisition_instrument.SEM.Detector.EDS.azimuth_angle)
+    # if mp.Acquisition_instrument.SEM.Detector.EDS.azimuth_angle==90:
+    #    tilt = np.radians(abs(mp.Acquisition_instrument.SEM.tilt_stage))
     TOangle = np.radians(spec.get_take_off_angle())
     # print TOA(spec)
 
@@ -474,12 +474,12 @@ def simulate_one_spectrum(nTraj, dose=100, mp='gui',
     spec.data = np.array(datas)
     spec.get_dimensions_from_data()
 
-    spec.metadata.SEM.EDS.energy_resolution_MnKa = reso
+    spec.metadata.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa = reso
     spec.axes_manager[0].scale = scale / 1000
     spec.axes_manager[0].offset = offset
     spec.axes_manager[0].name = 'Energy'
     spec.axes_manager[0].units = 'keV'
-    spec.metadata.title = 'Simulated spectrum'
+    spec.metadata.General.title = 'Simulated spectrum'
 
     spec.metadata.add_node('simulation')
     spec.metadata.simulation.nTraj = nTraj
@@ -490,7 +490,7 @@ def simulate_one_spectrum(nTraj, dose=100, mp='gui',
 
 def simulate_Xray_depth_distribution(nTraj, bins=120, mp='gui',
                                      elements='auto',
-                                     Xray_lines='auto',
+                                     xray_lines='auto',
                                      compo_at='auto',
                                      density='auto',
                                      detector='Si(Li)',
@@ -517,7 +517,7 @@ def simulate_Xray_depth_distribution(nTraj, bins=120, mp='gui',
         Set the elements. If auto, look in mp.Sample if elements are defined.
         auto cannot be used with 'gui' option.
 
-    Xray_lines: list of str | 'auto'
+    xray_lines: list of str | 'auto'
         Set the elements. If auto, look in mp.Sample if elements are defined.
 
     compo_at: list of flaot | 'auto'
@@ -569,11 +569,11 @@ def simulate_Xray_depth_distribution(nTraj, bins=120, mp='gui',
         else:
             raise ValueError('Elements need to be set (set_elements)')
 
-    if Xray_lines == 'auto':
-        if hasattr(mp.Sample, 'Xray_lines'):
-            Xray_lines = list(mp.Sample.Xray_lines)
+    if xray_lines == 'auto':
+        if hasattr(mp.Sample, 'xray_lines'):
+            xray_lines = list(mp.Sample.xray_lines)
         else:
-            raise ValueError('Xray_lines need to be set (set_lines)')
+            raise ValueError('xray_lines need to be set (set_lines)')
 
     if compo_at == 'auto':
         compo_at = []
@@ -594,11 +594,11 @@ def simulate_Xray_depth_distribution(nTraj, bins=120, mp='gui',
             elements,
             compo_wt)
 
-    e0 = mp.SEM.beam_energy
-    tilt = np.radians(mp.SEM.tilt_stage)
-    ltime = mp.SEM.EDS.live_time
-    elevation = np.radians(mp.SEM.EDS.elevation_angle)
-    azim = np.radians(90 - mp.SEM.EDS.azimuth_angle)
+    e0 = mp.Acquisition_instrument.SEM.beam_energy
+    tilt = np.radians(mp.Acquisition_instrument.SEM.tilt_stage)
+    ltime = mp.Acquisition_instrument.SEM.Detector.EDS.live_time
+    elevation = np.radians(mp.Acquisition_instrument.SEM.Detector.EDS.elevation_angle)
+    azim = np.radians(90 - mp.Acquisition_instrument.SEM.Detector.EDS.azimuth_angle)
 
     if gateway == 'auto':
         gateway = get_link_to_jython()
@@ -609,7 +609,7 @@ def simulate_Xray_depth_distribution(nTraj, bins=120, mp='gui',
         epu = dtsa2.epu
         nm = dtsa2.nm
         elements = """ + str(elements) + """
-        Xray_lines = """ + str(Xray_lines) + """
+        xray_lines = """ + str(xray_lines) + """
         elms = []
         for element in elements:
             elms.append(getattr(dtsa2.epq.Element,element))
@@ -660,10 +660,10 @@ def simulate_Xray_depth_distribution(nTraj, bins=120, mp='gui',
         #det.reset()
         monteb.runMultipleTrajectories(nTraj)
 
-        for Xray_line in Xray_lines:
-            lim = Xray_line.find('_')
-            el = getattr(dtsa2.epq.Element,Xray_line[:lim])
-            li = Xray_line[lim+1:]
+        for xray_line in xray_lines:
+            lim = xray_line.find('_')
+            el = getattr(dtsa2.epq.Element,xray_line[:lim])
+            li = xray_line[lim+1:]
             if li == 'Ka':
                 transSet = epq.XRayTransition(el,0)
             elif li == 'La':
@@ -687,20 +687,20 @@ def simulate_Xray_depth_distribution(nTraj, bins=120, mp='gui',
         datas.append(item)
 
     dim = datas[-1]
-    datas = np.reshape(datas[:-1], (len(Xray_lines), 2, bins))
+    datas = np.reshape(datas[:-1], (len(xray_lines), 2, bins))
     datas = np.rollaxis(datas, 1, 0)
 
     frz = signals.Spectrum(np.array(datas))
-    frz.metadata.SEM = mp.SEM
+    frz.metadata.Acquisition_instrument.SEM = mp.Acquisition_instrument.SEM
     mp = frz.metadata
     mp.add_node('Sample')
     mp.Sample.elements = elements
     mp.Sample.compo_at = compo_at
-    mp.Sample.Xray_lines = Xray_lines
+    mp.Sample.xray_lines = xray_lines
     mp.Sample.density = density
 
     frz.axes_manager[0].name = 'Generated|Emitted'
-    frz.axes_manager[1].name = 'Xray_lines'
+    frz.axes_manager[1].name = 'xray_lines'
     #frz.axes_manager[1].units = 'keV'
     frz.axes_manager[2].name = 'Depth'
     frz.axes_manager[2].units = 'nm'
@@ -763,8 +763,8 @@ def _set_result_signal_list(mp, result):
     signal to list of signal use to load()
     """
     std = mp.Sample[result]
-    # if '_' in std.metadata.title:
-    #    number_of_parts=len(mp.Sample.Xray_lines)
+    # if '_' in std.metadata.General.title:
+    #    number_of_parts=len(mp.Sample.xray_lines)
     #    is_xray = True
     # else:
     #    number_of_parts=len(mp.Sample.elements)
@@ -774,8 +774,8 @@ def _set_result_signal_list(mp, result):
     if result == 'standard_spec':
         # Need to change
         # number_of_parts=len(mp.Sample.elements)
-        l_time = std.metadata.SEM.EDS.live_time
-        # number_of_parts=len(mp.Sample.Xray_lines)
+        l_time = std.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time
+        # number_of_parts=len(mp.Sample.xray_lines)
         temp = std.split(axis=0, number_of_parts=number_of_parts)
     elif len(std.data.shape) == 1:
         temp = std.split(axis=0, number_of_parts=number_of_parts)
@@ -787,18 +787,18 @@ def _set_result_signal_list(mp, result):
         tp = tp.squeeze()
         if result == 'standard_spec':
             # to change
-            if number_of_parts == len(mp.Sample.Xray_lines):
+            if number_of_parts == len(mp.Sample.xray_lines):
             # if number_of_parts == len(mp.Sample.elements):
-                el, li = _get_element_and_line(mp.Sample.Xray_lines[i])
+                el, li = _get_element_and_line(mp.Sample.xray_lines[i])
                 #el, li = _get_element_and_line(mp.Sample.elements[i])
             else:
                 el = mp.Sample.elements[i]
-            tp.metadata.title = el + '_std'
-            tp.metadata.SEM.EDS.live_time = l_time[i]
-        elif number_of_parts == len(mp.Sample.Xray_lines):
-            tp.metadata.title = result + ' ' + mp.Sample.Xray_lines[i]
+            tp.metadata.General.title = el + '_std'
+            tp.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time = l_time[i]
+        elif number_of_parts == len(mp.Sample.xray_lines):
+            tp.metadata.General.title = result + ' ' + mp.Sample.xray_lines[i]
         elif number_of_parts == len(mp.Sample.elements):
-            tp.metadata.title = result + ' ' + mp.Sample.elements[i]
+            tp.metadata.General.title = result + ' ' + mp.Sample.elements[i]
         std.append(tp)
     mp.Sample[result] = std
 
@@ -1059,7 +1059,7 @@ def compare_results(specs, results, sum_elements=False,
     else:
         raise ValueError("specs is not a list")
 
-    check.metadata.title = 'Compared Results'
+    check.metadata.General.title = 'Compared Results'
     if plot_result:
         check.plot(navigator='slider')
     else:
@@ -1123,7 +1123,7 @@ def compare_histograms_results(specs,
 
     legend: None | list of str | 'auto'
        If list of string, legend for "cascade" or title for "mosaic" is
-       displayed. If 'auto', the title of each spectra (metadata.title)
+       displayed. If 'auto', the title of each spectra (metadata.General.title)
        is used.
 
     fig : {matplotlib figure, None}
@@ -1146,21 +1146,21 @@ def compare_histograms_results(specs,
             re = copy.deepcopy(spec.metadata.Sample[results[i]])
             re = utils.stack(re)
             re = re.sum(1)
-            re.metadata.title = 'Sum ' + \
-                results[i] + ' ' + spec.metadata.title
+            re.metadata.General.title = 'Sum ' + \
+                results[i] + ' ' + spec.metadata.General.title
         elif isinstance(results[i], str):
             if normalizex:
                 re = spec.normalize_result(
                     results[i])[list(spec.metadata.Sample.elements).index(element)]
             else:
                 re = spec.get_result(element, results[i])
-            re.metadata.title = element + ' ' + \
-                results[i] + ' ' + spec.metadata.title
+            re.metadata.General.title = element + ' ' + \
+                results[i] + ' ' + spec.metadata.General.title
         else:
             re = results[i].deepcopy()
             # print 'Normalise x not available yet'
-            re.metadata.title = (element + ' ' +
-                                 re.metadata.title + ' ' + spec.metadata.title)
+            re.metadata.General.title = (element + ' ' +
+                                 re.metadata.General.title + ' ' + spec.metadata.General.title)
         #data = re.data.flatten()
         #center, hist1 = _histo_data_plot(data,bins)
         hist_tmp = re.get_histogram(bins)
@@ -1275,11 +1275,11 @@ def simulate_linescan(nTraj,
     mp.Sample.compo_at = compo_at
     mp.Sample.density = density
 
-    e0 = mp.SEM.beam_energy
-    tilt = np.radians(mp.SEM.tilt_stage)
-    ltime = mp.SEM.EDS.live_time
-    elevation = np.radians(mp.SEM.EDS.elevation_angle)
-    azim = np.radians(90 - mp.SEM.EDS.azimuth_angle)
+    e0 = mp.Acquisition_instrument.SEM.beam_energy
+    tilt = np.radians(mp.Acquisition_instrument.SEM.tilt_stage)
+    ltime = mp.Acquisition_instrument.SEM.Detector.EDS.live_time
+    elevation = np.radians(mp.Acquisition_instrument.SEM.Detector.EDS.elevation_angle)
+    azim = np.radians(90 - mp.Acquisition_instrument.SEM.Detector.EDS.azimuth_angle)
 
     if gateway == 'auto':
         gateway = get_link_to_jython()
@@ -1434,7 +1434,7 @@ def simulate_linescan(nTraj,
     spec = signals.EDSSEMSpectrum(np.array(spec_datas))
     spec.metadata = mp
 
-    mp.SEM.EDS.energy_resolution_MnKa = reso
+    mp.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa = reso
     spec.axes_manager[-1].scale = scale / 1000
     spec.axes_manager[-1].offset = offset
     spec.axes_manager[-1].name = 'Energy'
@@ -1443,7 +1443,7 @@ def simulate_linescan(nTraj,
     spec.axes_manager[0].offset = min_max[0]
     spec.axes_manager[0].name = 'Scan'
     spec.axes_manager[0].units = '${\mu}m$'
-    spec.metadata.title = 'Simulated linescan along ' + lscan_axis
+    spec.metadata.General.title = 'Simulated linescan along ' + lscan_axis
     mp.add_node('simulation')
     mp.simulation.nTraj = nTraj
     mp.simulation.software = 'NistMonte'
@@ -1496,12 +1496,12 @@ def plot_orthoview_animated(image, isotropic_voxel=True):
         im_xy, scale = get_isotropic_3D_image(image)
     else:
         im_xy = image.deepcopy()
-    im_xy.metadata.title = 'xy'
+    im_xy.metadata.General.title = 'xy'
     im_xy.axes_manager.set_signal_dimension(0)
 
     im_xz = im_xy.deepcopy()
     im_xz = im_xz.rollaxis(2, 1)
-    im_xz.metadata.title = 'xz'
+    im_xz.metadata.General.title = 'xz'
     im_xz.axes_manager.set_signal_dimension(0)
 
     im_xz.axes_manager._axes[2] = im_xy.axes_manager._axes[2]
@@ -1511,7 +1511,7 @@ def plot_orthoview_animated(image, isotropic_voxel=True):
     im_yz = im_xy.deepcopy()
     im_yz = im_yz.rollaxis(0, 2)
     im_yz = im_yz.rollaxis(1, 0)
-    im_yz.metadata.title = 'yz'
+    im_yz.metadata.General.title = 'yz'
     im_yz.axes_manager.set_signal_dimension(0)
 
     im_yz.axes_manager._axes = im_xy.axes_manager._axes[::-1]
@@ -2173,7 +2173,7 @@ def mean_filter(self, size):
         #img_data = np.rollaxis(img_data,0,3)
         #img_data = np.rollaxis(img_data,0,2)
         #src = mlab.pipeline.scalar_field(img_data)
-        #src.name = img_res.metadata.title
+        #src.name = img_res.metadata.General.title
 
         # if 'intensities' == result or isinstance(result,str) is False:
 
@@ -2228,7 +2228,7 @@ def mean_filter(self, size):
         # If `None`, use 'steps'.
     # legend: None | list of str | 'auto'
        # If list of string, legend for "cascade" or title for "mosaic" is
-       # displayed. If 'auto', the title of each spectra (metadata.title)
+       # displayed. If 'auto', the title of each spectra (metadata.General.title)
        # is used.
     # fig : {matplotlib figure, None}
         # If None, a default figure will be created.
@@ -2291,7 +2291,7 @@ def mean_filter(self, size):
         #legend_labels = []
         # if isinstance(specs, list) or isinstance(specs, tuple):
             # for spec in specs:
-                # legend_labels.append(spec.metadata.title)
+                # legend_labels.append(spec.metadata.General.title)
         # else:
             # for index in indexes:
                 # legend_labels.append(str(index))
