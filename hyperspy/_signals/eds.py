@@ -648,7 +648,8 @@ class EDSSpectrum(Spectrum):
         else:
             mp = result.metadata.Acquisition_instrument.TEM
         if 'Detector.EDS.live_time' in mp:
-            mp.Detector.EDS.live_time = mp.Detector.EDS.live_time * np.sum(kernel)
+            mp.Detector.EDS.live_time = mp.Detector.EDS.live_time * \
+                np.sum(kernel)
 
         return result
     # can be improved, other fit

@@ -102,8 +102,9 @@ class Test_metadata:
     def test_default_param(self):
         s = self.signal
         mp = s.metadata
-        assert_equal(mp.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa,
-                     preferences.EDS.eds_mn_ka)
+        assert_equal(
+            mp.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa,
+            preferences.EDS.eds_mn_ka)
 
     def test_SEM_to_TEM(self):
         s = self.signal[0, 0]
@@ -392,7 +393,9 @@ class Test_convolve_sum:
         res = s.convolve_sum(size=4)
         assert_equal(res[0, 0, 0].data[0], 16.)
 
-        assert_equal(res.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time, 49.6)
+        assert_equal(
+            res.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time,
+            49.6)
 
 
 class Test_plot_Xray_lines:
