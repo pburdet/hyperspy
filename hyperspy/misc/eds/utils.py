@@ -696,7 +696,7 @@ def simulate_Xray_depth_distribution(nTraj, bins=120, mp='gui',
     datas = np.reshape(datas[:-1], (len(xray_lines), 2, bins))
     datas = np.rollaxis(datas, 1, 0)
 
-    frz = signals.Spectrum(np.array(datas))
+    frz = signals.EDSSEMSpectrum(np.array(datas))
     frz.metadata.Acquisition_instrument.SEM = mp.Acquisition_instrument.SEM
     mp = frz.metadata
     mp.add_node('Sample')
@@ -711,7 +711,7 @@ def simulate_Xray_depth_distribution(nTraj, bins=120, mp='gui',
     frz.axes_manager[2].name = 'Depth'
     frz.axes_manager[2].units = 'nm'
     frz.axes_manager[2].scale = dim / bins * 1000000000
-    mp.title = 'Simulated Depth distribution'
+    mp.General.title = 'Simulated Depth distribution'
 
     mp.add_node('simulation')
     mp.simulation.nTraj = nTraj

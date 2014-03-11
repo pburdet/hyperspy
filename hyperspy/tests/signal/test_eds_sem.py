@@ -213,13 +213,13 @@ class Test_quantification:
         gauss.A.value = 12000
         stdAl.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time = 31
         stdAl.data[:] = gauss.function(energy_axis.axis)
-        stdAl.metadata.title = 'Al_std'
+        stdAl.metadata.General.title = 'Al_std'
 
         stdZn = s[0, 0, 0].deepcopy()
         gauss2.A.value = 13000
         stdZn.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time = 32
         stdZn.data[:] = gauss2.function(energy_axis.axis)
-        stdZn.metadata.title = 'Zn_std'
+        stdZn.metadata.General.title = 'Zn_std'
 
         s.metadata.Sample.standard_spec = [stdAl, stdZn]
         self.signal = s
