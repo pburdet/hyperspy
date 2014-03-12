@@ -793,9 +793,10 @@ def _set_result_signal_list(mp, result):
         tp = tp.squeeze()
         if result == 'standard_spec':
             # to change
-            if number_of_parts == len(mp.Sample.xray_lines):
+            if 'xray_lines' in mp.Sample:
+                if number_of_parts == len(mp.Sample.xray_lines):
             # if number_of_parts == len(mp.Sample.elements):
-                el, li = _get_element_and_line(mp.Sample.xray_lines[i])
+                    el, li = _get_element_and_line(mp.Sample.xray_lines[i])
                 #el, li = _get_element_and_line(mp.Sample.elements[i])
             else:
                 el = mp.Sample.elements[i]

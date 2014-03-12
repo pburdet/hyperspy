@@ -362,7 +362,8 @@ class EDSSpectrum(Spectrum):
             else:
                 lines.extend(element_lines)
         return lines
-
+        
+#bug if plot_fit=True, then close figure, then again get_lines
     def get_lines_intensity(self,
                             xray_lines=None,
                             plot_result=False,
@@ -372,7 +373,8 @@ class EDSSpectrum(Spectrum):
                             lines_deconvolution=None,
                             bck=0,
                             plot_fit=False,
-                            signal_range=None,
+                            #signal_range=None,
+                            store_in_mp=False,
                             **kwargs):
         """Return the intensity map of selected Xray lines.
 
@@ -415,8 +417,6 @@ class EDSSpectrum(Spectrum):
             Deconvolution of the line with a gaussian model. Take time
         bck : float
             background to substract. Only for deconvolution
-        signal_range:
-            For line_deconvolution, set the min max energy range
         kwargs
             The extra keyword arguments for plotting. See
             `utils.plot.plot_signals`
@@ -428,8 +428,29 @@ class EDSSpectrum(Spectrum):
 
         Examples
         --------
-
-        >>> specImg.get_lines_intensity(["C_Ka", "Ta_Ma"])
+        
+        >>> pyplot.set_cmap('RdYlBu_r')
+        
+        #Mode standard
+        
+        >>> s = utils_eds.database_3Dspec(spec=1)
+        >>> s[102:134,125:152].get_lines_intensity(["Hf_Ma", "Ta_Ma"],
+                plot_result=True)
+                
+        #Mode 'model'
+            
+        >>> s = utils_eds.database_3Dspec(spec=1)
+        >>> s[102:134,125:152].get_lines_intensity(["Hf_Ma", "Ta_Ma"],
+                plot_result=True,lines_deconvolution='model')
+                
+        #Mode 'standard'
+        
+        >>> s = utils_eds.database_3Dspec(spec=1)
+        >>> from hyperspy.misc.config_dir import config_path
+        >>> s.add_elements(['Hf','Ta'])
+        >>> s.link_standard(config_path+'/database/std_RR')
+        >>> s[102:134,125:152].get_lines_intensity(
+                plot_result=True,lines_deconvolution='standard')        
 
         See also
         --------
@@ -463,6 +484,8 @@ class EDSSpectrum(Spectrum):
                 "`set_signal_type(\"EDS_SEM\")` to convert to one of these"
                 "signal types.")
         intensities = []
+        if store_in_mp:
+            self.metadata.Sample.intensities = list(np.zeros(len(xray_lines))) 
         # test 1D Spectrum (0D problem)
             #signal_to_index = self.axes_manager.navigation_dimension - 2
         if lines_deconvolution is None:
@@ -524,7 +547,7 @@ class EDSSpectrum(Spectrum):
                     fp.centre.free = False
                     fp.sigma.free = False
                 elif lines_deconvolution == 'standard':
-                    std = self.get_result(element, 'standard_spec')
+                    std = self.get_result(element, 'standard_spec').deepcopy()
                     std[:line_energy - 1.5 * line_FWHM] = 0
                     std[line_energy + 1.5 * line_FWHM:] = 0
                     fp = create_component.ScalableFixedPattern(std)
@@ -552,8 +575,8 @@ class EDSSpectrum(Spectrum):
                             fp.A.twin_inverse_function = lambda x: x / \
                                 ratio_line
                             m.append(fp)
-            if signal_range is not None:
-                m.set_signal_range(signal_range[0], signal_range[1])
+            #if signal_range is not None:
+            #    m.set_signal_range(signal_range[0], signal_range[1])
             m.multifit()
             if plot_fit:
                 m.plot()
@@ -574,9 +597,10 @@ class EDSSpectrum(Spectrum):
                         data_res = fp.A.as_signal().data
                     elif lines_deconvolution == 'standard':
                         data_res = fp.yscale.as_signal().data
-                img = self._set_result(xray_line, 'Int',
+               
+                img = self._set_result(xray_line, 'intensities',
                                        data_res, plot_result=False,
-                                       store_in_mp=False)
+                                       store_in_mp=store_in_mp)
 
                 #img = self[...,0]
                 # if img.axes_manager.navigation_dimension >= 2:
@@ -615,6 +639,8 @@ class EDSSpectrum(Spectrum):
                              self.axes_manager.signal_axes[0].units,
                              img.data))
                 intensities.append(img)
+        #if lines_deconvolution is not None:
+        #    m._disconnect_parameters2update_plot()
         if plot_result and img.axes_manager.signal_dimension != 0:
             utils.plot.plot_signals(intensities, **kwargs)
         return intensities
@@ -776,8 +802,8 @@ class EDSSpectrum(Spectrum):
 
         if store_in_mp:
             mp.Sample[result][j] = res_img
-        else:
-            return res_img
+        
+        return res_img
 
     def normalize_result(self, result, return_element='all'):
         """
