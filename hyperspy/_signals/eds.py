@@ -1004,6 +1004,8 @@ class EDSSpectrum(Spectrum):
         only_lines : None or list of strings
             If not None, use only the given lines (eg. ('a','Kb')).
             If None, use all lines.
+        kwargs
+            keyword argument for plot
 
         See also
         --------
@@ -1047,7 +1049,7 @@ class EDSSpectrum(Spectrum):
             # else:
             intensity.append(self[..., a_eng].data * relative_factor)
 
-        self.plot()
+        self.plot(**kwargs)
         for i in range(len(line_energy)):
             line = marker.Marker()
             line.type = 'line'
