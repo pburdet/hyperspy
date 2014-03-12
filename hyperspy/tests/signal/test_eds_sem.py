@@ -418,9 +418,9 @@ class Test_plot_Xray_lines:
         s = self.signal
 
         s.plot_Xray_lines()
-        s.plot_Xray_lines(line_to_plot='all')
-        s.plot_Xray_lines(line_to_plot='a')
-        s.plot_Xray_lines(line_to_plot='ab')
+        s.plot_Xray_lines()
+        s.plot_Xray_lines(only_lines=('a'))
+        s.plot_Xray_lines(only_lines=('a,Kb'))
 
 
 class Test_tools_bulk:

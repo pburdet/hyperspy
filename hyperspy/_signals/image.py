@@ -152,7 +152,7 @@ class Image(Signal):
         img_data = np.rollaxis(img_data, 0, 3)
         img_data = np.rollaxis(img_data, 0, 2)
         src = mlab.pipeline.scalar_field(img_data)
-        src.name = self.metadata.title
+        src.name = self.metadata.General.title
         src.spacing = scale
         if return_data:
             return img_data
