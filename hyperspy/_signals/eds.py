@@ -975,7 +975,8 @@ class EDSSpectrum(Spectrum):
         TOA = utils.eds.take_off_angle(tilt_stage, azimuth_angle,
                                        elevation_angle)
         return TOA
-#if X-ray are set, no way to see all lines (delete Sample.Xray)
+# if X-ray are set, no way to see all lines (delete Sample.Xray)
+
     def plot_Xray_lines(self,
                         xray_lines=None,
                         only_one=False,
