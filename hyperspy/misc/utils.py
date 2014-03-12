@@ -769,6 +769,7 @@ def stack(signal_list, axis=None, new_axis_name='stack_element',
     else:
         step_sizes = [obj.axes_manager.shape[axis_input]
                       for obj in signal_list]
+
     signal.metadata._HyperSpy.set_item(
         'Stacking_history.axis',
         axis_input)

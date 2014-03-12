@@ -1006,7 +1006,7 @@ class EDSSpectrum(Spectrum):
             If not None, use only the given lines (eg. ('a','Kb')).
             If None, use all lines.
         kwargs
-            keyword argument for plot
+            The extra keyword arguments for plot()
 
         See also
         --------
