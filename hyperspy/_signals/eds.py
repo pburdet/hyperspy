@@ -363,7 +363,6 @@ class EDSSpectrum(Spectrum):
                 lines.extend(element_lines)
         return lines
         
-#bug if plot_fit=True, then close figure, then again get_lines
     def get_lines_intensity(self,
                             xray_lines=None,
                             plot_result=False,
@@ -373,7 +372,6 @@ class EDSSpectrum(Spectrum):
                             lines_deconvolution=None,
                             bck=0,
                             plot_fit=False,
-                            #signal_range=None,
                             store_in_mp=False,
                             **kwargs):
         """Return the intensity map of selected Xray lines.
@@ -417,6 +415,8 @@ class EDSSpectrum(Spectrum):
             Deconvolution of the line with a gaussian model. Take time
         bck : float
             background to substract. Only for deconvolution
+        store_in_mp : bool
+            store the result in metadata.Sample
         kwargs
             The extra keyword arguments for plotting. See
             `utils.plot.plot_signals`
@@ -575,8 +575,6 @@ class EDSSpectrum(Spectrum):
                             fp.A.twin_inverse_function = lambda x: x / \
                                 ratio_line
                             m.append(fp)
-            #if signal_range is not None:
-            #    m.set_signal_range(signal_range[0], signal_range[1])
             m.multifit()
             if plot_fit:
                 m.plot()
@@ -639,8 +637,6 @@ class EDSSpectrum(Spectrum):
                              self.axes_manager.signal_axes[0].units,
                              img.data))
                 intensities.append(img)
-        #if lines_deconvolution is not None:
-        #    m._disconnect_parameters2update_plot()
         if plot_result and img.axes_manager.signal_dimension != 0:
             utils.plot.plot_signals(intensities, **kwargs)
         return intensities
