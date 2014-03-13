@@ -648,7 +648,7 @@ class EDSSpectrum(Spectrum):
         Parameters
         ----------
 
-        kernel: 'square' or
+        kernel: 'square' or 2D array
             Define the kernel
 
         size : int,optional
