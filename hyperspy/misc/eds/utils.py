@@ -898,7 +898,7 @@ def align_with_stackReg(img,
     shifts = _read_alignement_file()
     mp = img.metadata
     if mp.has_item('align') is False:
-            mp.add_node('align')
+        mp.add_node('align')
     mp.align.crop = False
     mp.align.method = 'StackReg'
     mp.align.shifts = shifts
@@ -1690,9 +1690,9 @@ def get_contrast_brightness_from(img, reference, return_factors=False):
 
 
 def fft_power_spectrum(self):
-        """Compute the power spectrum
-        """
-        self.data = np.abs(self.data)
+    """Compute the power spectrum
+    """
+    self.data = np.abs(self.data)
 
 
 def fft_mirror_center(self):
@@ -2029,7 +2029,9 @@ def database_3Dresult():
     """
     return _load_in_database('2res3DrsAH.hdf5', result=True)
 
-#doesn't work
+# doesn't work
+
+
 def tv_denoise(self,
                weight=50,
                n_iter_max=200,
