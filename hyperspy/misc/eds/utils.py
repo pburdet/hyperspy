@@ -2054,10 +2054,10 @@ def tv_denoise(self,
         Maximal number of iterations used for the optimization.
 
     method: 'chambolle' | 'bregman'
-    
+
     Example
     -------
-    
+
     >>> im = utils_eds.database_2Dimage()
     >>> utils_eds.tv_denoise(im,method='chambolle',
     >>>   weight=0.5,n_iter_max=4).plot()
@@ -2074,17 +2074,17 @@ def tv_denoise(self,
     img = self.deepcopy()
 
     if method == 'bregman':
-        #img = self.apply_function(
+        # img = self.apply_function(
         #    skimage.filter.denoise_tv_bregman, weight=weight,
         #    eps=eps, max_iter=n_iter_max)
-        img.data = skimage.filter.denoise_tv_bregman(img.data,weight=weight,
-            eps=eps, max_iter=n_iter_max)
+        img.data = skimage.filter.denoise_tv_bregman(img.data, weight=weight,
+                                                     eps=eps, max_iter=n_iter_max)
     elif method == 'chambolle':
-        #img = self.apply_function(
+        # img = self.apply_function(
         #    skimage.filter.denoise_tv_chambolle,
         #    weight=weight, eps=eps, n_iter_max=n_iter_max)
         img.data = skimage.filter.denoise_tv_chambolle(img.data,
-            weight=weight, eps=eps, n_iter_max=n_iter_max)
+                                                       weight=weight, eps=eps, n_iter_max=n_iter_max)
     return img
 
 
