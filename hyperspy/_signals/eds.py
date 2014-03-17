@@ -541,8 +541,7 @@ class EDSSpectrum(Spectrum):
                     line_energy)
                 if lines_deconvolution == 'model':
                     fp = create_component.Gaussian()
-                    fp.centre.value = line_energy
-                    fp.name = xray_line
+                    fp.centre.value = line_energy                    
                     fp.sigma.value = line_FWHM / 2.355
                     fp.centre.free = False
                     fp.sigma.free = False
@@ -552,8 +551,18 @@ class EDSSpectrum(Spectrum):
                     std[line_energy + 1.5 * line_FWHM:] = 0
                     fp = create_component.ScalableFixedPattern(std)
                     fp.set_parameters_not_free(['offset', 'xscale', 'shift'])
+                    fp.yscale.ext_bounded=True
+                    fp.yscale.ext_force_positive=True
+                fp.name = xray_line
                 fps.append(fp)
                 m.append(fps[-1])
+                if lines_deconvolution == 'model':
+                    m[xray_line].A.map['values'] = self[...,line_energy].data
+                    m[xray_line].A.map['is_set'] = (np.ones(self[...,line_energy].data.shape)==1)                    
+                elif lines_deconvolution == 'standard':
+                    m[xray_line].yscale.map['values'] = self[...,line_energy].data
+                    m[xray_line].yscale.map['is_set'] = (np.ones(self[...,line_energy].data.shape)==1)
+                    
                 if lines_deconvolution == 'model':
                     for li in elements_db[element]['Atomic_properties']['Xray_lines']:
                         if line[0] in li and line != li:
@@ -575,7 +584,7 @@ class EDSSpectrum(Spectrum):
                             fp.A.twin_inverse_function = lambda x: x / \
                                 ratio_line
                             m.append(fp)
-            m.multifit()
+            m.multifit(fitter='leastsq',grad=True)
             if plot_fit:
                 m.plot()
                 plt.title('Fit')
@@ -1153,7 +1162,8 @@ class EDSSpectrum(Spectrum):
                 m[str(i_comp)].yscale.map['values'] = load_data
                 m[str(i_comp)].yscale.map['is_set'] = [[True] * dim[0]] * \
                     dim[1]
-        m.multifit(**kwargs)
+                #(np.ones(self[...,line_energy].data.shape)==1)
+        m.multifit(fitter='leastsq',**kwargs)
 
         return m.as_signal()
 
