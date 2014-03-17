@@ -562,7 +562,7 @@ class EDSSpectrum(Spectrum):
                     m[xray_line].yscale.map['is_set'] = (
                         np.ones(self[..., line_energy].data.shape) == 1)
                 elif lines_deconvolution == 'model':
-                    #may not work with twin
+                    # may not work with twin
                     m[xray_line].A.map['values'] = self[..., line_energy].data
                     m[xray_line].A.map['is_set'] = (
                         np.ones(self[..., line_energy].data.shape) == 1)
@@ -588,9 +588,9 @@ class EDSSpectrum(Spectrum):
                             fp.A.twin_inverse_function = lambda x: x / \
                                 ratio_line
                             m.append(fp)
-                            
+
             if lines_deconvolution == 'standard':
-                m.multifit(fitter='leastsq',grad=True)
+                m.multifit(fitter='leastsq', grad=True)
             elif lines_deconvolution == 'model':
                 m.multifit(fitter='leastsq')
             if plot_fit:
