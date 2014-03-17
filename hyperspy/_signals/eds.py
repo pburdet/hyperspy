@@ -373,6 +373,9 @@ class EDSSpectrum(Spectrum):
                             bck=0,
                             plot_fit=False,
                             store_in_mp=False,
+                            bounded=False,
+                            grad=False,
+                            init=True,
                             **kwargs):
         """Return the intensity map of selected Xray lines.
 
@@ -417,6 +420,12 @@ class EDSSpectrum(Spectrum):
             background to substract. Only for deconvolution
         store_in_mp : bool
             store the result in metadata.Sample
+        bounded: bool
+            force positive fit, fast with PCA
+        grad: bool 
+            fit option, fast with PCA            
+        init: bool 
+            initialize value
         kwargs
             The extra keyword arguments for plotting. See
             `utils.plot.plot_signals`
@@ -442,7 +451,7 @@ class EDSSpectrum(Spectrum):
         >>> s = utils_eds.database_3Dspec(spec=1)
         >>> s[102:134,125:152].get_lines_intensity(["Hf_Ma", "Ta_Ma"],
                 plot_result=True,lines_deconvolution='model')
-
+                
         #Mode 'standard'
 
         >>> s = utils_eds.database_3Dspec(spec=1)
@@ -545,27 +554,32 @@ class EDSSpectrum(Spectrum):
                     fp.sigma.value = line_FWHM / 2.355
                     fp.centre.free = False
                     fp.sigma.free = False
+                    if bounded:
+                        fp.A.ext_bounded = True
+                        fp.A.ext_force_positive = True
                 elif lines_deconvolution == 'standard':
                     std = self.get_result(element, 'standard_spec').deepcopy()
                     std[:line_energy - 1.5 * line_FWHM] = 0
                     std[line_energy + 1.5 * line_FWHM:] = 0
                     fp = create_component.ScalableFixedPattern(std)
                     fp.set_parameters_not_free(['offset', 'xscale', 'shift'])
-                    fp.yscale.ext_bounded = True
-                    fp.yscale.ext_force_positive = True
+                    if bounded:
+                        fp.yscale.ext_bounded = True
+                        fp.yscale.ext_force_positive = True
                 fp.name = xray_line
                 fps.append(fp)
                 m.append(fps[-1])
-                if lines_deconvolution == 'standard':
-                    m[xray_line].yscale.map[
-                        'values'] = self[..., line_energy].data
-                    m[xray_line].yscale.map['is_set'] = (
-                        np.ones(self[..., line_energy].data.shape) == 1)
-                elif lines_deconvolution == 'model':
-                    # may not work with twin
-                    m[xray_line].A.map['values'] = self[..., line_energy].data
-                    m[xray_line].A.map['is_set'] = (
-                        np.ones(self[..., line_energy].data.shape) == 1)
+                if init:
+                    if lines_deconvolution == 'standard':
+                        m[xray_line].yscale.map[
+                            'values'] = self[..., line_energy].data
+                        m[xray_line].yscale.map['is_set'] = (
+                            np.ones(self[..., line_energy].data.shape) == 1)
+                    elif lines_deconvolution == 'model':
+                        # may not work with twin
+                        m[xray_line].A.map['values'] = self[..., line_energy].data
+                        m[xray_line].A.map['is_set'] = (
+                            np.ones(self[..., line_energy].data.shape) == 1)
 
                 if lines_deconvolution == 'model':
                     for li in elements_db[element]['Atomic_properties']['Xray_lines']:
@@ -590,9 +604,9 @@ class EDSSpectrum(Spectrum):
                             m.append(fp)
 
             if lines_deconvolution == 'standard':
-                m.multifit(fitter='leastsq', grad=True)
+                m.multifit(fitter='leastsq', grad=grad)
             elif lines_deconvolution == 'model':
-                m.multifit(fitter='leastsq')
+                m.multifit(fitter='leastsq', grad=grad)
             if plot_fit:
                 m.plot()
                 plt.title('Fit')
