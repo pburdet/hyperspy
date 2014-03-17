@@ -422,9 +422,9 @@ class EDSSpectrum(Spectrum):
             store the result in metadata.Sample
         bounded: bool
             force positive fit, fast with PCA
-        grad: bool 
-            fit option, fast with PCA            
-        init: bool 
+        grad: bool
+            fit option, fast with PCA
+        init: bool
             initialize value
         kwargs
             The extra keyword arguments for plotting. See
@@ -451,7 +451,7 @@ class EDSSpectrum(Spectrum):
         >>> s = utils_eds.database_3Dspec(spec=1)
         >>> s[102:134,125:152].get_lines_intensity(["Hf_Ma", "Ta_Ma"],
                 plot_result=True,lines_deconvolution='model')
-                
+
         #Mode 'standard'
 
         >>> s = utils_eds.database_3Dspec(spec=1)
@@ -577,7 +577,8 @@ class EDSSpectrum(Spectrum):
                             np.ones(self[..., line_energy].data.shape) == 1)
                     elif lines_deconvolution == 'model':
                         # may not work with twin
-                        m[xray_line].A.map['values'] = self[..., line_energy].data
+                        m[xray_line].A.map[
+                            'values'] = self[..., line_energy].data
                         m[xray_line].A.map['is_set'] = (
                             np.ones(self[..., line_energy].data.shape) == 1)
 
