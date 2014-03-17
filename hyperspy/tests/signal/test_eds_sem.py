@@ -172,7 +172,40 @@ class Test_get_lines_intentisity:
                                              plot_result=False,
                                              integration_window_factor=5)[0]
         assert_true(np.allclose(24.99516, sAl.data, atol=1e-3))
+    
+    def test_model_deconvolution(self):
+        s = self.signal
 
+        sAl = s[0].get_lines_intensity(["Al_Ka"],
+                            plot_result=False,
+                            lines_deconvolution='model')[0]
+        assert_true(np.allclose(0.75061671, sAl.data[0, 0], atol=1e-3))
+        sAl = s[0, 0].get_lines_intensity(["Al_Ka"],
+                            plot_result=False,
+                            lines_deconvolution='model')[0]
+        assert_true(np.allclose(0.75061671, sAl.data[0], atol=1e-3))
+        sAl = s[0, 0, 0].get_lines_intensity(["Al_Ka"],
+                            plot_result=False,
+                            lines_deconvolution='model')[0]
+        assert_true(np.allclose(0.75061671, sAl.data, atol=1e-3))
+        
+    def test_model_deconvolution(self):
+        s = self.signal
+        std=s[0,0,0]
+        std.metadata.General.title='Al_std'
+        s.metadata.set_item('Sample.standard_spec', [std*0.99])
+        sAl = s[0].get_lines_intensity(["Al_Ka"],
+                            plot_result=False,
+                            lines_deconvolution='standard')[0]
+        assert_true(np.allclose(1.01010101, sAl.data[0, 0], atol=1e-3))
+        sAl = s[0, 0].get_lines_intensity(["Al_Ka"],
+                            plot_result=False,
+                            lines_deconvolution='standard')[0]
+        assert_true(np.allclose(1.01010101, sAl.data[0], atol=1e-3))
+        sAl = s[0, 0, 0].get_lines_intensity(["Al_Ka"],
+                            plot_result=False,
+                            lines_deconvolution='standard')[0]
+        assert_true(np.allclose(1.01010101, sAl.data, atol=1e-3))
 
 class Test_quantification:
 
