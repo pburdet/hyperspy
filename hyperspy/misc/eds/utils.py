@@ -756,6 +756,7 @@ def load_EDSSEMSpectrum(filenames=None,
     if hasattr(mp, 'Sample'):
         for result in ['standard_spec', 'kratios', 'quant', 'quant_enh', 'intensities']:
             if hasattr(mp.Sample, result):
+                #mp.Sample[result] = mp.Sample[result].split()
                 _set_result_signal_list(mp, result)
 
     return s
@@ -797,7 +798,8 @@ def _set_result_signal_list(mp, result):
                 if number_of_parts == len(mp.Sample.xray_lines):
             # if number_of_parts == len(mp.Sample.elements):
                     el, li = _get_element_and_line(mp.Sample.xray_lines[i])
-                #el, li = _get_element_and_line(mp.Sample.elements[i])
+                else:
+                    el, li = _get_element_and_line(mp.Sample.elements[i])
             else:
                 el = mp.Sample.elements[i]
             tp.metadata.General.title = el + '_std'

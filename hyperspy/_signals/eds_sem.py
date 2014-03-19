@@ -1393,11 +1393,24 @@ class EDSSEMSpectrum(EDSSpectrum):
         """
         from hyperspy import signals
         mp = self.metadata
+        
+        if results == 'all':
+            results_tmp = ['kratios', 'quant', 'quant_enh', 'intensities']
+            results=[]
+            for res in results_tmp:
+                if res in mp.Sample:
+                    results.append(res)
+        
         if isinstance(reference, signals.Image) is False:
             ref_is_result = True
-            if isinstance(reference[1], basestring) is False:
-                reference[1] = mp.Sample.xray_lines[reference[1]]
-            reference = self.get_result(reference[1], reference[0])
+            if shifts == 'StackReg':            
+                if isinstance(reference[1], basestring) is False:
+                    reference[1] = mp.Sample.xray_lines[reference[1]]
+                reference = self.get_result(reference[1], reference[0])
+            else:
+                # Shifts has the priority, so any reference is given
+                reference = mp.Sample[results[0]][0]
+                align_ref=False
         else:
             ref_is_result = False
 
@@ -1409,9 +1422,6 @@ class EDSSEMSpectrum(EDSSpectrum):
             shifts = mp_ref.align.shifts
         elif shifts == 'mp':
             shifts = mp_ref.align.shifts
-
-        if results == 'all':
-            results = ['kratios', 'quant', 'quant_enh', 'intensities']
 
         res_shape = mp.Sample[results[0]][0].axes_manager.shape
         ref_shape = reference.axes_manager.shape
@@ -1487,7 +1497,7 @@ class EDSSEMSpectrum(EDSSpectrum):
                     mp_temp.align.crop = crop
                     mp_temp.align.is_aligned = True
                     mp_temp.align.shifts = shifts
-                    mp_temp.align.method = 'ref : ' + mp_ref.title
+                    mp_temp.align.method = 'ref : ' + mp_ref.General.title
                     if crop is True:
                         res.crop_image(top, bottom, left, right)
 
@@ -1496,8 +1506,8 @@ class EDSSEMSpectrum(EDSSpectrum):
         mp.align.crop = crop
         mp.align.is_aligned = True
         mp.align.shifts = shifts
-        mp.align.method = 'ref : ' + mp_ref.title
-        if crop is True:
+        mp.align.method = 'ref : ' + mp_ref.General.title
+        if crop is True and self.data != []:
             self.axes_manager[1].size = res.axes_manager[2].size
             self.axes_manager[0].size = res.axes_manager[1].size
 
