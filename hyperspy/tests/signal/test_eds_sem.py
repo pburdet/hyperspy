@@ -197,15 +197,15 @@ class Test_get_lines_intentisity:
         sAl = s[0].get_lines_intensity(["Al_Ka"],
                                        plot_result=False,
                                        lines_deconvolution='standard')[0]
-        assert_true(np.allclose(1.01010101, sAl.data[0, 0], atol=1e-3))
+        assert_true(np.allclose(25.252525252525249, sAl.data[0, 0], atol=1e-3))
         sAl = s[0, 0].get_lines_intensity(["Al_Ka"],
                                           plot_result=False,
                                           lines_deconvolution='standard')[0]
-        assert_true(np.allclose(1.01010101, sAl.data[0], atol=1e-3))
+        assert_true(np.allclose(25.252525252525249, sAl.data[0], atol=1e-3))
         sAl = s[0, 0, 0].get_lines_intensity(["Al_Ka"],
                                              plot_result=False,
                                              lines_deconvolution='standard')[0]
-        assert_true(np.allclose(1.01010101, sAl.data, atol=1e-3))
+        assert_true(np.allclose(25.252525252525249, sAl.data, atol=1e-3))
 
 
 class Test_quantification:

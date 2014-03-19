@@ -380,7 +380,8 @@ class EDSSEMSpectrum(EDSSpectrum):
                 'Xray_lines'][
                 line][
                 'energy (keV)']
-            diff_ltime = mp.Acquisition_instrument.SEM.Detector.EDS.live_time / mp_std.Acquisition_instrument.SEM.Detector.EDS.live_time
+            diff_ltime = mp.Acquisition_instrument.SEM.Detector.EDS.live_time / \
+                mp_std.Acquisition_instrument.SEM.Detector.EDS.live_time
             # Fit with least square
             m = create_model(self.top_hat(line_energy, width_windows))
             fp = components.ScalableFixedPattern(std.top_hat(line_energy,
@@ -881,8 +882,12 @@ class EDSSEMSpectrum(EDSSpectrum):
         f.write('Itermax\t49\r\n')
         f.write('\r\n')
         f.write('HV\t%s\r\n' % mp.Acquisition_instrument.SEM.beam_energy)
-        f.write('Elevation\t%s\r\n' % mp.Acquisition_instrument.SEM.Detector.EDS.elevation_angle)
-        f.write('azimuth\t%s\r\n' % mp.Acquisition_instrument.SEM.Detector.EDS.azimuth_angle)
+        f.write(
+            'Elevation\t%s\r\n' %
+            mp.Acquisition_instrument.SEM.Detector.EDS.elevation_angle)
+        f.write(
+            'azimuth\t%s\r\n' %
+            mp.Acquisition_instrument.SEM.Detector.EDS.azimuth_angle)
         f.write('tilt\t%s\r\n' % mp.Acquisition_instrument.SEM.tilt_stage)
         f.write('\r\n')
         f.write('nbelement\t%s\r\n' % len(xray_lines))
@@ -952,8 +957,12 @@ class EDSSEMSpectrum(EDSSpectrum):
         f.write('Itermax\t%s\r\n' % mp.enh_param['iter_max'])
         f.write('\r\n')
         f.write('HV\t%s\r\n' % mp.Acquisition_instrument.SEM.beam_energy)
-        f.write('Elevation\t%s\r\n' % mp.Acquisition_instrument.SEM.Detector.EDS.elevation_angle)
-        f.write('azimuth\t%s\r\n' % mp.Acquisition_instrument.SEM.Detector.EDS.azimuth_angle)
+        f.write(
+            'Elevation\t%s\r\n' %
+            mp.Acquisition_instrument.SEM.Detector.EDS.elevation_angle)
+        f.write(
+            'azimuth\t%s\r\n' %
+            mp.Acquisition_instrument.SEM.Detector.EDS.azimuth_angle)
         f.write('tilt\t%s\r\n' % mp.Acquisition_instrument.SEM.tilt_stage)
         f.write('\r\n')
         f.write('nbelement\t%s\t%s\r\n' % (len(elements), len(xray_lines)))
@@ -1061,7 +1070,6 @@ class EDSSEMSpectrum(EDSSpectrum):
         if hasattr(mp.Sample, 'elements') is False:
             raise ValueError('Elements needs to be defined')
             return 0
-
 
         elements = list(mp.Sample.elements)
         e0 = mp.Acquisition_instrument.SEM.beam_energy
@@ -1393,24 +1401,24 @@ class EDSSEMSpectrum(EDSSpectrum):
         """
         from hyperspy import signals
         mp = self.metadata
-        
+
         if results == 'all':
             results_tmp = ['kratios', 'quant', 'quant_enh', 'intensities']
-            results=[]
+            results = []
             for res in results_tmp:
                 if res in mp.Sample:
                     results.append(res)
-        
+
         if isinstance(reference, signals.Image) is False:
             ref_is_result = True
-            if shifts == 'StackReg':            
+            if shifts == 'StackReg':
                 if isinstance(reference[1], basestring) is False:
                     reference[1] = mp.Sample.xray_lines[reference[1]]
                 reference = self.get_result(reference[1], reference[0])
             else:
                 # Shifts has the priority, so any reference is given
                 reference = mp.Sample[results[0]][0]
-                align_ref=False
+                align_ref = False
         else:
             ref_is_result = False
 
@@ -1552,8 +1560,11 @@ class EDSSEMSpectrum(EDSSpectrum):
 
         e0 = mp.Acquisition_instrument.SEM.beam_energy
         tilt = np.radians(mp.Acquisition_instrument.SEM.tilt_stage)
-        elevation = np.radians(mp.Acquisition_instrument.SEM.Detector.EDS.elevation_angle)
-        azim = np.radians(90 - mp.Acquisition_instrument.SEM.Detector.EDS.azimuth_angle)
+        elevation = np.radians(
+            mp.Acquisition_instrument.SEM.Detector.EDS.elevation_angle)
+        azim = np.radians(
+            90 -
+            mp.Acquisition_instrument.SEM.Detector.EDS.azimuth_angle)
 
         if gateway == 'auto':
             gateway = utils_eds.get_link_to_jython()
@@ -1747,7 +1758,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             elements = [elements]
             thresholds = [thresholds]
         if isinstance(colors, list) is False:
-                colors = [colors] * len(elements)
+            colors = [colors] * len(elements)
 
         srcs = []
         isos = []
@@ -1775,8 +1786,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             return figure, src, iso
         else:
             return figure, srcs, isos
-            
-            
+
     def add_standards_to_signal(self, std_names, dtype=None):
         """
         Add to the data extra lines containing the selected standard.
