@@ -443,19 +443,19 @@ class EDSSpectrum(Spectrum):
 
         #Mode standard
 
-        >>> s = utils_eds.database_3Dspec(spec=1)
+        >>> s = utils_eds.database_3Dspec('SEM')
         >>> s[102:134,125:152].get_lines_intensity(["Hf_Ma", "Ta_Ma"],
                 plot_result=True)
 
         #Mode 'model'
 
-        >>> s = utils_eds.database_3Dspec(spec=1)
+        >>> s = utils_eds.database_3Dspec('SEM')
         >>> s[102:134,125:152].get_lines_intensity(["Hf_Ma", "Ta_Ma"],
                 plot_result=True,lines_deconvolution='model')
 
         #Mode 'standard'
 
-        >>> s = utils_eds.database_3Dspec(spec=1)
+        >>> s = utils_eds.database_3Dspec('SEM')
         >>> from hyperspy.misc.config_dir import config_path
         >>> s.add_elements(['Hf','Ta'])
         >>> s.link_standard(config_path+'/database/std_RR')
@@ -1143,7 +1143,7 @@ class EDSSpectrum(Spectrum):
 
         Slower that makes sense
 
-        >>> s = utils_eds.database_4Dspec(False)[::,::,1]
+        >>> s = utils_eds.database_4Dspec('TEM')[::,::,1]
         >>> s.change_dtype('float')
         >>> dim = s.axes_manager.shape
         >>> s = s.rebin((dim[0]/4, dim[1]/4, dim[2]))

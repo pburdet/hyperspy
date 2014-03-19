@@ -1965,49 +1965,68 @@ def _load_in_database(name, result=False):
         return load(foldername)
 
 
-def database_1Dspec():
+def database_1Dspec(which_spec='BAM'):
     """
-    load bam sample
+    load 1D spec
+    
+    Parameters
+    ----------
+    
+    which_spec: {'BAM','msa','noisy'}
+        if BAM: bam sample
+        if msa: GnMeba test, coin of euro
+        if noisy: 1 pixel in AlZn
+    
     """
-    return _load_in_database('bam.hdf5')
+    
+    if which_spec=='BAM':
+        return _load_in_database('bam.hdf5')
+    elif which_spec=='msa':
+        return _load_in_database('GNmeba_test.msa')
+    elif which_spec=='noisy':
+        return _load_in_database('1pix_AlZn.msa')
 
-
-def database_3Dspec(PCA_treated=False, spec=0):
+def database_3Dspec(which_spec='PCA_SEM'):
     """
-    load RR 46 PCA rec or TiFeNi no PCA
+    load 3D spec
 
     Parameters
     ----------
-
-    PCA_treated: bool
-        if True, load RR 46 PCA rec
-    spec: 0 or 1
-        If 0, load TiFeNi no PCA
-        If 1, load RR 46
+    
+    which_spec: {'PCA_SEM','SEM','Ti_SEM','rpl','noisy'}
+        if 'PCA_SEM', load RR 46 PCA rec
+        if 'SEM', load TiFeNi no PCA
+        ifs 'Ti_SEM', load TiFeNi no PCA
+        if 'rpl', jonas1h
+        if 'noisy', AlZn 40 .rpl, see noisy 1D
     """
-    if PCA_treated:
+    
+    if which_spec=='PCA_SEM':
         return _load_in_database('specImg3DBinPCAre46.hdf5')
-    else:
-        if spec == 0:
-            return _load_in_database('TiFeNi10.hdf5')
-        elif spec == 1:
-            return _load_in_database('specImg3D46.hdf5')
+    elif which_spec=='SEM':
+        return _load_in_database('specImg3D46.hdf5')
+    elif which_spec=='Ti_SEM':
+        return _load_in_database('TiFeNi10.hdf5')
+    elif which_spec=='rpl':
+        return _load_in_database('jonas1h.rpl')
+    elif which_spec=='noisy':
+        return _load_in_database('AlZn__040.rpl')
 
 
-def database_4Dspec(PCA_treated=True):
+def database_4Dspec(which_spec='PCA_SEM'):
     """
     load RR PCA rec (10:15) or Cat (TEM) no PCA
 
     Parameters
     ----------
 
-    PCA_treated: bool
-        if True, load RR 46 PCA rec
-        if False, load Cat (TEM) no PCA
+    which_spec: {'PCA_SEM','TEM'}
+        if 'PCA_SEM', load RR (slices 10:15) PCA rec
+        if 'TEM', load Cat (TEM) no PCA
     """
-    if PCA_treated:
+    if which_spec=='PCA_SEM':
         return _load_in_database('specImg3DBinPCArec.hdf5')
-    else:
+    elif which_spec=='TEM':
         return _load_in_database('cate_3D_bin_reduced.hdf5')
 
 

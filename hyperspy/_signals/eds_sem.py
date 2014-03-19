@@ -92,7 +92,7 @@ class EDSSEMSpectrum(EDSSpectrum):
 
         if hasattr(mp_ref.Detector.EDS, 'live_time'):
             mp.Acquisition_instrument.SEM.Detector.EDS.live_time = \
-                mp_ref.DetectorEDS.live_time / nb_pix
+                mp_ref.Detector.EDS.live_time / nb_pix
 
     def _load_from_TEM_param(self):
         """Transfer metadata.Acquisition_instrument.TEM to metadata.Acquisition_instrument.SEM
@@ -1804,7 +1804,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         Example
         -------
 
-        >>> s = utils_eds.database_3Dspec(spec=1)
+        >>> s = utils_eds.database_3Dspec('SEM')
         >>> from hyperspy.misc.config_dir import config_path
         >>> s.add_elements(['Hf','Ta'])
         >>> s.link_standard(config_path+'/database/std_RR')
