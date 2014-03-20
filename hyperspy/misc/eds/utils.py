@@ -1968,23 +1968,24 @@ def _load_in_database(name, result=False):
 def database_1Dspec(which_spec='BAM'):
     """
     load 1D spec
-    
+
     Parameters
     ----------
-    
+
     which_spec: {'BAM','msa','noisy'}
         if BAM: bam sample
         if msa: GnMeba test, coin of euro
         if noisy: 1 pixel in AlZn
-    
+
     """
-    
-    if which_spec=='BAM':
+
+    if which_spec == 'BAM':
         return _load_in_database('bam.hdf5')
-    elif which_spec=='msa':
+    elif which_spec == 'msa':
         return _load_in_database('GNmeba_test.msa')
-    elif which_spec=='noisy':
+    elif which_spec == 'noisy':
         return _load_in_database('1pix_AlZn.msa')
+
 
 def database_3Dspec(which_spec='PCA_SEM'):
     """
@@ -1992,7 +1993,7 @@ def database_3Dspec(which_spec='PCA_SEM'):
 
     Parameters
     ----------
-    
+
     which_spec: {'PCA_SEM','SEM','Ti_SEM','rpl','noisy'}
         if 'PCA_SEM', load RR 46 PCA rec
         if 'SEM', load TiFeNi no PCA
@@ -2000,16 +2001,16 @@ def database_3Dspec(which_spec='PCA_SEM'):
         if 'rpl', jonas1h
         if 'noisy', AlZn 40 .rpl, see noisy 1D
     """
-    
-    if which_spec=='PCA_SEM':
+
+    if which_spec == 'PCA_SEM':
         return _load_in_database('specImg3DBinPCAre46.hdf5')
-    elif which_spec=='SEM':
+    elif which_spec == 'SEM':
         return _load_in_database('specImg3D46.hdf5')
-    elif which_spec=='Ti_SEM':
+    elif which_spec == 'Ti_SEM':
         return _load_in_database('TiFeNi10.hdf5')
-    elif which_spec=='rpl':
+    elif which_spec == 'rpl':
         return _load_in_database('jonas1h.rpl')
-    elif which_spec=='noisy':
+    elif which_spec == 'noisy':
         return _load_in_database('AlZn__040.rpl')
 
 
@@ -2024,9 +2025,9 @@ def database_4Dspec(which_spec='PCA_SEM'):
         if 'PCA_SEM', load RR (slices 10:15) PCA rec
         if 'TEM', load Cat (TEM) no PCA
     """
-    if which_spec=='PCA_SEM':
+    if which_spec == 'PCA_SEM':
         return _load_in_database('specImg3DBinPCArec.hdf5')
-    elif which_spec=='TEM':
+    elif which_spec == 'TEM':
         return _load_in_database('cate_3D_bin_reduced.hdf5')
 
 
