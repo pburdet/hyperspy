@@ -1021,6 +1021,79 @@ class EDSSEMSpectrum(EDSSpectrum):
         stat = distr_dic['distr']
         #pixSize = self.axes_manager[2].scale
         pixLat = int((limit_x[1] - limit_x[0]) / dx0 + 1)
+        
+        
+    def simulate_model(self,elemental_map='random'):
+        """ 
+        Simulate a model, given by 
+        
+        Parameters
+        ----------
+        elemental_map: {'random',None, signals.Image}
+            map
+        """
+        from hyperspy._signals.image import Image
+        from hyperspy.hspy import create_model
+        
+        live_time = self.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time 
+        beam_energy = self.metadata.Acquisition_instrument.SEM.beam_energy
+        FWHM_MnKa = self.metadata.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa
+        energy_axis = self.axes_manager.signal_axes[0]
+        elements = self.metadata.Sample.elements
+        
+        #tilt = np.radians(mp.Acquisition_instrument.SEM.tilt_stage)
+        #elevation = mp.Acquisition_instrument.SEM.Detector.EDS.elevation_angle
+        #azim = mp.Acquisition_instrument.SEM.Detector.EDS.azimuth_angle)
+        
+        if "counts_rate" in self.metadata.Acquisition_instrument.SEM.Detector.EDS:
+            counts_rate= self.metadata.Acquisition_instrument.SEM.Detector.EDS.counts_rate
+        else:
+            counts_rate = 10000
+        elemental_map_shape = list([len(elements)] + list(self.data.shape[:-1]))
+        
+        if "weight_percents" in self.metadata.Sample:
+            weight_percents = self.metadata.Sample.weight_percents
+            elemental_map = None
+        else:
+            weight_percents = [100]*len(elements)
+            
+        if isinstance(elemental_map,Image):
+            if list(elemental_map.data.shape) != elemental_map_shape:
+                raise ValueError(
+                    "elemental _map doesn't have the good size")
+                return
+            elemental_map = elemental_map.data
+        elif elemental_map == 'random':
+            elemental_map = np.random.random(elemental_map_shape)
+        elif elemental_map == None : 
+            elemental_map = np.ones(elemental_map_shape)
+            
+        m=create_model(self)
+        for i, (element, weight_percent) in enumerate(zip(elements,weight_percents)):
+        
+            for line in utils.material.elements[element].Atomic_properties.Xray_lines.keys():
+                line_energy = utils.material.elements[element
+                        ].Atomic_properties.Xray_lines[line].energy_keV
+                ratio_line = utils.material.elements[element
+                        ].Atomic_properties.Xray_lines[line].factor
+                if line_energy < beam_energy: 
+                    g = components.Gaussian()
+                    g.centre.value = line_energy
+                    g.sigma.value = utils_eds.get_FWHM_at_Energy(FWHM_MnKa,line_energy)/ 2.355
+                    g.A.value = live_time*counts_rate*weight_percent/100*ratio_line
+                    #g.A.value = live_time*ratio_line*weight_percent/100
+                    m.append(g)                
+                    g.A.map['values'][:] = g.A.value * elemental_map[i]
+                    g.A.map['is_set'][:] = True
+                    
+        if set(self.data.flatten()) == set([0]) :  
+            self.data = m.as_signal().data
+            self.add_poissonian_noise()
+        else: 
+            s = self.deepcopy()
+            s.data = m.as_signal().data
+            s.add_poissonian_noise()
+            return s 
 
     def simulate_electron_distribution(self,
                                        nb_traj,
