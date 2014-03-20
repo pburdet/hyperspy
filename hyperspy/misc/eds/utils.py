@@ -2131,33 +2131,34 @@ def mean_filter(self, size):
     kernel = kernel / kernel.sum()
     img = self.apply(scipy.ndimage.convolve, weights=kernel)
     return img
-    
+
+
 def simulate_model(elements=None,
-                shape_spectrum=None,
-                beam_energy=None,
-                live_time=None,                
-                weight_percents=None,
-                energy_resolution_MnKa=None,
-                counts_rate=None,
-                elemental_map='random'):
+                   shape_spectrum=None,
+                   beam_energy=None,
+                   live_time=None,
+                   weight_percents=None,
+                   energy_resolution_MnKa=None,
+                   counts_rate=None,
+                   elemental_map='random'):
     """Simulate a model with default param defined
-    
+
     See database_1Dspec()
     """
     from hyperspy import signals
 
     spec = signals.EDSSEMSpectrum(np.zeros(1024))
     s = database_1Dspec()
-    
-    if elements is not None: 
+
+    if elements is not None:
         s.set_elements(elements)
-    else :
+    else:
         elements = s.metadata.Sample.elements
     if weight_percents is not None:
         s.metadata.Sample.weight_percents = weight_percents
-        
-    if counts_rate  is not None:
-       self.metadata.Acquisition_instrument.SEM.Detector.EDS.counts_rate = counts_rate
+
+    if counts_rate is not None:
+        self.metadata.Acquisition_instrument.SEM.Detector.EDS.counts_rate = counts_rate
 
     s.set_microscope_parameters(beam_energy=beam_energy,
                                 live_time=live_time,
@@ -2313,9 +2314,9 @@ def simulate_model(elements=None,
         # spectra to plot, line_style will be cycled. If
         # If `None`, use 'steps'.
     # legend: None | list of str | 'auto'
-       # If list of string, legend for "cascade" or title for "mosaic" is
-       # displayed. If 'auto', the title of each spectra (metadata.General.title)
-       # is used.
+        # If list of string, legend for "cascade" or title for "mosaic" is
+        # displayed. If 'auto', the title of each spectra (metadata.General.title)
+        # is used.
     # fig : {matplotlib figure, None}
         # If None, a default figure will be created.
     #"""

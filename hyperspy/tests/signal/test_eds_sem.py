@@ -452,7 +452,7 @@ class Test_plot_Xray_lines:
         s = self.signal
 
         s.plot_Xray_lines()
-        s.plot_Xray_lines()
+        #s.plot_Xray_lines()
         s.plot_Xray_lines(only_lines=('a'))
         s.plot_Xray_lines(only_lines=('a,Kb'))
 
