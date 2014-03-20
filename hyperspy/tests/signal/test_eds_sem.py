@@ -229,7 +229,7 @@ class Test_quantification:
         FWHM_MnKa = 130
         s.metadata.Acquisition_instrument.SEM.Detector.EDS.azimuth_angle = 0.0
         s.metadata.Acquisition_instrument.SEM.tilt_stage = 0.0
-        
+
         gauss = Gaussian()
         line_energy = elements_EDS.Al.Atomic_properties.Xray_lines.Ka.energy_keV
         gauss.centre.value = line_energy
@@ -348,7 +348,7 @@ class Test_quantification:
 class Test_simulation:
 
     def setUp(self):
-        #careful with auto param
+        # careful with auto param
         s = EDSSEMSpectrum(np.ones(1024))
         energy_axis = s.axes_manager.signal_axes[0]
         energy_axis.scale = 1e-2
@@ -374,7 +374,7 @@ class Test_simulation:
 class Test_electron_distribution:
 
     def setUp(self):
-        #careful with auto param
+        # careful with auto param
         s = EDSSEMSpectrum(np.ones((2, 2, 3, 1024)))
         energy_axis = s.axes_manager.signal_axes[0]
         energy_axis.scale = 1e-2
