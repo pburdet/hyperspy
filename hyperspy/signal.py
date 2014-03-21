@@ -710,8 +710,7 @@ class Signal1DTools(object):
             self_copy = self.deepcopy()
             ia = IntegrateArea(self_copy, signal_range)
             ia.edit_traits()
-            integrated_spectrum = self._get_navigation_signal()
-            integrated_spectrum.data = self_copy.data
+            integrated_spectrum = self_copy
         else:
             integrated_spectrum = self._integrate_in_range_commandline(
                 signal_range)
