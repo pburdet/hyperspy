@@ -52,4 +52,5 @@ s.set_elements(['Al', 'Zn'])
 s.add_lines()
 
 # Plotting the lines intensity
+pyplot.set_cmap('RdYlBu_r')
 s.get_lines_intensity(plot_result=True)
