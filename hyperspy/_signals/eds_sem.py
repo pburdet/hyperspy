@@ -1023,7 +1023,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         pixLat = int((limit_x[1] - limit_x[0]) / dx0 + 1)
 
     #.as_signal slow
-    #background, better physical model...
+    # background, better physical model...
     def simulate_model(self, elemental_map='random'):
         """
         Simulate a model, given by

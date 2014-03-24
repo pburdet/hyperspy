@@ -26,17 +26,17 @@ else:
         # Build a spectrum
         data = range(1024 / 2) + range(1024 / 2, 0, -1)
         s_1_pixel = signals.EDSSEMSpectrum(data)
-        
+
         s_1_pixel.axes_manager[-1].scale = 0.01
         s_1_pixel.axes_manager[-1].units = "keV"
-        s_1_pixel.axes_manager[-1].offset = -0.1        
+        s_1_pixel.axes_manager[-1].offset = -0.1
         s_1_pixel.set_microscope_parameters(beam_energy=15, live_time=10)
-        
+
         # Build a map
         data = [data] + [data[::-1]] + [list(sqrt(data))]
         data = [data] + [list(power(data[::-1], 2))]
         s = signals.EDSSEMSpectrum(data)
-        
+
 # Energy axis calibration contains in s_1_pixel is tranfer to s.
 
 s.get_calibration_from(s_1_pixel)

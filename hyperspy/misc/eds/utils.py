@@ -2034,7 +2034,7 @@ def database_4Dspec(which_spec='PCA_SEM'):
 def database_2Dimage(which_spec='SEM'):
     """
     load 2D image
-    
+
     which_spec: {'SEM','Ti_SEM','lena'}
         if SEM, RR SE 46 (TLD SE)
         if Ti_SEM, jonas1h SE image (inLens, bck corrected, croped)
