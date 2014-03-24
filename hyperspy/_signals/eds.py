@@ -1009,7 +1009,7 @@ class EDSSpectrum(Spectrum):
                                        elevation_angle)
         return TOA
 # if X-ray are set, no way to see all lines (delete Sample.Xray)
-
+# Other color for lines set
     def plot_Xray_lines(self,
                         xray_lines=None,
                         only_one=False,
@@ -1040,6 +1040,13 @@ class EDSSpectrum(Spectrum):
             If None, use all lines.
         kwargs
             The extra keyword arguments for plot()
+            
+        
+        Examples
+        --------
+        
+        >>> s = utils_eds.database_3Dspec('Ti_SEM')
+        >>> s.plot_Xray_lines()
 
         See also
         --------

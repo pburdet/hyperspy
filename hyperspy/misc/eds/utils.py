@@ -1996,9 +1996,9 @@ def database_3Dspec(which_spec='PCA_SEM'):
 
     which_spec: {'PCA_SEM','SEM','Ti_SEM','rpl','noisy'}
         if 'PCA_SEM', load RR 46 PCA rec
-        if 'SEM', load TiFeNi no PCA
-        ifs 'Ti_SEM', load TiFeNi no PCA
-        if 'rpl', jonas1h
+        if 'SEM', load RR 46 no PCA
+        ifs 'Ti_SEM', load TiFeNi no PCA jonas1h croped (::,:12)
+        if 'rpl', jonas1h raw
         if 'noisy', AlZn 40 .rpl, see noisy 1D
     """
 
@@ -2007,7 +2007,7 @@ def database_3Dspec(which_spec='PCA_SEM'):
     elif which_spec == 'SEM':
         return _load_in_database('specImg3D46.hdf5')
     elif which_spec == 'Ti_SEM':
-        return _load_in_database('TiFeNi10.hdf5')
+        return _load_in_database('TiFeNi1h.hdf5')
     elif which_spec == 'rpl':
         return _load_in_database('jonas1h.rpl')
     elif which_spec == 'noisy':
@@ -2031,11 +2031,23 @@ def database_4Dspec(which_spec='PCA_SEM'):
         return _load_in_database('cate_3D_bin_reduced.hdf5')
 
 
-def database_2Dimage():
+def database_2Dimage(which_spec='SEM'):
     """
-    load RR SE 46
+    load 2D image
+    
+    which_spec: {'SEM','Ti_SEM','lena'}
+        if SEM, RR SE 46 (TLD SE)
+        if Ti_SEM, jonas1h SE image (inLens, bck corrected, croped)
+        if lena, scipy.misc.lena
     """
-    return _load_in_database('img46.hdf5')
+    if which_spec == 'SEM':
+        return _load_in_database('img46.hdf5')
+    elif which_spec == 'Ti_SEM':
+        return _load_in_database('SE_imTiFeNi1h.hdf5')
+    elif which_spec == 'lena':
+        import scipy.ndimage
+        from hyperspy.signals import Image
+        return Image(scipy.misc.lena())
 
 
 def database_3Dimage():
@@ -2158,7 +2170,7 @@ def simulate_model(elements=None,
         s.metadata.Sample.weight_percents = weight_percents
 
     if counts_rate is not None:
-        self.metadata.Acquisition_instrument.SEM.Detector.EDS.counts_rate = counts_rate
+        s.metadata.Acquisition_instrument.SEM.Detector.EDS.counts_rate = counts_rate
 
     s.set_microscope_parameters(beam_energy=beam_energy,
                                 live_time=live_time,
