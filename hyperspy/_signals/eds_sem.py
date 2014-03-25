@@ -519,7 +519,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             If True, plot all standard spectra
 
         """
-        
+
         if width_energy == 'auto':
             line_energy = []
             for xray_line in xray_lines:
@@ -594,7 +594,7 @@ class EDSSEMSpectrum(EDSSpectrum):
                                             intensities[i]))
         if new_figure:
             fig.show()
-            #return fig
+            # return fig
             animate_legend(fig)
 
     # shouldn't be needed
