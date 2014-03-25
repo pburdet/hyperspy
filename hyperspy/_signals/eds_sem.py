@@ -36,6 +36,7 @@ from hyperspy.misc.eds import utils as utils_eds
 from hyperspy import utils
 from hyperspy.misc.elements import elements as elements_db
 from hyperspy.misc.config_dir import config_path, os_name, data_path
+from hyperspy.drawing.utils import animate_legend
 
 
 class EDSSEMSpectrum(EDSSpectrum):
@@ -518,6 +519,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             If True, plot all standard spectra
 
         """
+        
         if width_energy == 'auto':
             line_energy = []
             for xray_line in xray_lines:
@@ -592,7 +594,8 @@ class EDSSEMSpectrum(EDSSpectrum):
                                             intensities[i]))
         if new_figure:
             fig.show()
-            return fig
+            #return fig
+            animate_legend(fig)
 
     # shouldn't be needed
     def save_result(self, result, filename, xray_lines='all',
@@ -1304,6 +1307,7 @@ class EDSSEMSpectrum(EDSSpectrum):
                 plt.title(elm + ': Electron depth distribution')
                 plt.xlabel('x position [${\mu}m$]')
                 plt.ylabel('nb electrons')
+                animate_legend()
 
         if mp.has_item('elec_distr') is False:
             mp.add_node('elec_distr')
@@ -1365,6 +1369,7 @@ class EDSSEMSpectrum(EDSSpectrum):
                           + str(nb_traj) + ')')
                 plt.xlabel('x position [${\mu}m$]')
                 plt.ylabel('nb electrons / sum electrons in the layer')
+                animate_legend()
 
         if elements != 'all':
             return f

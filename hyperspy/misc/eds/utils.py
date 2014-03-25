@@ -196,6 +196,11 @@ def phase_inspector(self, bins=[20, 20, 20], plot_result=True):
     # to be further improved.
     """
     Generate an binary image of different channel
+    
+    Parameters
+    ----------
+    
+    self: list of 3 images
     """
     from hyperspy import utils
     bins = [20, 20, 20]
