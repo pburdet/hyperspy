@@ -1,4 +1,7 @@
 
+pyplot.set_cmap('RdYlBu_r')
+
+elements=["C","Al", "Ti", "Cr", "Co", "Ni", "Mo", "Hf", "Ta",'Zr']
 s = utils_eds.database_3Dspec('SEM')
 
 # basic pca
@@ -7,10 +10,23 @@ s.decomposition(True)
 s.plot_explained_variance_ratio()
 s.plot_decomposition_results()
 
+f = s.get_decomposition_factors()
+f.get_calibration_from(s)
+f.add_elements(elements)
+f.plot_Xray_lines(navigator='slider')
+
 sr = s.get_decomposition_model(5)
 
 s.blind_source_separation(5)
 s.plot_bss_results()
+
+#PCA saving memory
+
+s.change_dtype('float32')
+s.decomposition(True)
+s.learning_results.crop_decomposition_dimension(30)
+s.change_dtype('int16')
+#do not try to save the model, just the s with the matrix score
 
 # extra spectrum from standard
 s = utils_eds.database_3Dspec('SEM')

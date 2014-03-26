@@ -333,7 +333,8 @@ class EDSSpectrum(Spectrum):
                 "or `Acquisition_instrument.SEM.beam_energy` must be defined in "
                 "`metadata`.")
 
-        end_energy = self.axes_manager.signal_axes[0].high_value
+        #end_energy = self.axes_manager.signal_axes[0].high_value
+        end_energy = self.axes_manager[-1].high_value
         if beam_energy < end_energy:
             end_energy = beam_energy
         lines = []

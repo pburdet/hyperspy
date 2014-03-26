@@ -6,6 +6,8 @@ pyplot.set_cmap('RdYlBu_r')
 long_time = False
 elements = ['Ti', 'Fe', 'Ni']
 xray = ['Ti_Ka', 'Fe_Ka', 'Ni_La']
+#elements = ['Ti', 'Fe', 'Ni']
+#xray = ['Ti_Ka', 'Fe_Ka', 'Ni_La']
 from hyperspy.misc.config_dir import config_path
 
 s3 = utils_eds.database_3Dspec('Ti_SEM')
@@ -60,11 +62,13 @@ utils_eds.plot_orthoview_animated(r[2])
 s4.get_kratio([[['Ni_Ka', 'Co_Ka'], ['Ni', 'Co'], [6.7, 7.75]],
                [["Ta_Ma", "Hf_Ma", 'Al_Ka'], ["Ta", "Hf", 'Al'], [1.25, 1.95]]], plot_result=False)
 
+s4.quant(plot_result=False)
+
+s4.align_results(reference=['kratios', 6], starting_slice=0)
+
 r = s4.get_result(xray[0], 'kratios')
 utils_eds.plot_orthoview_animated(r)
 s4.plot_histogram_result('kratios')
-
-s4.quant(plot_result=False)
 
 r = s4.get_result(elements[0], 'quant')
 utils_eds.plot_orthoview_animated(r)
@@ -93,16 +97,8 @@ s4.plot_electron_distribution()
 ###
 if 1 = 0:
     s4.metadata.elec_distr.max_slice_z = [6, 6, 6, 6, 5, 5, 6, 5, 6, 6]
-    s4.quant(
-        plot_result=False,
-        enh=True,
-        enh_param=[
-            0,
-            0.001,
-            0.005,
-            49,
-            1],
-        compiler=0)
+    s4.quant(plot_result=False, enh=True,
+        enh_param=[0,0.001, 0.005,49,1],compiler=0)
     err = s4.read_enh_ouput(compiler=0)
 
     r = s4.get_result(elements[0], 'quant_enh')
