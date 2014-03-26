@@ -98,7 +98,7 @@ s4.plot_electron_distribution()
 if 1 = 0:
     s4.metadata.elec_distr.max_slice_z = [6, 6, 6, 6, 5, 5, 6, 5, 6, 6]
     s4.quant(plot_result=False, enh=True,
-        enh_param=[0,0.001, 0.005,49,1],compiler=0)
+             enh_param=[0, 0.001, 0.005, 49, 1], compiler=0)
     err = s4.read_enh_ouput(compiler=0)
 
     r = s4.get_result(elements[0], 'quant_enh')

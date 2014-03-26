@@ -1,7 +1,7 @@
 
 pyplot.set_cmap('RdYlBu_r')
 
-elements=["C","Al", "Ti", "Cr", "Co", "Ni", "Mo", "Hf", "Ta",'Zr']
+elements = ["C", "Al", "Ti", "Cr", "Co", "Ni", "Mo", "Hf", "Ta", 'Zr']
 s = utils_eds.database_3Dspec('SEM')
 
 # basic pca
@@ -20,13 +20,13 @@ sr = s.get_decomposition_model(5)
 s.blind_source_separation(5)
 s.plot_bss_results()
 
-#PCA saving memory
+# PCA saving memory
 
 s.change_dtype('float32')
 s.decomposition(True)
 s.learning_results.crop_decomposition_dimension(30)
 s.change_dtype('int16')
-#do not try to save the model, just the s with the matrix score
+# do not try to save the model, just the s with the matrix score
 
 # extra spectrum from standard
 s = utils_eds.database_3Dspec('SEM')
