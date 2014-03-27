@@ -675,7 +675,7 @@ class EDSSpectrum(Spectrum):
             utils.plot.plot_signals(intensities, **kwargs)
         if store_in_mp and lines_deconvolution is None:
             self.metadata.set_item(
-                "Sample.intensities",intensities)
+                "Sample.intensities", intensities)
         return intensities
 
     def convolve_sum(self, kernel='square', size=3, **kwargs):
