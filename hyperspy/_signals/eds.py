@@ -452,7 +452,9 @@ class EDSSpectrum(Spectrum):
 
         >>> s = utils_eds.database_3Dspec('SEM')
         >>> s[102:134,125:152].get_lines_intensity(["Hf_Ma", "Ta_Ma"],
-                plot_result=True,lines_deconvolution='model')
+                plot_result=True,lines_deconvolution='model',plot_fit=True)
+s[102,125].get_lines_intensity(["Hf_Ma", "Ta_Ma"],
+                plot_result=True,lines_deconvolution='model',plot_fit=True)
 
         #Mode 'standard'
 
@@ -494,13 +496,10 @@ class EDSSpectrum(Spectrum):
                 "You can use `set_signal_type(\"EDS_TEM\")` or"
                 "`set_signal_type(\"EDS_SEM\")` to convert to one of these"
                 "signal types.")
-        intensities = []
-        if store_in_mp:
-            self.metadata.Sample.intensities = list(np.zeros(len(xray_lines)))
-        # test 1D Spectrum (0D problem)
-            #signal_to_index = self.axes_manager.navigation_dimension - 2
+                
+        intensities = [0]*len(xray_lines)
         if lines_deconvolution is None:
-            for xray_line in xray_lines:
+            for i, xray_line in enumerate(xray_lines):
                 element, line = utils_eds._get_element_and_line(xray_line)
                 line_energy = elements_db[
                     element][
@@ -513,26 +512,9 @@ class EDSSpectrum(Spectrum):
                     line_energy)
                 det = integration_window_factor * line_FWHM / 2.
                 img = self[..., line_energy - det:line_energy + det
-                           ].sum(-1)
-                img.metadata.General.title = (
-                    'Intensity of %s at %.2f %s from %s' %
-                    (xray_line,
-                     line_energy,
-                     self.axes_manager.signal_axes[0].units,
-                     self.metadata.General.title))
-                if img.axes_manager.navigation_dimension >= 2:
-                    img = img.as_image([0, 1])
-                elif img.axes_manager.navigation_dimension == 1:
-                    img.axes_manager.set_signal_dimension(1)
-                if plot_result and img.axes_manager.signal_dimension == 0:
-                    print("%s at %s %s : Intensity = %.2f"
-                          % (xray_line,
-                             line_energy,
-                             self.axes_manager.signal_axes[0].units,
-                             img.data))
-                intensities.append(img)
+                           ].sum(-1).data
+                intensities[i] = img
         else:
-            fps = []
             if lines_deconvolution == 'standard':
                 m = create_model(self)
             else:
@@ -569,8 +551,7 @@ class EDSSpectrum(Spectrum):
                         fp.yscale.ext_bounded = True
                         fp.yscale.ext_force_positive = True
                 fp.name = xray_line
-                fps.append(fp)
-                m.append(fps[-1])
+                m.append(fp)
                 if init:
                     if lines_deconvolution == 'standard':
                         m[xray_line].yscale.map[
@@ -578,12 +559,11 @@ class EDSSpectrum(Spectrum):
                         m[xray_line].yscale.map['is_set'] = (
                             np.ones(self[..., line_energy].data.shape) == 1)
                     elif lines_deconvolution == 'model':
-                        # may not work with twin
                         m[xray_line].A.map[
                             'values'] = self[..., line_energy].data
                         m[xray_line].A.map['is_set'] = (
                             np.ones(self[..., line_energy].data.shape) == 1)
-
+                # Other line of the family as twin
                 if lines_deconvolution == 'model':
                     for li in elements_db[element]['Atomic_properties']['Xray_lines']:
                         if line[0] in li and line != li:
@@ -592,19 +572,19 @@ class EDSSpectrum(Spectrum):
                             line_FWHM = utils_eds.get_FWHM_at_Energy(
                                 FWHM_MnKa,
                                 line_energy)
-                            fp = create_component.Gaussian()
-                            fp.centre.value = line_energy
-                            fp.name = element + '_' + li
-                            fp.sigma.value = line_FWHM / 2.355
-                            fp.A.twin = fps[-1].A
-                            fp.centre.free = False
-                            fp.sigma.free = False
+                            fp_sub = create_component.Gaussian()
+                            fp_sub.centre.value = line_energy
+                            fp_sub.name = element + '_' + li
+                            fp_sub.sigma.value = line_FWHM / 2.355
+                            fp_sub.A.twin = fp.A
+                            fp_sub.centre.free = False
+                            fp_sub.sigma.free = False
                             ratio_line = elements_db[
                                 element]['Atomic_properties']['Xray_lines'][li]['factor']
-                            fp.A.twin_function = lambda x: x * ratio_line
-                            fp.A.twin_inverse_function = lambda x: x / \
+                            fp_sub.A.twin_function = lambda x: x * ratio_line
+                            fp_sub.A.twin_inverse_function = lambda x: x / \
                                 ratio_line
-                            m.append(fp)
+                            m.append(fp_sub)
 
             if lines_deconvolution == 'standard':
                 m.multifit(fitter='leastsq', grad=grad)
@@ -613,69 +593,49 @@ class EDSSpectrum(Spectrum):
             if plot_fit:
                 m.plot()
                 plt.title('Fit')
-            for i, fp in enumerate(fps):
-                xray_line = xray_lines[i]
-                element, line = utils_eds._get_element_and_line(xray_line)
-                line_energy = elements_db[element]['Atomic_properties'][
-                    'Xray_lines'][line]['energy (keV)']
-
+        #data as image, store and plot
+        for i, xray_line in enumerate(xray_lines):
+            element, line = utils_eds._get_element_and_line(xray_line)
+            line_energy = elements_db[element]['Atomic_properties'][
+                'Xray_lines'][line]['energy (keV)']
+                
+            if lines_deconvolution == 'model':
+                data_res = m[xray_line].A.map['values']
                 if self.axes_manager.navigation_dimension == 0:
-                    if lines_deconvolution == 'model':
-                        data_res = fp.A.value
-                    elif lines_deconvolution == 'standard':
-                        data_res = fp.yscale.value
-                else:
-                    if lines_deconvolution == 'model':
-                        data_res = fp.A.as_signal().data
-                    elif lines_deconvolution == 'standard':
-                        data_res = fp.yscale.as_signal().data
+                    data_res = data_res[0]
+            elif lines_deconvolution == 'standard':
+                data_res = m[xray_line].yscale.map['values']
+                if self.axes_manager.navigation_dimension == 0:
+                    data_res = data_res[0]
+            elif lines_deconvolution is None:
+                data_res = intensities[i]
+                    
+            img = self._set_result(xray_line, 'intensities',
+                                   data_res, plot_result=False,
+                                   store_in_mp=store_in_mp)
 
-                img = self._set_result(xray_line, 'intensities',
-                                       data_res, plot_result=False,
-                                       store_in_mp=store_in_mp)
-
-                #img = self[...,0]
-                # if img.axes_manager.navigation_dimension >= 2:
-                    #img = img.as_image([0,1])
-                    # if lines_deconvolution == 'model':
-                        #img.data = fp.A.as_signal().data
-                    # elif lines_deconvolution == 'standard':
-                        #img.data = fp.yscale.as_signal().data
-                # elif img.axes_manager.navigation_dimension == 1:
-                    # img.axes_manager.set_signal_dimension(1)
-                    # if lines_deconvolution == 'model':
-                        #img.data = fp.A.as_signal().data
-                    # elif lines_deconvolution == 'standard':
-                        #img.data = fp.yscale.as_signal().data
-                # elif img.axes_manager.navigation_dimension == 0:
-                    #img = img.sum(0)
-                    # if lines_deconvolution == 'model':
-                        #img.data = fp.A.value
-                    # elif lines_deconvolution == 'standard':
-                        #img.data = fp.yscale.value
-
-                img.metadata.General.title = (
-                    'Intensity of %s at %.2f %s from %s' %
-                    (xray_line,
-                     line_energy,
-                     self.axes_manager.signal_axes[0].units,
-                     self.metadata.General.title))
-                if img.axes_manager.navigation_dimension >= 2:
-                    img = img.as_image([0, 1])
-                elif img.axes_manager.navigation_dimension == 1:
-                    img.axes_manager.set_signal_dimension(1)
-                if plot_result and img.axes_manager.signal_dimension == 0:
-                    print("%s at %s %s : Intensity = %.2f"
-                          % (xray_line,
-                             line_energy,
-                             self.axes_manager.signal_axes[0].units,
-                             img.data))
-                intensities.append(img)
+            img.metadata.General.title = (
+                'Intensity of %s at %.2f %s from %s' %
+                (xray_line,
+                 line_energy,
+                 self.axes_manager.signal_axes[0].units,
+                 self.metadata.General.title))
+            #if img.axes_manager.navigation_dimension >= 2:
+                #img = img.as_image([0, 1])
+            #elif img.axes_manager.navigation_dimension == 1:
+                #img.axes_manager.set_signal_dimension(1)
+            if plot_result and img.axes_manager.signal_dimension == 0:
+                print("%s at %s %s : Intensity = %.2f"
+                      % (xray_line,
+                         line_energy,
+                         self.axes_manager.signal_axes[0].units,
+                         img.data))
+            intensities[i] = img
         if plot_result and img.axes_manager.signal_dimension != 0:
             utils.plot.plot_signals(intensities, **kwargs)
-        if store_in_mp and lines_deconvolution is None:
-            self.metadata.set_item(
-                "Sample.intensities", intensities)
+        #if store_in_mp and lines_deconvolution is None:
+            #self.metadata.set_item(
+                #"Sample.intensities", intensities)
         return intensities
 
     def convolve_sum(self, kernel='square', size=3, **kwargs):
