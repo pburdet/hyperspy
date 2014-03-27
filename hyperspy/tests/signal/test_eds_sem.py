@@ -191,7 +191,6 @@ class Test_get_lines_intentisity:
                                              integration_window_factor=5)[0]
         assert_true(np.allclose(24.99516, sAl.data, atol=1e-3))
 
-
     def test_model_deconvolution(self):
         s = self.signal
 
@@ -480,7 +479,6 @@ class Test_plot_Xray_lines:
         # s.plot_Xray_lines()
         s.plot_Xray_lines(only_lines=('a'))
         s.plot_Xray_lines(only_lines=('a,Kb'))
-
 
 
 class Test_tools_bulk:
