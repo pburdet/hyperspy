@@ -467,7 +467,8 @@ def get_mode(mode):
         return "STEM"
     else:
         return "TEM"
-        
+
+
 def get_degree(value):
     return np.degrees(float(value))
 
