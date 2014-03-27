@@ -622,7 +622,6 @@ class EDSSpectrum(Spectrum):
         # data as image, store and plot
         for i, xray_line in enumerate(xray_lines):
             line_energy = self._get_line_energy(xray_line)
-
             if lines_deconvolution == 'model':
                 data_res = m[xray_line].A.map['values']
                 if self.axes_manager.navigation_dimension == 0:
@@ -717,11 +716,9 @@ class EDSSpectrum(Spectrum):
         from hyperspy.hspy import create_model
         mp = self.metadata
         element, line = utils_eds._get_element_and_line(xray_line)
-        Xray_energy = elements_db[element]['Atomic_properties'][
-            'Xray_lines'][line]['energy (keV)']
-        FWHM = utils_eds.get_FWHM_at_Energy(
-            mp.SEM.Detector.EDS.energy_resolution_MnKa,
-            Xray_energy)
+        Xray_energy, FWHM = self._get_line_energy(xray_line,
+                                                           FWHM_MnKa='auto')
+
         if bck == 'auto':
             spec_bck = self[Xray_energy + 2.5 * FWHM:Xray_energy + 2.7 * FWHM]
             bck = spec_bck.sum(0).data / spec_bck.axes_manager.shape[0]
@@ -1060,12 +1057,10 @@ class EDSSpectrum(Spectrum):
         intensity = []
         for xray_line in xray_lines:
             element, line = utils_eds._get_element_and_line(xray_line)
-            line_energy.append(elements_db[element]['Atomic_properties']['Xray_lines'][
-                line]['energy (keV)'])
+            line_energy.append(self._get_line_energy(xray_line))
             relative_factor = elements_db[element]['Atomic_properties']['Xray_lines'][
                 line]['factor']
-            a_eng = elements_db[element]['Atomic_properties'][
-                'Xray_lines'][line[0] + 'a']['energy (keV)']
+            a_eng = self._get_line_energy(element+ '_' + line[0] + 'a')
             # if fixed_height:
                 # intensity.append(self[..., a_eng].data.flatten().mean()
                              #* relative_factor)
