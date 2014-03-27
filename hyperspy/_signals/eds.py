@@ -43,6 +43,69 @@ class EDSSpectrum(Spectrum):
                   'set_signal_type(\'EDS_TEM\') or set_signal_type(\'EDS_SEM\')')
         self.metadata.Signal.binned = True
 
+    def _get_line_energy(self, Xray_line, FWHM_MnKa=None):
+        """
+        Get the line energy and the energy resolution of a Xray line.
+
+        The return values are in the same units than the signal axis
+
+        Parameters
+        ----------
+
+        Xray_line : strings
+            Valid element X-ray lines e.g. Fe_Kb.
+
+        FWHM_MnKa: {None, float, 'auto'}
+            The energy resolution of the detector in eV
+            if 'auto', used the one in
+            'self.metadata.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa'
+
+        Returns
+        ------
+
+        float: the line energy, if FWHM_MnKa is None
+        (float,float): the line energy and the energy resolution, if FWHM_MnKa is not None
+        """
+
+        units_name = self.axes_manager.signal_axes[0].units
+        element, line = utils_eds._get_element_and_line(Xray_line)
+
+        if FWHM_MnKa == 'auto':
+            if self.metadata.Signal.signal_type == 'EDS_SEM':
+                FWHM_MnKa = self.metadata.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa
+            elif self.metadata.Signal.signal_type == 'EDS_TEM':
+                FWHM_MnKa = self.metadata.Acquisition_instrument.TEM.Detector.EDS.energy_resolution_MnKa
+            else:
+                raise NotImplementedError(
+                    "This method only works for EDS_TEM or EDS_SEM signals. "
+                    "You can use `set_signal_type(\"EDS_TEM\")` or"
+                    "`set_signal_type(\"EDS_SEM\")` to convert to one of these"
+                    "signal types.")
+
+        if units_name == 'eV':
+            line_energy = elements_db[element]['Atomic_properties']['Xray_lines'][
+                line]['energy (keV)'] * 1000
+            if FWHM_MnKa is not None:
+                line_FWHM = utils_eds.get_FWHM_at_Energy(FWHM_MnKa,
+                                                         line_energy / 1000) * 1000
+        elif units_name == 'keV':
+            line_energy = elements_db[element]['Atomic_properties']['Xray_lines'][
+                line]['energy (keV)']
+            if FWHM_MnKa is not None:
+                line_FWHM = utils_eds.get_FWHM_at_Energy(FWHM_MnKa,
+                                                         line_energy)
+        else:
+            raise ValueError(
+                "%s is not a valid units for the energy axis. "
+                "Only `eV` and `keV` are supported. "
+                "If `s` is the variable containing this EDS spectrum:\n "
+                ">>> s.axes_manager.signal_axes[0].units = \'keV\' \n"
+                % (units_name))
+        if FWHM_MnKa is None:
+            return line_energy
+        else:
+            return line_energy, line_FWHM
+
     def sum(self, axis):
         """Sum the data over the given axis.
 
@@ -156,7 +219,7 @@ class EDSSpectrum(Spectrum):
         if not isiterable(elements) or isinstance(elements, basestring):
             raise ValueError(
                 "Input must be in the form of a list. For example, "
-                "if `s` is the variable containing this EELS spectrum:\n "
+                "if `s` is the variable containing this EDS spectrum:\n "
                 ">>> s.add_elements(('C',))\n"
                 "See the docstring for more information.")
         if "Sample.elements" in self.metadata:
@@ -453,8 +516,6 @@ class EDSSpectrum(Spectrum):
         >>> s = utils_eds.database_3Dspec('SEM')
         >>> s[102:134,125:152].get_lines_intensity(["Hf_Ma", "Ta_Ma"],
                 plot_result=True,lines_deconvolution='model',plot_fit=True)
-s[102,125].get_lines_intensity(["Hf_Ma", "Ta_Ma"],
-                plot_result=True,lines_deconvolution='model',plot_fit=True)
 
         #Mode 'standard'
 
@@ -486,52 +547,22 @@ s[102,125].get_lines_intensity(["Hf_Ma", "Ta_Ma"],
                 raise ValueError(
                     "Not X-ray line, set them with `add_elements`")
 
-        if self.metadata.Signal.signal_type == 'EDS_SEM':
-            FWHM_MnKa = self.metadata.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa
-        elif self.metadata.Signal.signal_type == 'EDS_TEM':
-            FWHM_MnKa = self.metadata.Acquisition_instrument.TEM.Detector.EDS.energy_resolution_MnKa
-        else:
-            raise NotImplementedError(
-                "This method only works for EDS_TEM or EDS_SEM signals. "
-                "You can use `set_signal_type(\"EDS_TEM\")` or"
-                "`set_signal_type(\"EDS_SEM\")` to convert to one of these"
-                "signal types.")
-
         intensities = [0] * len(xray_lines)
-        if lines_deconvolution is None:
-            for i, xray_line in enumerate(xray_lines):
-                element, line = utils_eds._get_element_and_line(xray_line)
-                line_energy = elements_db[
-                    element][
-                    'Atomic_properties'][
-                    'Xray_lines'][
-                    line][
-                    'energy (keV)']
-                line_FWHM = utils_eds.get_FWHM_at_Energy(
-                    FWHM_MnKa,
-                    line_energy)
-                det = integration_window_factor * line_FWHM / 2.
-                img = self[..., line_energy - det:line_energy + det
-                           ].sum(-1).data
-                intensities[i] = img
-        else:
-            if lines_deconvolution == 'standard':
-                m = create_model(self)
-            else:
-                s = self - bck
-                m = create_model(s)
+        if lines_deconvolution == 'standard':
+            m = create_model(self)
+        elif lines_deconvolution == 'model':
+            s = self - bck
+            m = create_model(s)
 
-            for xray_line in xray_lines:
-                element, line = utils_eds._get_element_and_line(xray_line)
-                line_energy = elements_db[
-                    element][
-                    'Atomic_properties'][
-                    'Xray_lines'][
-                    line][
-                    'energy (keV)']
-                line_FWHM = utils_eds.get_FWHM_at_Energy(
-                    FWHM_MnKa,
-                    line_energy)
+        for i, xray_line in enumerate(xray_lines):
+            line_energy, line_FWHM = self._get_line_energy(xray_line,
+                                       FWHM_MnKa='auto')
+            element, line = utils_eds._get_element_and_line(xray_line)
+            det = integration_window_factor * line_FWHM / 2.
+            if lines_deconvolution is None:                
+                intensities[i] = self[..., line_energy - det:line_energy + 
+                            det].integrate1D(-1).data
+            else:
                 if lines_deconvolution == 'model':
                     fp = create_component.Gaussian()
                     fp.centre.value = line_energy
@@ -543,8 +574,8 @@ s[102,125].get_lines_intensity(["Hf_Ma", "Ta_Ma"],
                         fp.A.ext_force_positive = True
                 elif lines_deconvolution == 'standard':
                     std = self.get_result(element, 'standard_spec').deepcopy()
-                    std[:line_energy - 1.5 * line_FWHM] = 0
-                    std[line_energy + 1.5 * line_FWHM:] = 0
+                    std[:line_energy - det] = 0
+                    std[line_energy + det:] = 0
                     fp = create_component.ScalableFixedPattern(std)
                     fp.set_parameters_not_free(['offset', 'xscale', 'shift'])
                     if bounded:
@@ -567,14 +598,12 @@ s[102,125].get_lines_intensity(["Hf_Ma", "Ta_Ma"],
                 if lines_deconvolution == 'model':
                     for li in elements_db[element]['Atomic_properties']['Xray_lines']:
                         if line[0] in li and line != li:
-                            line_energy = elements_db[
-                                element]['Atomic_properties']['Xray_lines'][li]['energy (keV)']
-                            line_FWHM = utils_eds.get_FWHM_at_Energy(
-                                FWHM_MnKa,
-                                line_energy)
+                            xray_sub = element + '_' + li
+                            line_energy, line_FWHM = self._get_line_energy(
+                                xray_sub, FWHM_MnKa='auto')
                             fp_sub = create_component.Gaussian()
                             fp_sub.centre.value = line_energy
-                            fp_sub.name = element + '_' + li
+                            fp_sub.name = xray_sub
                             fp_sub.sigma.value = line_FWHM / 2.355
                             fp_sub.A.twin = fp.A
                             fp_sub.centre.free = False
@@ -585,20 +614,15 @@ s[102,125].get_lines_intensity(["Hf_Ma", "Ta_Ma"],
                             fp_sub.A.twin_inverse_function = lambda x: x / \
                                 ratio_line
                             m.append(fp_sub)
-
-            if lines_deconvolution == 'standard':
-                m.multifit(fitter='leastsq', grad=grad)
-            elif lines_deconvolution == 'model':
-                m.multifit(fitter='leastsq', grad=grad)
+        if lines_deconvolution is not None: 
+            m.multifit(fitter='leastsq', grad=grad)
             if plot_fit:
                 m.plot()
                 plt.title('Fit')
         # data as image, store and plot
         for i, xray_line in enumerate(xray_lines):
-            element, line = utils_eds._get_element_and_line(xray_line)
-            line_energy = elements_db[element]['Atomic_properties'][
-                'Xray_lines'][line]['energy (keV)']
-
+            line_energy = self._get_line_energy(xray_line)
+                        
             if lines_deconvolution == 'model':
                 data_res = m[xray_line].A.map['values']
                 if self.axes_manager.navigation_dimension == 0:
@@ -612,18 +636,13 @@ s[102,125].get_lines_intensity(["Hf_Ma", "Ta_Ma"],
 
             img = self._set_result(xray_line, 'intensities',
                                    data_res, plot_result=False,
-                                   store_in_mp=store_in_mp)
-
+                                   store_in_mp=store_in_mp)                                   
             img.metadata.General.title = (
                 'Intensity of %s at %.2f %s from %s' %
                 (xray_line,
                  line_energy,
                  self.axes_manager.signal_axes[0].units,
                  self.metadata.General.title))
-            # if img.axes_manager.navigation_dimension >= 2:
-                #img = img.as_image([0, 1])
-            # elif img.axes_manager.navigation_dimension == 1:
-                # img.axes_manager.set_signal_dimension(1)
             if plot_result and img.axes_manager.signal_dimension == 0:
                 print("%s at %s %s : Intensity = %.2f"
                       % (xray_line,
@@ -633,9 +652,7 @@ s[102,125].get_lines_intensity(["Hf_Ma", "Ta_Ma"],
             intensities[i] = img
         if plot_result and img.axes_manager.signal_dimension != 0:
             utils.plot.plot_signals(intensities, **kwargs)
-        # if store_in_mp and lines_deconvolution is None:
-            # self.metadata.set_item(
-                #"Sample.intensities", intensities)
+
         return intensities
 
     def convolve_sum(self, kernel='square', size=3, **kwargs):
