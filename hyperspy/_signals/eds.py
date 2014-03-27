@@ -556,12 +556,12 @@ class EDSSpectrum(Spectrum):
 
         for i, xray_line in enumerate(xray_lines):
             line_energy, line_FWHM = self._get_line_energy(xray_line,
-                                       FWHM_MnKa='auto')
+                                                           FWHM_MnKa='auto')
             element, line = utils_eds._get_element_and_line(xray_line)
             det = integration_window_factor * line_FWHM / 2.
-            if lines_deconvolution is None:                
-                intensities[i] = self[..., line_energy - det:line_energy + 
-                            det].integrate1D(-1).data
+            if lines_deconvolution is None:
+                intensities[i] = self[..., line_energy - det:line_energy +
+                                      det].integrate1D(-1).data
             else:
                 if lines_deconvolution == 'model':
                     fp = create_component.Gaussian()
@@ -614,7 +614,7 @@ class EDSSpectrum(Spectrum):
                             fp_sub.A.twin_inverse_function = lambda x: x / \
                                 ratio_line
                             m.append(fp_sub)
-        if lines_deconvolution is not None: 
+        if lines_deconvolution is not None:
             m.multifit(fitter='leastsq', grad=grad)
             if plot_fit:
                 m.plot()
@@ -622,7 +622,7 @@ class EDSSpectrum(Spectrum):
         # data as image, store and plot
         for i, xray_line in enumerate(xray_lines):
             line_energy = self._get_line_energy(xray_line)
-                        
+
             if lines_deconvolution == 'model':
                 data_res = m[xray_line].A.map['values']
                 if self.axes_manager.navigation_dimension == 0:
@@ -636,7 +636,7 @@ class EDSSpectrum(Spectrum):
 
             img = self._set_result(xray_line, 'intensities',
                                    data_res, plot_result=False,
-                                   store_in_mp=store_in_mp)                                   
+                                   store_in_mp=store_in_mp)
             img.metadata.General.title = (
                 'Intensity of %s at %.2f %s from %s' %
                 (xray_line,
