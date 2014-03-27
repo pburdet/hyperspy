@@ -717,7 +717,7 @@ class EDSSpectrum(Spectrum):
         mp = self.metadata
         element, line = utils_eds._get_element_and_line(xray_line)
         Xray_energy, FWHM = self._get_line_energy(xray_line,
-                                                           FWHM_MnKa='auto')
+                                                  FWHM_MnKa='auto')
 
         if bck == 'auto':
             spec_bck = self[Xray_energy + 2.5 * FWHM:Xray_energy + 2.7 * FWHM]
@@ -1060,7 +1060,7 @@ class EDSSpectrum(Spectrum):
             line_energy.append(self._get_line_energy(xray_line))
             relative_factor = elements_db[element]['Atomic_properties']['Xray_lines'][
                 line]['factor']
-            a_eng = self._get_line_energy(element+ '_' + line[0] + 'a')
+            a_eng = self._get_line_energy(element + '_' + line[0] + 'a')
             # if fixed_height:
                 # intensity.append(self[..., a_eng].data.flatten().mean()
                              #* relative_factor)
