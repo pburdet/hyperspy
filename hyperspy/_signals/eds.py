@@ -496,8 +496,8 @@ s[102,125].get_lines_intensity(["Hf_Ma", "Ta_Ma"],
                 "You can use `set_signal_type(\"EDS_TEM\")` or"
                 "`set_signal_type(\"EDS_SEM\")` to convert to one of these"
                 "signal types.")
-                
-        intensities = [0]*len(xray_lines)
+
+        intensities = [0] * len(xray_lines)
         if lines_deconvolution is None:
             for i, xray_line in enumerate(xray_lines):
                 element, line = utils_eds._get_element_and_line(xray_line)
@@ -593,12 +593,12 @@ s[102,125].get_lines_intensity(["Hf_Ma", "Ta_Ma"],
             if plot_fit:
                 m.plot()
                 plt.title('Fit')
-        #data as image, store and plot
+        # data as image, store and plot
         for i, xray_line in enumerate(xray_lines):
             element, line = utils_eds._get_element_and_line(xray_line)
             line_energy = elements_db[element]['Atomic_properties'][
                 'Xray_lines'][line]['energy (keV)']
-                
+
             if lines_deconvolution == 'model':
                 data_res = m[xray_line].A.map['values']
                 if self.axes_manager.navigation_dimension == 0:
@@ -609,7 +609,7 @@ s[102,125].get_lines_intensity(["Hf_Ma", "Ta_Ma"],
                     data_res = data_res[0]
             elif lines_deconvolution is None:
                 data_res = intensities[i]
-                    
+
             img = self._set_result(xray_line, 'intensities',
                                    data_res, plot_result=False,
                                    store_in_mp=store_in_mp)
@@ -620,10 +620,10 @@ s[102,125].get_lines_intensity(["Hf_Ma", "Ta_Ma"],
                  line_energy,
                  self.axes_manager.signal_axes[0].units,
                  self.metadata.General.title))
-            #if img.axes_manager.navigation_dimension >= 2:
+            # if img.axes_manager.navigation_dimension >= 2:
                 #img = img.as_image([0, 1])
-            #elif img.axes_manager.navigation_dimension == 1:
-                #img.axes_manager.set_signal_dimension(1)
+            # elif img.axes_manager.navigation_dimension == 1:
+                # img.axes_manager.set_signal_dimension(1)
             if plot_result and img.axes_manager.signal_dimension == 0:
                 print("%s at %s %s : Intensity = %.2f"
                       % (xray_line,
@@ -633,8 +633,8 @@ s[102,125].get_lines_intensity(["Hf_Ma", "Ta_Ma"],
             intensities[i] = img
         if plot_result and img.axes_manager.signal_dimension != 0:
             utils.plot.plot_signals(intensities, **kwargs)
-        #if store_in_mp and lines_deconvolution is None:
-            #self.metadata.set_item(
+        # if store_in_mp and lines_deconvolution is None:
+            # self.metadata.set_item(
                 #"Sample.intensities", intensities)
         return intensities
 
