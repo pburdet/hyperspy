@@ -472,9 +472,11 @@ def get_mode(mode):
 def get_degree(value):
     return np.degrees(float(value))
 
+
 mapping = {
     "ObjectInfo.ExperimentalDescription.High_tension_kV": ("Acquisition_instrument.TEM.beam_energy", None),
     "ObjectInfo.ExperimentalDescription.Microscope": ("Acquisition_instrument.TEM.microscope", None),
     "ObjectInfo.ExperimentalDescription.Mode": ("Acquisition_instrument.TEM.acquisition_mode", get_mode),
     "ObjectInfo.ExperimentalConditions.MicroscopeConditions.Tilt1": ("Acquisition_instrument.TEM.tilt_stage", get_degree),
+
 }
