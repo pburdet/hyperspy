@@ -801,10 +801,10 @@ class EDSSpectrum(Spectrum):
         # else:
         #    print("%s of %s calculated" % (result, xray_line))
 
-        res_img.get_dimensions_from_data()       
+        res_img.get_dimensions_from_data()
         if store_in_mp:
             if result not in mp.Sample:
-                mp.set_item('Sample.'+result,[0]*len(xray_lines))
+                mp.set_item('Sample.' + result, [0] * len(xray_lines))
             mp.Sample[result][j] = res_img
 
         return res_img
