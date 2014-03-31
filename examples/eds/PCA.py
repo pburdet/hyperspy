@@ -37,12 +37,12 @@ s = s.add_standards_to_signal('all')
 
 s.change_dtype('float')
 s.decomposition(True)
-sr = sr.get_decomposition_model(5)
+sr = s.get_decomposition_model(5)
 sr[102:134, 125:152].get_lines_intensity(
     plot_result=True, lines_deconvolution='standard')
 
 # back fitting
-s = utils_eds.database_4Dspec('TEM')[::, ::, 1]
+s = utils_eds.database_4Dspec('TEM')[64:, 64:, 1]
 s.change_dtype('float')
 dim = s.axes_manager.shape
 s = s.rebin((dim[0] / 4, dim[1] / 4, dim[2]))

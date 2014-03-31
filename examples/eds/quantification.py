@@ -95,7 +95,7 @@ s4.plot_electron_distribution()
 #    limit_x=[-0.25,0.3], dx0=0.004, dx_increment = 0.75, plot_result=True
 
 ###
-if 1 = 0:
+if 1 == 0:
     s4.metadata.elec_distr.max_slice_z = [6, 6, 6, 6, 5, 5, 6, 5, 6, 6]
     s4.quant(plot_result=False, enh=True,
              enh_param=[0, 0.001, 0.005, 49, 1], compiler=0)

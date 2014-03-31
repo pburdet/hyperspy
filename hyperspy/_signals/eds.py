@@ -789,7 +789,9 @@ class EDSSpectrum(Spectrum):
         else:
             res_img = Signal(data_res)
             res_img.axes_manager = axes_res
-            if self.axes_manager.navigation_dimension > 1:
+            if self.axes_manager.navigation_dimension == 1:
+                res_img = res_img.as_spectrum(0)
+            else : 
                 res_img = res_img.as_image([0, 1])
         res_img.metadata.General.title = result + ' ' + xray_line
         if plot_result:
@@ -987,9 +989,9 @@ class EDSSpectrum(Spectrum):
 # Other color for lines set
 
     def plot_Xray_lines(self,
-                        xray_lines=None,
-                        only_one=False,
+                        xray_lines=None,                        
                         only_lines=("a", "b"),
+                        only_one=False,
                         **kwargs):
         """
         Annotate a spec.plot() with the name of the selected X-ray
@@ -997,23 +999,24 @@ class EDSSpectrum(Spectrum):
 
         Parameters
         ----------
-        xray_lines: None or list of string
+        xray_lines: {None, 'from_elements', list of string}
             If None,
             if `mapped.parameters.Sample.elements.xray_lines` contains a
             list of lines use those.
             If `mapped.parameters.Sample.elements.xray_lines` is undefined
-            or empty but `mapped.parameters.Sample.elements` is defined,
+            or empty or if Xray_lines equals 'from_elements' and 
+            `mapped.parameters.Sample.elements` is defined,
             use the same syntax as `add_line` to select a subset of lines
             for the operation.
             Alternatively, provide an iterable containing
             a list of valid X-ray lines symbols.
+        only_lines : None or list of strings
+            If not None, use only the given lines (eg. ('a','Kb')).
+            If None, use all lines.
         only_one : bool
             If False, use all the lines of each element in the data spectral
             range. If True use only the line at the highest energy
             above an overvoltage of 2 (< beam energy / 2).
-        only_lines : None or list of strings
-            If not None, use only the given lines (eg. ('a','Kb')).
-            If None, use all lines.
         kwargs
             The extra keyword arguments for plot()
 
@@ -1023,6 +1026,8 @@ class EDSSpectrum(Spectrum):
 
         >>> s = utils_eds.database_3Dspec('Ti_SEM')
         >>> s.plot_Xray_lines()
+        
+        >>> s.plot_Xray_lines('from_elements')
 
         See also
         --------
@@ -1038,8 +1043,9 @@ class EDSSpectrum(Spectrum):
                 elif only_line == 'b':
                     only_lines.extend(['Kb', 'Lb1', 'Mb'])
 
-        if xray_lines is None:
-            if 'Sample.xray_lines' in self.metadata:
+        if xray_lines is None or xray_lines == 'from_elements':
+            if 'Sample.xray_lines' in self.metadata \
+                and xray_lines != 'from_elements':
                 xray_lines = self.metadata.Sample.xray_lines
             elif 'Sample.elements' in self.metadata:
                 xray_lines = self._get_lines_from_elements(
@@ -1048,7 +1054,7 @@ class EDSSpectrum(Spectrum):
                     only_lines=only_lines)
             else:
                 raise ValueError(
-                    "Not X-ray line, set them with `add_elements`")
+                    "No elements defined, set them with `add_elements`")
 
         line_energy = []
         intensity = []
