@@ -461,24 +461,23 @@ class Test_convolve_sum:
 
 class Test_plot_Xray_lines:
 
-
     def setUp(self):
-        s= utils_eds.simulate_model()
+        s = utils_eds.simulate_model()
         self.signal = s
-        
+
     @cleanup
     def test_plot_Xray_lines(self):
         s = self.signal
 
         s.plot_Xray_lines()
-        #s.plot_Xray_lines(only_lines=('a'))
-        #s.plot_Xray_lines(only_lines=('a,Kb'))
-    
+        # s.plot_Xray_lines(only_lines=('a'))
+        # s.plot_Xray_lines(only_lines=('a,Kb'))
+
     #@image_comparison(baseline_images=['plot_Xray_lines2'])
-    #def test_plot_Xray_lines2(self):
+    # def test_plot_Xray_lines2(self):
         #s = self.signal
 
-        #s.plot_Xray_lines()
+        # s.plot_Xray_lines()
 
 
 class Test_tools_bulk:
