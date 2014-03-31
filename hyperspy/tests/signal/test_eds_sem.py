@@ -18,6 +18,8 @@
 
 import numpy as np
 from nose.tools import assert_true, assert_equal, assert_not_equal
+from matplotlib.testing.decorators import cleanup
+#from matplotlib.testing.decorators import image_comparison
 
 from hyperspy.signals import EDSSEMSpectrum
 from hyperspy.defaults_parser import preferences
@@ -280,6 +282,7 @@ class Test_quantification:
         s.metadata.Sample.standard_spec = [stdAl, stdZn]
         self.signal = s
 
+    @cleanup
     def test_kratio(self):
         s = self.signal
 
@@ -458,27 +461,24 @@ class Test_convolve_sum:
 
 class Test_plot_Xray_lines:
 
+
     def setUp(self):
-        s = EDSSEMSpectrum(np.ones(1024))
-        energy_axis = s.axes_manager.signal_axes[0]
-        energy_axis.scale = 1e-2
-        energy_axis.units = 'keV'
-        energy_axis.name = "Energy"
-        s.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time = 3.1
-        s.metadata.Acquisition_instrument.SEM.beam_energy = 15.0
-
-        s.set_elements(('Al', 'Zn'))
-        s.add_lines()
-
+        s= utils_eds.simulate_model()
         self.signal = s
-
+        
+    @cleanup
     def test_plot_Xray_lines(self):
         s = self.signal
 
         s.plot_Xray_lines()
-        # s.plot_Xray_lines()
-        s.plot_Xray_lines(only_lines=('a'))
-        s.plot_Xray_lines(only_lines=('a,Kb'))
+        #s.plot_Xray_lines(only_lines=('a'))
+        #s.plot_Xray_lines(only_lines=('a,Kb'))
+    
+    #@image_comparison(baseline_images=['plot_Xray_lines2'])
+    #def test_plot_Xray_lines2(self):
+        #s = self.signal
+
+        #s.plot_Xray_lines()
 
 
 class Test_tools_bulk:
