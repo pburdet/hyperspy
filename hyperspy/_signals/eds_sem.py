@@ -376,12 +376,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             element, line = utils_eds._get_element_and_line(xray_line)
             std = self.get_result(element, 'standard_spec')
             mp_std = std.metadata
-            line_energy = elements_db[
-                element][
-                'Atomic_properties'][
-                'Xray_lines'][
-                line][
-                'energy (keV)']
+            line_energy = self._get_line_energy(xray_line)
             diff_ltime = mp.Acquisition_instrument.SEM.Detector.EDS.live_time / \
                 mp_std.Acquisition_instrument.SEM.Detector.EDS.live_time
             # Fit with least square
@@ -522,21 +517,10 @@ class EDSSEMSpectrum(EDSSpectrum):
         """
 
         if width_energy == 'auto':
-            line_energy = []
-            for xray_line in xray_lines:
-                element, line = utils_eds._get_element_and_line(xray_line)
-                line_energy.append(
-                    elements_db[
-                        element][
-                        'Atomic_properties'][
-                        'Xray_lines'][
-                        line][
-                        'energy (keV)'])
-            width_energy = [0, 0]
-            width_energy[0] = np.min(line_energy) - utils_eds.get_FWHM_at_Energy(
-                130, np.min(line_energy)) * 2
-            width_energy[1] = np.max(line_energy) + utils_eds.get_FWHM_at_Energy(
-                130, np.max(line_energy)) * 2
+            [line_energy, resolution] = zip(*[self._get_line_energy(xray_line, 130) 
+                            for xray_line in xray_lines])                            
+            width_energy = [np.min(line_energy) - np.min(resolution)*2, 
+                            np.max(line_energy) + np.max(resolution)*2]
 
         line_energy = np.mean(width_energy)
         width_windows = [line_energy - width_energy[0], width_energy[1]
@@ -557,12 +541,8 @@ class EDSSEMSpectrum(EDSSpectrum):
                                              width_windows).data))
         for xray_line in xray_lines:
             element, line = utils_eds._get_element_and_line(xray_line)
-            line_energy = elements_db[
-                element][
-                'Atomic_properties'][
-                'Xray_lines'][
-                line][
-                'energy (keV)']
+            line_energy = self._get_line_energy(xray_line) 
+
             width_windows = [line_energy - width_energy[0], width_energy[1] -
                              line_energy]
 
