@@ -517,10 +517,10 @@ class EDSSEMSpectrum(EDSSpectrum):
         """
 
         if width_energy == 'auto':
-            [line_energy, resolution] = zip(*[self._get_line_energy(xray_line, 130) 
-                            for xray_line in xray_lines])                            
-            width_energy = [np.min(line_energy) - np.min(resolution)*2, 
-                            np.max(line_energy) + np.max(resolution)*2]
+            [line_energy, resolution] = zip(*[self._get_line_energy(xray_line, 130)
+                                              for xray_line in xray_lines])
+            width_energy = [np.min(line_energy) - np.min(resolution) * 2,
+                            np.max(line_energy) + np.max(resolution) * 2]
 
         line_energy = np.mean(width_energy)
         width_windows = [line_energy - width_energy[0], width_energy[1]
@@ -541,7 +541,7 @@ class EDSSEMSpectrum(EDSSpectrum):
                                              width_windows).data))
         for xray_line in xray_lines:
             element, line = utils_eds._get_element_and_line(xray_line)
-            line_energy = self._get_line_energy(xray_line) 
+            line_energy = self._get_line_energy(xray_line)
 
             width_windows = [line_energy - width_energy[0], width_energy[1] -
                              line_energy]
