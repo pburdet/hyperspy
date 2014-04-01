@@ -784,5 +784,4 @@ def stack(signal_list, axis=None, new_axis_name='stack_element',
         'Stacking_history.step_sizes',
         step_sizes)
 
-
     return signal
