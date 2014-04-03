@@ -116,7 +116,7 @@ To close all the figures run the following command:
 Visualisation of multi-dimensional data
 ****************************************
 
-With the aim to ease the data analysis of multidimensionnal data, Hyperspy
+With the aim to ease the data analysis of multidimensionnal data, HyperSpy
 provides a powerful and flexible :py:meth:`~.signal.Signal.plot` method to
 visualize n-dimensional data. In this chapter, the visualisation of data of 3
 or more dimensions is exemplified with a image stack and a 4D hyperspectrum
@@ -221,7 +221,13 @@ Lastly, if no navigator is needed, "navigator=None" can be used.
 Rendering of 3D stack of images
 -------------------------------
 
+
 .. versionadded:: 0.7
+
+Although HyperSpy does not currently support plotting when signal_dimension is
+greater than 2, `Mayavi <http://docs.enthought.com/mayavi/mayavi/>`_ can be
+used for this purpose.
+
 
 To plot in 3D a stack of images, hyperspy provides 
 the :py:meth:`~._signals.image.Image.plot_3D_iso_surface` method that render
@@ -255,10 +261,12 @@ not supported yet.
 Comparing objects
 -----------------
 
-Hyperspy provides two functions to compare different objects (spectra, images or
+HyperSpy provides two functions to compare different objects (spectra, images or
 other signals) whatever their dimension. The two functions, 
 :py:func:`~.drawing.utils.plot_spectra` and :py:func:`~.drawing.utils.plot_signals`
 , are explained and exemplified in this chapter. 
+
+.. _plot.spectra:
 
 Plotting several spectra
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -369,7 +377,9 @@ The function returns a matplotlib ax object, which can be used to customize the 
 
 .. figure::  images/plot_spectra_customize.png
   :align:   center
-  :width:   500    
+  :width:   500
+  
+.. _plot.signals:
 
 Plotting several signals
 ^^^^^^^^^^^^^^^^^^^^^^^^

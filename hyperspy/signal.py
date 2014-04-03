@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
-# Copyright 2007-2011 The Hyperspy developers
+# Copyright 2007-2011 The HyperSpy developers
 #
-# This file is part of  Hyperspy.
+# This file is part of  HyperSpy.
 #
-#  Hyperspy is free software: you can redistribute it and/or modify
+#  HyperSpy is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-#  Hyperspy is distributed in the hope that it will be useful,
+#  HyperSpy is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with  Hyperspy.  If not, see <http://www.gnu.org/licenses/>.
+# along with  HyperSpy.  If not, see <http://www.gnu.org/licenses/>.
 
 import copy
 import os.path
@@ -1951,7 +1951,7 @@ class MVATools(object):
             no_nans=no_nans,
             per_row=per_row)
 
-    def export_decomposition_results(sezalf, comp_ids=None,
+    def export_decomposition_results(self, comp_ids=None,
                                      folder=None,
                                      calibrate=True,
                                      factor_prefix='factor',
@@ -2310,7 +2310,7 @@ class MVATools(object):
         Signal}
             See `plot` documentation for details.
         factors_dim, loadings_dim: int
-            Currently Hyperspy cannot plot signals of dimension higher than
+            Currently HyperSpy cannot plot signals of dimension higher than
             two. Therefore, to visualize the BSS results when the
             factors or the loadings have signal dimension greater than 2
             we can view the data as spectra(images) by setting this parameter
@@ -2351,7 +2351,7 @@ class MVATools(object):
         Signal}
             See `plot` documentation for details.
         factors_dim, loadings_dim : int
-            Currently Hyperspy cannot plot signals of dimension higher than
+            Currently HyperSpy cannot plot signals of dimension higher than
             two. Therefore, to visualize the BSS results when the
             factors or the loadings have signal dimension greater than 2
             we can view the data as spectra(images) by setting this parameter
@@ -3900,7 +3900,7 @@ class Signal(MVA,
                                             " histogram")
         return hist_spec
 
-    def apply_function(self, function, **kwargs):
+    def map(self, function, **kwargs):
         """Apply a function to the signal data at all the coordinates.
 
         The function must operate on numpy arrays and the output *must have the
@@ -3922,6 +3922,13 @@ class Signal(MVA,
         keyword arguments : any valid keyword argument
             All extra keyword arguments are passed to the
 
+        Notes
+        -----
+        This method is similar to Python's :func:`map` that can also be utilize
+        with a :class:`Signal` instance for similar purposes. However, this
+        method has the advantage of being faster because it iterates the numpy
+        array instead of the :class:`Signal`.
+
         Examples
         --------
         Apply a gaussian filter to all the images in the dataset. The sigma
@@ -3929,7 +3936,7 @@ class Signal(MVA,
 
         >>> import scipy.ndimage
         >>> im = signals.Image(np.random.random((10, 64, 64)))
-        >>> im.apply_function(scipy.ndimage.gaussian_filter, sigma=2.5)
+        >>> im.map(scipy.ndimage.gaussian_filter, sigma=2.5)
 
         Apply a gaussian filter to all the images in the dataset. The sigmal
         parameter is variable.
@@ -3937,7 +3944,7 @@ class Signal(MVA,
         >>> im = signals.Image(np.random.random((10, 64, 64)))
         >>> sigmas = signals.Signal(np.linspace(2,5,10))
         >>> sigmas.axes_manager.set_signal_dimension(0)
-        >>> im.apply_function(scipy.ndimage.gaussian_filter, sigma=sigmas)
+        >>> im.map(scipy.ndimage.gaussian_filter, sigma=sigmas)
 
         """
         # Sepate ndkwargs
@@ -4356,15 +4363,15 @@ class Signal(MVA,
 
         Parameters
         ----------
-        signal_type : {"EELS", "EDS_TEM", "EDS_SEM", str}
+        signal_type : {"EELS", "EDS_TEM", "EDS_SEM", "DielectricFunction"}
             Currently there are special features for "EELS" (electron
             energy-loss spectroscopy), "EDS_TEM" (energy dispersive X-rays of
             thin samples, normally obtained in a transmission electron
-            microscope) and "EDS_SEM" (energy dispersive X-rays of
-            thick samples, normally obtained in a scanning electron
-            microscope) so setting the signal_type to the correct acronym
-            is highly advisable when analyzing any signal for which Hyperspy
-            provides extra features. Even if Hyperspy does not provide extra
+            microscope), "EDS_SEM" (energy dispersive X-rays of thick samples,
+            normally obtained in a scanning electron microscope) and
+            "DielectricFuction". Setting the signal_type to the correct acronym
+            is highly advisable when analyzing any signal for which HyperSpy
+            provides extra features. Even if HyperSpy does not provide extra
             features for the signal that you are analyzing, it is good practice
             to set signal_type to a value that best describes the data signal
             type.
