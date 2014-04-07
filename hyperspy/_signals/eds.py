@@ -670,7 +670,7 @@ class EDSSpectrum(Spectrum):
 
         result = self.deepcopy()
         result = result.as_image([0, 1])
-        result.apply_function(scipy.ndimage.filters.convolve,
+        result.map(scipy.ndimage.filters.convolve,
                               weights=kernel, **kwargs)
         result = result.as_spectrum(0)
 
