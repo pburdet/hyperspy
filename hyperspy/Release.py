@@ -26,8 +26,8 @@ name = 'hyperspy'
 # When running setup.py the "+dev" string will be replaced (if possible)
 # by the output of "git describe" if git is available or the git
 # hash if .git is present.
-version = "0.6+dev"
-description = "Hyperspectral data analysis toolbox"
+version = "0.7+dev"
+description = "Multidimensional data analysis toolbox"
 license = 'GPL v3'
 
 authors = {
@@ -60,6 +60,7 @@ keywords = ['EDX',
             'energy dispersive x-rays',
             'hyperspectral',
             'hyperspectrum',
+            'multidimensional',
             'hyperspy',
             'machine learning',
             'microscopy',
@@ -74,7 +75,7 @@ keywords = ['EDX',
             'spectrum image']
 
 info = u"""
-    H y p e r s p y
+    H y p e r S p y
     Version %s
 
     http://www.hyperspy.org

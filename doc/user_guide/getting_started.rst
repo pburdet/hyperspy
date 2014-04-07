@@ -26,7 +26,7 @@ to:
 
 .. code-block:: ipython
     
-    H y p e r s p y
+    H y p e r S p y
     Version 0.7
     
     http://www.hyperspy.org	
@@ -63,7 +63,7 @@ these options add the `-h` flag:
                     [--ipython_args [IPYTHON_ARGS [IPYTHON_ARGS ...]]]
                     [{terminal,console,qtconsole,notebook}]
 
-    Hyperspectral data analysis toolbox
+    Multidimensional data analysis toolbox
  
     positional arguments:
       {terminal,console,qtconsole,notebook}
