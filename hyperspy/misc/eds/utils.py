@@ -2068,8 +2068,10 @@ def database_3Dresult():
     """
     return _load_in_database('2res3DrsAH.hdf5', result=True)
 
-#doesn't work
-#bug of map
+# doesn't work
+# bug of map
+
+
 def tv_denoise(self,
                weight=50,
                n_iter_max=200,
@@ -2099,7 +2101,7 @@ def tv_denoise(self,
     -------
 
     >>> im = utils_eds.database_2Dimage()
-    >>> utils_eds.tv_denoise(im,method='chambolle', 
+    >>> utils_eds.tv_denoise(im,method='chambolle',
     >>>      weight=0.5,n_iter_max=4).plot()
 
     See also:
@@ -2113,15 +2115,14 @@ def tv_denoise(self,
     import skimage.filter
     img = self.deepcopy()
 
-
     if method == 'bregman':
-         #img.map(
+         # img.map(
          #   skimage.filter.denoise_tv_bregman, weight=weight,
          #   eps=eps, max_iter=n_iter_max)
         img.data = skimage.filter.denoise_tv_bregman(img.data, weight=weight,
                                                      eps=eps, max_iter=n_iter_max)
     elif method == 'chambolle':
-        #img.map(
+        # img.map(
         #    skimage.filter.denoise_tv_chambolle,
         #    weight=weight, eps=eps, n_iter_max=n_iter_max)
         img.data = skimage.filter.denoise_tv_chambolle(img.data,

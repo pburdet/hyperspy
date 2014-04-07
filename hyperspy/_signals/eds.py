@@ -671,7 +671,7 @@ class EDSSpectrum(Spectrum):
         result = self.deepcopy()
         result = result.as_image([0, 1])
         result.map(scipy.ndimage.filters.convolve,
-                              weights=kernel, **kwargs)
+                   weights=kernel, **kwargs)
         result = result.as_spectrum(0)
 
         if hasattr(result.metadata.Acquisition_instrument, 'SEM'):
