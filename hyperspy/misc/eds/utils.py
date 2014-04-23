@@ -1494,14 +1494,15 @@ def crop_indexes_from_shift(shifts):
                    shifts[:, 1].max() > 0 else 0)
     shifts = -shifts
     return top, bottom, left, right
-    
+
+
 def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
-                          elements='auto',
-                          compo_at='auto',
-                          density='auto',
-                          thickness='auto',
-                          detector='Si(Li)',
-                          gateway='auto'):
+                              elements='auto',
+                              compo_at='auto',
+                              density='auto',
+                              thickness='auto',
+                              detector='Si(Li)',
+                              gateway='auto'):
     """"
     Simulate a spectrum using DTSA-II (NIST-Monte)
     Parameters
@@ -1525,7 +1526,7 @@ def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
 
     density: list of float
         Set the density. If 'auto', obtain from the compo_at.
-        
+
     thickness: float
         Set the thickness. If 'auto', look in mp.Sample or set to 100nm
 
@@ -1544,12 +1545,9 @@ def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
     """
     from hyperspy import signals
     from hyperspy import utils
-    
 
-
-    
     if mp == 'gui':
-        spec = signals.EDSTEMSpectrum(np.zeros(2048))  
+        spec = signals.EDSTEMSpectrum(np.zeros(2048))
         spec.axes_manager[-1].units = 'keV'
         if elements == 'auto':
             raise ValueError('Elements need to be set (set_elements) ' +
@@ -1562,18 +1560,19 @@ def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
         mp = spec.metadata
         azimDeg = [mp.Acquisition_instrument.TEM.Detector.EDS.azimuth_angle]
     else:
-        if isinstance(mp.Acquisition_instrument.\
-                      TEM.Detector.EDS.azimuth_angle ,list):
+        if isinstance(mp.Acquisition_instrument.
+                      TEM.Detector.EDS.azimuth_angle, list):
             azimDeg = mp.Acquisition_instrument.TEM.Detector.EDS.azimuth_angle
         else:
-            azimDeg = [mp.Acquisition_instrument.TEM.Detector.EDS.azimuth_angle]
-        if len(azimDeg)>1:
-            spec = signals.EDSTEMSpectrum(np.zeros([len(azimDeg),2048]))
+            azimDeg = [
+                mp.Acquisition_instrument.TEM.Detector.EDS.azimuth_angle]
+        if len(azimDeg) > 1:
+            spec = signals.EDSTEMSpectrum(np.zeros([len(azimDeg), 2048]))
         else:
-            spec = signals.EDSTEMSpectrum(np.zeros(2048))   
+            spec = signals.EDSTEMSpectrum(np.zeros(2048))
         spec.metadata = mp.deepcopy()
         mp = spec.metadata
-    #Sample
+    # Sample
     if elements == 'auto':
         if hasattr(mp.Sample, 'elements'):
             elements = list(mp.Sample.elements)
@@ -1597,27 +1596,27 @@ def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
             elements,
             compo_wt)
     mp.Sample.density = density
-    
+
     if thickness == 'auto':
         if 'thickness' in mp.Sample:
             thickness = mp.Sample.thickness
-        else :
+        else:
             thickness = 100
-        
-    #microscope right units
+
+    # microscope right units
     e0 = mp.Acquisition_instrument.TEM.beam_energy
     tilt = mp.Acquisition_instrument.TEM.tilt_stage
     ltime = mp.Acquisition_instrument.TEM.Detector.EDS.live_time
     elevation = mp.Acquisition_instrument.TEM.Detector.EDS.elevation_angle
     #TOangle = np.radians(spec.get_take_off_angle())
     TOangle = [utils.eds.take_off_angle(tilt, az,
-                                       elevation) for az in azimDeg]
+                                        elevation) for az in azimDeg]
     print TOangle
     #TOangle = [np.radians(TO) for TO in TOangle]
     azim = [np.radians(90 - az) for az in azimDeg]
     tilt = np.radians(tilt)
-    elevation = np.radians(elevation)    
-    
+    elevation = np.radians(elevation)
+
     if gateway == 'auto':
         gateway = get_link_to_jython()
     channel = gateway.remote_exec("""
@@ -1651,7 +1650,7 @@ def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
         origin = [0.0,0.0,2e-5]
         z0 = origin[2]
         det = []
-        for j, az in enumerate(azim):        
+        for j, az in enumerate(azim):
             prop = epq.SpectrumProperties()
             #prop.setDetectorPosition(elevation, az, 0.005, 2e-5)
             WD = 2e-5
@@ -1691,21 +1690,21 @@ def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
         for de in det:
             
             xrel.append(nm.XRayEventListener2(monteb,de))
-            monteb.addActionListener(xrel[-1])   
+            monteb.addActionListener(xrel[-1])
             # Add event listeners to model bBremsstrahlung
-            brem.append(nm.BremsstrahlungEventListener(monteb,de))            
+            brem.append(nm.BremsstrahlungEventListener(monteb,de))
             monteb.addActionListener(brem[-1])
-            # Reset the detector 
+            # Reset the detector
             de.reset()
-        # run the electrons    
+        # run the electrons
         monteb.runMultipleTrajectories(nTraj)
         # Get the spectrum and assign properties
         specb=[]
         propsb=[]
-        for j, de in enumerate(det):  
-            specb.append(de.getSpectrum(dose*1.0e-9 / 
+        for j, de in enumerate(det):
+            specb.append(de.getSpectrum(dose*1.0e-9 /
                 (nTraj * epq.PhysicalConstants.ElectronCharge) ))
-            #dtsa2.display(specb[-1])            
+            #dtsa2.display(specb[-1])
             propsb.append(specb[-1].getProperties())
             propsb[-1].setTextProperty(
                 epq.SpectrumProperties.SpectrumDisplayName,
@@ -1743,11 +1742,11 @@ def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
             reso = item
         else:
             datas.append(item)
-    if len(azim)>1:
-        spec.data = np.array(datas).reshape(len(azim),2048)
+    if len(azim) > 1:
+        spec.data = np.array(datas).reshape(len(azim), 2048)
         spec.get_dimensions_from_data()
-        spec.axes_manager[0].scale = azimDeg[1]-azimDeg[0]
-        spec.axes_manager[0].offset = azimDeg [0]
+        spec.axes_manager[0].scale = azimDeg[1] - azimDeg[0]
+        spec.axes_manager[0].offset = azimDeg[0]
         spec.axes_manager[0].name = 'azimuth'
         spec.axes_manager[0].units = 'Degree'
     else:
@@ -1758,12 +1757,12 @@ def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
         EDS.energy_resolution_MnKa = reso
     spec.axes_manager[-1].scale = scale / 1000
     if detector == 'SDD':
-        spec.axes_manager[-1].offset = offset/1000
-    else :
-        spec.axes_manager[-1].offset = offset/1000
+        spec.axes_manager[-1].offset = offset / 1000
+    else:
+        spec.axes_manager[-1].offset = offset / 1000
     spec.axes_manager[-1].name = 'Energy'
     spec.axes_manager[-1].units = 'keV'
-    #spec.metadata.Gener al.title = 'Simulated spectrum'
+    # spec.metadata.Gener al.title = 'Simulated spectrum'
     spec.metadata.add_node('MC_simulation')
     spec.metadata.MC_simulation.nTraj = nTraj
     #mp.signal_origin = "simulation"
