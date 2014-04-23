@@ -1494,6 +1494,281 @@ def crop_indexes_from_shift(shifts):
                    shifts[:, 1].max() > 0 else 0)
     shifts = -shifts
     return top, bottom, left, right
+    
+def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
+                          elements='auto',
+                          compo_at='auto',
+                          density='auto',
+                          thickness='auto',
+                          detector='Si(Li)',
+                          gateway='auto'):
+    """"
+    Simulate a spectrum using DTSA-II (NIST-Monte)
+    Parameters
+    ----------
+
+    nTraj: int
+        number of electron trajectories
+
+    dose: float
+        Electron current time the live time in nA*sec
+
+    mp: dict
+        Microscope parameters. If 'gui' raise a general interface.
+
+    elements: list of str
+        Set the elements. If auto, look in mp.Sample if elements are defined.
+        auto cannot be used with 'gui' option.
+
+    compo_at: list of string
+        Give the composition (atomic). If auto, equally parted
+
+    density: list of float
+        Set the density. If 'auto', obtain from the compo_at.
+        
+    thickness: float
+        Set the thickness. If 'auto', look in mp.Sample or set to 100nm
+
+    detector: str
+        Give the detector name defined in DTSA-II
+
+    gateway: execnet Gateway
+        If 'auto', generate automatically the connection to jython.
+
+    Note
+    ----
+
+    For further details on DTSA-II please refer to
+    http://www.cstl.nist.gov/div837/837.02/epq/dtsa2/index.html
+
+    """
+    from hyperspy import signals
+    from hyperspy import utils
+    
+
+
+    
+    if mp == 'gui':
+        spec = signals.EDSTEMSpectrum(np.zeros(2048))  
+        spec.axes_manager[-1].units = 'keV'
+        if elements == 'auto':
+            raise ValueError('Elements need to be set (set_elements) ' +
+                             'with gui option')
+            return 0
+        else:
+            spec.set_microscope_parameters()
+            spec.set_elements(elements)
+            spec.add_lines()
+        mp = spec.metadata
+        azimDeg = [mp.Acquisition_instrument.TEM.Detector.EDS.azimuth_angle]
+    else:
+        if isinstance(mp.Acquisition_instrument.\
+                      TEM.Detector.EDS.azimuth_angle ,list):
+            azimDeg = mp.Acquisition_instrument.TEM.Detector.EDS.azimuth_angle
+        else:
+            azimDeg = [mp.Acquisition_instrument.TEM.Detector.EDS.azimuth_angle]
+        if len(azimDeg)>1:
+            spec = signals.EDSTEMSpectrum(np.zeros([len(azimDeg),2048]))
+        else:
+            spec = signals.EDSTEMSpectrum(np.zeros(2048))   
+        spec.metadata = mp.deepcopy()
+        mp = spec.metadata
+    #Sample
+    if elements == 'auto':
+        if hasattr(mp.Sample, 'elements'):
+            elements = list(mp.Sample.elements)
+        else:
+            raise ValueError('Elements need to be set (set_elements)')
+            return 0
+    else:
+        mp.Sample.elements = elements
+    if compo_at == 'auto':
+        compo_at = []
+        for elm in elements:
+            compo_at.append(1. / len(elements))
+    mp.Sample.compo_at = compo_at
+    compo_wt = np.array(
+        utils.material.atomic_to_weight(
+            elements,
+            compo_at)) / 100
+    compo_wt = list(compo_wt)
+    if density == 'auto':
+        density = utils.material.density_of_mixture_of_pure_elements(
+            elements,
+            compo_wt)
+    mp.Sample.density = density
+    
+    if thickness == 'auto':
+        if 'thickness' in mp.Sample:
+            thickness = mp.Sample.thickness
+        else :
+            thickness = 100
+        
+    #microscope right units
+    e0 = mp.Acquisition_instrument.TEM.beam_energy
+    tilt = mp.Acquisition_instrument.TEM.tilt_stage
+    ltime = mp.Acquisition_instrument.TEM.Detector.EDS.live_time
+    elevation = mp.Acquisition_instrument.TEM.Detector.EDS.elevation_angle
+    #TOangle = np.radians(spec.get_take_off_angle())
+    TOangle = [utils.eds.take_off_angle(tilt, az,
+                                       elevation) for az in azimDeg]
+    print TOangle
+    #TOangle = [np.radians(TO) for TO in TOangle]
+    azim = [np.radians(90 - az) for az in azimDeg]
+    tilt = np.radians(tilt)
+    elevation = np.radians(elevation)    
+    
+    if gateway == 'auto':
+        gateway = get_link_to_jython()
+    channel = gateway.remote_exec("""
+        import dtsa2
+        import math
+        epq = dtsa2.epq
+        epu = dtsa2.epu
+        nm = dtsa2.nm
+        elements = """ + str(elements) + """
+        elms = []
+        for element in elements:
+            elms.append(getattr(dtsa2.epq.Element,element))
+        density = """ + str(density) + """
+        compo_wt = """ + str(compo_wt) + """
+        thickness = """ + str(thickness * 1e-9) + """
+        e0 =  """ + str(e0) + """
+        dose =  """ + str(dose) + """
+        tilt = """ + str(tilt) + """
+        tiltD = tilt
+        if tilt < 0:
+            #tilt cannot be negative
+            tiltD = -tiltD
+        live_time = """ + str(ltime) + """
+        elevation = """ + str(elevation) + """
+        azim = """ + str(azim) + """
+        #TOA = """ + str(TOangle) + """
+
+        nTraj = """ + str(nTraj) + """
+
+        #Position of detector and sample (WD in km, d-to-crystal in m)
+        origin = [0.0,0.0,2e-5]
+        z0 = origin[2]
+        det = []
+        for j, az in enumerate(azim):        
+            prop = epq.SpectrumProperties()
+            #prop.setDetectorPosition(elevation, az, 0.005, 2e-5)
+            WD = 2e-5
+            det_sample_dist = 2e-5
+            prop.setDetectorPosition(elevation, az, det_sample_dist, WD )
+            posi = prop.getArrayProperty(epq.SpectrumProperties.\
+                    DetectorPosition)
+            #posi = [posi[0]/1000.,posi[1]/1000.,posi[2]/1000.]
+            det_name = '""" + detector + """'+str(j)
+            det.append(dtsa2.findDetector(det_name))
+            prop = det[-1].getDetectorProperties()
+            prop.setPosition(posi)
+
+        el = 0
+        if len(elms) == 1:
+            mat=epq.MaterialFactory.createPureElement(elms[el])
+        else:
+            mat = epq.Material(epq.Composition(elms,compo_wt ),
+                                    epq.ToSI.gPerCC(density))
+
+
+        # Create a simulator and initialize it
+        monteb = nm.MonteCarloSS()
+        monteb.setBeamEnergy(epq.ToSI.keV(e0))
+
+        # film
+        center0=epu.Math2.plus(origin,[0.0,0.0,-thickness/2])
+        block = nm.MultiPlaneShape.createFilm([0.0,math.sin(tilt),
+                    -math.cos(tilt)],
+                    center0, thickness)
+        monteb.addSubRegion(monteb.getChamber(), mat, block)
+        # Add event listeners to model characteristic radiation
+        #monteb.rotate([0,0,z0], -tilt,0.0,0.0)
+        
+        xrel=[]
+        brem = []
+        for de in det:
+            
+            xrel.append(nm.XRayEventListener2(monteb,de))
+            monteb.addActionListener(xrel[-1])   
+            # Add event listeners to model bBremsstrahlung
+            brem.append(nm.BremsstrahlungEventListener(monteb,de))            
+            monteb.addActionListener(brem[-1])
+            # Reset the detector 
+            de.reset()
+        # run the electrons    
+        monteb.runMultipleTrajectories(nTraj)
+        # Get the spectrum and assign properties
+        specb=[]
+        propsb=[]
+        for j, de in enumerate(det):  
+            specb.append(de.getSpectrum(dose*1.0e-9 / 
+                (nTraj * epq.PhysicalConstants.ElectronCharge) ))
+            #dtsa2.display(specb[-1])            
+            propsb.append(specb[-1].getProperties())
+            propsb[-1].setTextProperty(
+                epq.SpectrumProperties.SpectrumDisplayName,
+                                  "%s std." % (azim[j]))
+            propsb[-1].setNumericProperty(
+                epq.SpectrumProperties.LiveTime, dose)
+            propsb[-1].setNumericProperty(
+                epq.SpectrumProperties.FaradayBegin,1.0)
+            propsb[-1].setNumericProperty(
+                epq.SpectrumProperties.BeamEnergy,e0)
+            #noisyb=epq.SpectrumUtils.addNoiseToSpectrum(
+                #specb[-1],live_time)
+            #dtsa2.display(noisyb)
+            if j==0:
+                a = de.calibration.getProperties()
+                channelWidth = de.calibration.getChannelWidth()
+                offset = de.calibration.getZeroOffset()
+                resolution = a.getPropertyByName('Resolution')
+                channelMax = 2048
+                channel.send(channelWidth)
+                channel.send(offset)
+                channel.send(resolution)
+            for i in range(channelMax):
+                channel.send(specb[-1].getCounts(i))
+
+    """)
+
+    datas = []
+    for i, item in enumerate(channel):
+        if i == 0:
+            scale = item
+        elif i == 1:
+            offset = item
+        elif i == 2:
+            reso = item
+        else:
+            datas.append(item)
+    if len(azim)>1:
+        spec.data = np.array(datas).reshape(len(azim),2048)
+        spec.get_dimensions_from_data()
+        spec.axes_manager[0].scale = azimDeg[1]-azimDeg[0]
+        spec.axes_manager[0].offset = azimDeg [0]
+        spec.axes_manager[0].name = 'azimuth'
+        spec.axes_manager[0].units = 'Degree'
+    else:
+        spec.data = np.array(datas)
+        spec.get_dimensions_from_data()
+
+    spec.metadata.Acquisition_instrument.TEM.Detector.\
+        EDS.energy_resolution_MnKa = reso
+    spec.axes_manager[-1].scale = scale / 1000
+    if detector == 'SDD':
+        spec.axes_manager[-1].offset = offset/1000
+    else :
+        spec.axes_manager[-1].offset = offset/1000
+    spec.axes_manager[-1].name = 'Energy'
+    spec.axes_manager[-1].units = 'keV'
+    #spec.metadata.Gener al.title = 'Simulated spectrum'
+    spec.metadata.add_node('MC_simulation')
+    spec.metadata.MC_simulation.nTraj = nTraj
+    #mp.signal_origin = "simulation"
+
+    return spec
 
 
 def plot_orthoview_animated(image, isotropic_voxel=True):
