@@ -89,7 +89,8 @@ def xray_range(xray_line, beam_energy, density='auto'):
 
     return 0.064 / density * (np.power(beam_energy, 1.68) -
                               np.power(Xray_energy, 1.68))
-                        
+
+
 def electron_range(element, beam_energy, density='auto', tilt=0):
     '''Return the Kanaya-Okayama electron range.
 
@@ -190,8 +191,9 @@ def get_index_from_names(self, axis_names, index_name, axis_name_in_mp=True):
     for i, name in enumerate(axis_names):
         if name == index_name:
             return i
-            
-def get_MAC_sample(xray_lines, weight_percent, elements = 'auto'):
+
+
+def get_MAC_sample(xray_lines, weight_percent, elements='auto'):
     """Return the mass absorption coefficients of a sample
 
     Parameters
@@ -203,7 +205,7 @@ def get_MAC_sample(xray_lines, weight_percent, elements = 'auto'):
     elements: {list of str | 'auto'}
         The list of element symbol of the absorber, e.g. ['Al','Zn'].
         if 'auto', use the elements of the X-ray lines
-    """       
+    """
     macs = []
     if elements == 'auto':
         elements = []
@@ -217,7 +219,7 @@ def get_MAC_sample(xray_lines, weight_percent, elements = 'auto'):
         el_emit, line = _get_element_and_line(xray_line)
         macs.append(0)
         for i_el, el_abs in enumerate(elements):
-            macs[-1] += weight_percent[i_el]/100*MAC[el_emit][line][el_abs]
+            macs[-1] += weight_percent[i_el] / 100 * MAC[el_emit][line][el_abs]
     return macs
 
 
@@ -1524,7 +1526,9 @@ def crop_indexes_from_shift(shifts):
     shifts = -shifts
     return top, bottom, left, right
 
-#Control of detector geometry not good. Do it trhough interface
+# Control of detector geometry not good. Do it trhough interface
+
+
 def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
                               elements='auto',
                               compo_at='auto',
@@ -1644,18 +1648,17 @@ def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
     #TOangle = [np.radians(TO) for TO in TOangle]
     azim = [np.radians(90 - az) for az in azimDeg]
     tilt = np.radians(tilt)
-    elevation = np.radians(elevation-90)
-    
+    elevation = np.radians(elevation - 90)
+
     if gateway == 'auto':
         gateway = get_link_to_jython()
-    spec_dir = get_detector_properties(detector+'0',
-        gateway = gateway)
+    spec_dir = get_detector_properties(detector + '0',
+                                       gateway=gateway)
     channelMax = len(spec_dir.data)
     prop_name = 'Optimal working distance'
     for prop in spec_dir.original_metadata.spectrum_properties:
         if prop_name in prop:
-            WD =  float(prop.split(prop_name+'=')[1].split(' mm')[0])
-
+            WD = float(prop.split(prop_name + '=')[1].split(' mm')[0])
 
     channel = gateway.remote_exec("""
         import dtsa2
@@ -1787,12 +1790,12 @@ def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
     else:
         spec.data = np.array(datas)
         spec.get_dimensions_from_data()
-    
+
     spec.metadata.Acquisition_instrument.TEM.Detector = \
         spec_dir.metadata.Acquisition_instrument.SEM.Detector
     spec.metadata.Acquisition_instrument.TEM.Detector\
-            .EDS.azimuth_angle = mp.Acquisition_instrument.\
-            TEM.Detector.EDS.elevation_angle   
+        .EDS.azimuth_angle = mp.Acquisition_instrument.\
+        TEM.Detector.EDS.elevation_angle
     spec.axes_manager._axes[-1] = spec_dir.axes_manager._axes[-1]
     spec.original_metadata.spectrum_properties = \
         spec_dir.original_metadata.spectrum_properties
@@ -1800,29 +1803,29 @@ def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
     spec.metadata.add_node('MC_simulation')
     spec.metadata.MC_simulation.nTraj = nTraj
 
-
     return spec
 
-def get_detector_properties(name,gateway = 'auto'):
+
+def get_detector_properties(name, gateway='auto'):
     """
     Get the details properties of a detector.
-    
+
     Return an efficiency spectrum
-    
+
     Parameters
     ----------
-    
+
     name: str
         The name of the detector
-        
+
     gateway: execnet Gateway
         If 'auto', generate automatically the connection to jython.
-        
+
     Return
-    ------    
+    ------
     signals.EDSSEMSpectrum containing the efficiency of the detector
     """
-    
+
     from hyperspy import signals
     if gateway == 'auto':
         gateway = get_link_to_jython()
@@ -1838,22 +1841,22 @@ def get_detector_properties(name,gateway = 'auto'):
     """)
     datas = []
     for i, item in enumerate(channel):
-        if i ==0:
+        if i == 0:
             prop = item
         else:
             datas.append(item)
     spec = signals.EDSSEMSpectrum(datas)
     spec.set_microscope_parameters(
         azimuth_angle=float(prop.split(
-                    'Azimuthal angle=')[1].split('\xb0')[0]), 
+            'Azimuthal angle=')[1].split('\xb0')[0]),
         elevation_angle=float(prop.split(
-                    'Elevation=')[1].split('\xb0')[0]), 
+            'Elevation=')[1].split('\xb0')[0]),
         energy_resolution_MnKa=float(prop.split(
-                    'Resolution=')[1].split(' eV')[0]))
+            'Resolution=')[1].split(' eV')[0]))
     spec.axes_manager[-1].offset = float(
-        prop.split('Energy offset=')[1].split(' eV')[0])/1000
+        prop.split('Energy offset=')[1].split(' eV')[0]) / 1000
     spec.axes_manager[-1].scale = float(
-        prop.split('Energy scale=')[1].split(' eV')[0])/1000
+        prop.split('Energy scale=')[1].split(' eV')[0]) / 1000
     spec.axes_manager[-1].name = 'Energy'
     spec.axes_manager[-1].units = 'keV'
     spec.metadata.General.title = 'Efficiency'
@@ -2557,31 +2560,31 @@ def simulate_model(elements=None,
     else:
         model = s.simulate_model(elemental_map=elemental_map)
         return model
-        
-def get_xray_transition_properties(xray_line,beam_energy
-                                 ,gateway = 'auto'):
-    """ Return the properties of a given Xray transition: 
-    
+
+
+def get_xray_transition_properties(xray_line, beam_energy, gateway='auto'):
+    """ Return the properties of a given Xray transition:
+
     Compute the ionization cross section, fluorescence_yield and the relative
-    transition probability for a beam energy, an elements 
-    and the ionized shell corresponding to the given Xray-lines. 
-    
+    transition probability for a beam energy, an elements
+    and the ionized shell corresponding to the given Xray-lines.
+
     Parameters
-    ----------    
+    ----------
     xray_line: str
         The X-ray line, e.g. 'Al_Ka'
     beam_energy: float
         The energy of the beam in kV.
     gateway: execnet Gateway
         If 'auto', generate automatically the connection to jython.
-        
+
     Return
     ------
-    
+
     [ionization_cross_section, fluorescence_yield
-    
+
     Notes
-    ----- 
+    -----
     ionization_cross_section from the BoteSalvat2008 database
     """
     if gateway == 'auto':

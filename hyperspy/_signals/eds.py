@@ -953,9 +953,9 @@ class EDSSpectrum(Spectrum):
         self.data = np.random.poisson(self.data, **kwargs).astype(
             original_type)
 
-    def get_take_off_angle(self,tilt_stage='auto',
-            azimuth_angle='auto',
-            elevation_angle='auto'):
+    def get_take_off_angle(self, tilt_stage='auto',
+                           azimuth_angle='auto',
+                           elevation_angle='auto'):
         """Calculate the take-off-angle (TOA).
 
         TOA is the angle with which the X-rays leave the surface towards
@@ -979,12 +979,12 @@ class EDSSpectrum(Spectrum):
             mp = self.metadata.Acquisition_instrument.SEM
         elif self.metadata.Signal.signal_type == 'EDS_TEM':
             mp = self.metadata.Acquisition_instrument.TEM
-            
-        if tilt_stage=='auto'and 'tilt_stage' in mp:
+
+        if tilt_stage == 'auto'and 'tilt_stage' in mp:
             tilt_stage = mp.tilt_stage
-        if azimuth_angle=='auto'and 'azimuth_angle' in mp.Detector.EDS:
+        if azimuth_angle == 'auto'and 'azimuth_angle' in mp.Detector.EDS:
             azimuth_angle = mp.Detector.EDS.azimuth_angle
-        if elevation_angle=='auto'and 'elevation_angle' in mp.Detector.EDS:
+        if elevation_angle == 'auto'and 'elevation_angle' in mp.Detector.EDS:
             elevation_angle = mp.Detector.EDS.elevation_angle
 
         TOA = utils.eds.take_off_angle(tilt_stage, azimuth_angle,
@@ -1184,9 +1184,9 @@ class EDSSpectrum(Spectrum):
         return m.as_signal()
 
     def get_MAC_sample(self,
-            xray_lines='auto',
-            weight_percent='auto',
-            elements = 'auto'):
+                       xray_lines='auto',
+                       weight_percent='auto',
+                       elements='auto'):
         """Return the mass absorption coefficients of a sample
 
         Parameters
@@ -1198,16 +1198,16 @@ class EDSSpectrum(Spectrum):
         elements: {list of str | 'auto'}
             The list of element symbol of the absorber, e.g. ['Al','Zn'].
             if 'auto', use the elements of the X-ray lines
-        """       
-        
-        if xray_lines=='auto'and 'Sample.xray_lines' in self.metadata:
+        """
+
+        if xray_lines == 'auto'and 'Sample.xray_lines' in self.metadata:
             xray_lines = self.metadata.Sample.xray_lines
-        if weight_percent =='auto' and 'Sample.weight_percent' in self.metadata:
+        if weight_percent == 'auto' and 'Sample.weight_percent' in self.metadata:
             weight_percent = self.metadata.Sample.weight_percent
         if elements == 'auto'and 'Sample.elements' in self.metadata:
             elements = self.metadata.Sample.elements
         return utils_eds.get_MAC_sample(xray_lines=xray_lines,
-            weight_percent=weight_percent, elements = elements)
+                                        weight_percent=weight_percent, elements=elements)
 
 
 
