@@ -3,6 +3,7 @@
 # in proceedings of the 11th international conference on X-ray optics 
 # and microanalysis as tabulated in Goldstein et al., Plenum publisher 
 # third edition accompanying CD
+# units cm2/g
 
 from hyperspy.misc import utils
 

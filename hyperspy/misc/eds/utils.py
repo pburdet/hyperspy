@@ -12,6 +12,7 @@ import hyperspy.utils
 from hyperspy.misc.config_dir import config_path
 import hyperspy.components as components
 from hyperspy.misc.elements import elements as elements_db
+from hyperspy.misc.eds.MAC import MAC_db as MAC
 
 
 def _get_element_and_line(xray_line):
@@ -88,8 +89,7 @@ def xray_range(xray_line, beam_energy, density='auto'):
 
     return 0.064 / density * (np.power(beam_energy, 1.68) -
                               np.power(Xray_energy, 1.68))
-
-
+                        
 def electron_range(element, beam_energy, density='auto', tilt=0):
     '''Return the Kanaya-Okayama electron range.
 
@@ -190,6 +190,35 @@ def get_index_from_names(self, axis_names, index_name, axis_name_in_mp=True):
     for i, name in enumerate(axis_names):
         if name == index_name:
             return i
+            
+def get_MAC_sample(xray_lines, weight_percent, elements = 'auto'):
+    """Return the mass absorption coefficients of a sample
+
+    Parameters
+    ----------
+    xray_lines: list of str
+        The list of X-ray lines, e.g. ['Al_Ka','Zn_Ka','Zn_La']
+    weight_percent: list of float
+        the composition of the sample
+    elements: {list of str | 'auto'}
+        The list of element symbol of the absorber, e.g. ['Al','Zn'].
+        if 'auto', use the elements of the X-ray lines
+    """       
+    macs = []
+    if elements == 'auto':
+        elements = []
+        for xray_line in xray_lines:
+            element, line = _get_element_and_line(xray_line)
+            elements.append(element)
+        elements = set(elements)
+    if len(elements) != len(weight_percent):
+        raise ValueError("Add elements first, see 'set_elements'")
+    for xray_line in xray_lines:
+        el_emit, line = _get_element_and_line(xray_line)
+        macs.append(0)
+        for i_el, el_abs in enumerate(elements):
+            macs[-1] += weight_percent[i_el]/100*MAC[el_emit][line][el_abs]
+    return macs
 
 
 def phase_inspector(self, bins=[20, 20, 20], plot_result=True):
@@ -1495,7 +1524,7 @@ def crop_indexes_from_shift(shifts):
     shifts = -shifts
     return top, bottom, left, right
 
-
+#Control of detector geometry not good. Do it trhough interface
 def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
                               elements='auto',
                               compo_at='auto',
@@ -1611,14 +1640,23 @@ def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
     #TOangle = np.radians(spec.get_take_off_angle())
     TOangle = [utils.eds.take_off_angle(tilt, az,
                                         elevation) for az in azimDeg]
-    print TOangle
+    # print TOangle
     #TOangle = [np.radians(TO) for TO in TOangle]
     azim = [np.radians(90 - az) for az in azimDeg]
     tilt = np.radians(tilt)
-    elevation = np.radians(elevation)
-
+    elevation = np.radians(elevation-90)
+    
     if gateway == 'auto':
         gateway = get_link_to_jython()
+    spec_dir = get_detector_properties(detector+'0',
+        gateway = gateway)
+    channelMax = len(spec_dir.data)
+    prop_name = 'Optimal working distance'
+    for prop in spec_dir.original_metadata.spectrum_properties:
+        if prop_name in prop:
+            WD =  float(prop.split(prop_name+'=')[1].split(' mm')[0])
+
+
     channel = gateway.remote_exec("""
         import dtsa2
         import math
@@ -1635,35 +1673,39 @@ def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
         e0 =  """ + str(e0) + """
         dose =  """ + str(dose) + """
         tilt = """ + str(tilt) + """
-        tiltD = tilt
-        if tilt < 0:
-            #tilt cannot be negative
-            tiltD = -tiltD
+        channelMax = """ + str(channelMax) + """
         live_time = """ + str(ltime) + """
         elevation = """ + str(elevation) + """
         azim = """ + str(azim) + """
         #TOA = """ + str(TOangle) + """
-
         nTraj = """ + str(nTraj) + """
-
+        WD = """ + str(WD * 1.0e-4) + """
+        print WD
         #Position of detector and sample (WD in km, d-to-crystal in m)
-        origin = [0.0,0.0,2e-5]
+        origin = [0.0,0.0,WD]
         z0 = origin[2]
         det = []
-        for j, az in enumerate(azim):
-            prop = epq.SpectrumProperties()
-            #prop.setDetectorPosition(elevation, az, 0.005, 2e-5)
-            WD = 2e-5
-            det_sample_dist = 2e-5
-            prop.setDetectorPosition(elevation, az, det_sample_dist, WD )
-            posi = prop.getArrayProperty(epq.SpectrumProperties.\
-                    DetectorPosition)
-            #posi = [posi[0]/1000.,posi[1]/1000.,posi[2]/1000.]
-            det_name = '""" + detector + """'+str(j)
-            det.append(dtsa2.findDetector(det_name))
-            prop = det[-1].getDetectorProperties()
-            prop.setPosition(posi)
-
+        
+        if 1 == 0:
+            for j, az in enumerate(azim):
+                prop = epq.SpectrumProperties()
+                #prop.setDetectorPosition(elevation, az, 0.005, 2e-5)
+                WD = 3e-3
+                det_sample_dist = 20e-3
+                prop.setDetectorPosition(elevation, az, det_sample_dist, WD )
+                posi = prop.getArrayProperty(epq.SpectrumProperties.\
+                        DetectorPosition)
+                #posi = [posi[0]/1000.,posi[1]/1000.,posi[2]/1000.]
+                det_name = '""" + detector + """'+str(j)
+                det.append(dtsa2.findDetector(det_name))
+                prop = det[-1].getDetectorProperties()
+                prop.setPosition(posi)
+        else:
+            for j, az in enumerate(azim):
+                det_name = '""" + detector + """'+str(j)
+                det.append(dtsa2.findDetector(det_name))
+                print det[-1]
+                #print det[-1].getProperties()
         el = 0
         if len(elms) == 1:
             mat=epq.MaterialFactory.createPureElement(elms[el])
@@ -1678,12 +1720,12 @@ def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
 
         # film
         center0=epu.Math2.plus(origin,[0.0,0.0,-thickness/2])
-        block = nm.MultiPlaneShape.createFilm([0.0,math.sin(tilt),
-                    -math.cos(tilt)],
-                    center0, thickness)
+        block = nm.MultiPlaneShape.createFilm([0.0,-math.sin(tilt),
+                    math.cos(tilt)],
+                    origin, thickness)
+                    #center0, thickness)
         monteb.addSubRegion(monteb.getChamber(), mat, block)
         # Add event listeners to model characteristic radiation
-        #monteb.rotate([0,0,z0], -tilt,0.0,0.0)
         
         xrel=[]
         brem = []
@@ -1696,6 +1738,9 @@ def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
             monteb.addActionListener(brem[-1])
             # Reset the detector
             de.reset()
+        #if tilt ==0:
+            #ei=nm.EmissionImage.watchDefaultTransitions(
+               #xrel[0], 512, 4.0*400.0e-9, origin)
         # run the electrons
         monteb.runMultipleTrajectories(nTraj)
         # Get the spectrum and assign properties
@@ -1704,44 +1749,34 @@ def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
         for j, de in enumerate(det):
             specb.append(de.getSpectrum(dose*1.0e-9 /
                 (nTraj * epq.PhysicalConstants.ElectronCharge) ))
+            
+            #propsb.append(specb[-1].getProperties())
+            #propsb[-1].setTextProperty(
+                #epq.SpectrumProperties.SpectrumDisplayName,
+                                  #"%s std." % (azim[j]))
+            #propsb[-1].setNumericProperty(
+                #epq.SpectrumProperties.LiveTime, dose)
+            #propsb[-1].setNumericProperty(
+                #epq.SpectrumProperties.FaradayBegin,1.0)
+            #propsb[-1].setNumericProperty(
+                #epq.SpectrumProperties.BeamEnergy,e0)
             #dtsa2.display(specb[-1])
-            propsb.append(specb[-1].getProperties())
-            propsb[-1].setTextProperty(
-                epq.SpectrumProperties.SpectrumDisplayName,
-                                  "%s std." % (azim[j]))
-            propsb[-1].setNumericProperty(
-                epq.SpectrumProperties.LiveTime, dose)
-            propsb[-1].setNumericProperty(
-                epq.SpectrumProperties.FaradayBegin,1.0)
-            propsb[-1].setNumericProperty(
-                epq.SpectrumProperties.BeamEnergy,e0)
             #noisyb=epq.SpectrumUtils.addNoiseToSpectrum(
                 #specb[-1],live_time)
             #dtsa2.display(noisyb)
-            if j==0:
-                a = de.calibration.getProperties()
-                channelWidth = de.calibration.getChannelWidth()
-                offset = de.calibration.getZeroOffset()
-                resolution = a.getPropertyByName('Resolution')
-                channelMax = 2048
-                channel.send(channelWidth)
-                channel.send(offset)
-                channel.send(resolution)
             for i in range(channelMax):
                 channel.send(specb[-1].getCounts(i))
+        #if tilt ==0:
+            #nm.EmissionImage.dumpToFiles(ei,
+             #"C:\Users\pb565\.hyperspy\DTSA-II\Images_%s" % (str(tilt)))
+
 
     """)
 
     datas = []
     for i, item in enumerate(channel):
-        if i == 0:
-            scale = item
-        elif i == 1:
-            offset = item
-        elif i == 2:
-            reso = item
-        else:
-            datas.append(item)
+        datas.append(item)
+
     if len(azim) > 1:
         spec.data = np.array(datas).reshape(len(azim), 2048)
         spec.get_dimensions_from_data()
@@ -1752,21 +1787,77 @@ def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
     else:
         spec.data = np.array(datas)
         spec.get_dimensions_from_data()
+    
+    spec.metadata.Acquisition_instrument.TEM.Detector = \
+        spec_dir.metadata.Acquisition_instrument.SEM.Detector
+    spec.metadata.Acquisition_instrument.TEM.Detector\
+            .EDS.azimuth_angle = mp.Acquisition_instrument.\
+            TEM.Detector.EDS.elevation_angle   
+    spec.axes_manager._axes[-1] = spec_dir.axes_manager._axes[-1]
+    spec.original_metadata.spectrum_properties = \
+        spec_dir.original_metadata.spectrum_properties
 
-    spec.metadata.Acquisition_instrument.TEM.Detector.\
-        EDS.energy_resolution_MnKa = reso
-    spec.axes_manager[-1].scale = scale / 1000
-    if detector == 'SDD':
-        spec.axes_manager[-1].offset = offset / 1000
-    else:
-        spec.axes_manager[-1].offset = offset / 1000
-    spec.axes_manager[-1].name = 'Energy'
-    spec.axes_manager[-1].units = 'keV'
-    # spec.metadata.Gener al.title = 'Simulated spectrum'
     spec.metadata.add_node('MC_simulation')
     spec.metadata.MC_simulation.nTraj = nTraj
-    #mp.signal_origin = "simulation"
 
+
+    return spec
+
+def get_detector_properties(name,gateway = 'auto'):
+    """
+    Get the details properties of a detector.
+    
+    Return an efficiency spectrum
+    
+    Parameters
+    ----------
+    
+    name: str
+        The name of the detector
+        
+    gateway: execnet Gateway
+        If 'auto', generate automatically the connection to jython.
+        
+    Return
+    ------    
+    signals.EDSSEMSpectrum containing the efficiency of the detector
+    """
+    
+    from hyperspy import signals
+    if gateway == 'auto':
+        gateway = get_link_to_jython()
+    channel = gateway.remote_exec("""
+        import dtsa2
+        det = dtsa2.findDetector('""" + name + """')
+        efficiency = det.efficiency
+        prop = det.properties
+        #print prop
+        channel.send(str(prop))
+        for ef in efficiency:
+            channel.send(ef)
+    """)
+    datas = []
+    for i, item in enumerate(channel):
+        if i ==0:
+            prop = item
+        else:
+            datas.append(item)
+    spec = signals.EDSSEMSpectrum(datas)
+    spec.set_microscope_parameters(
+        azimuth_angle=float(prop.split(
+                    'Azimuthal angle=')[1].split('\xb0')[0]), 
+        elevation_angle=float(prop.split(
+                    'Elevation=')[1].split('\xb0')[0]), 
+        energy_resolution_MnKa=float(prop.split(
+                    'Resolution=')[1].split(' eV')[0]))
+    spec.axes_manager[-1].offset = float(
+        prop.split('Energy offset=')[1].split(' eV')[0])/1000
+    spec.axes_manager[-1].scale = float(
+        prop.split('Energy scale=')[1].split(' eV')[0])/1000
+    spec.axes_manager[-1].name = 'Energy'
+    spec.axes_manager[-1].units = 'keV'
+    spec.metadata.General.title = 'Efficiency'
+    spec.original_metadata.spectrum_properties = prop[19:-2].split(',')
     return spec
 
 
@@ -2466,6 +2557,79 @@ def simulate_model(elements=None,
     else:
         model = s.simulate_model(elemental_map=elemental_map)
         return model
+        
+def get_xray_transition_properties(xray_line,beam_energy
+                                 ,gateway = 'auto'):
+    """ Return the properties of a given Xray transition: 
+    
+    Compute the ionization cross section, fluorescence_yield and the relative
+    transition probability for a beam energy, an elements 
+    and the ionized shell corresponding to the given Xray-lines. 
+    
+    Parameters
+    ----------    
+    xray_line: str
+        The X-ray line, e.g. 'Al_Ka'
+    beam_energy: float
+        The energy of the beam in kV.
+    gateway: execnet Gateway
+        If 'auto', generate automatically the connection to jython.
+        
+    Return
+    ------
+    
+    [ionization_cross_section, fluorescence_yield
+    
+    Notes
+    ----- 
+    ionization_cross_section from the BoteSalvat2008 database
+    """
+    if gateway == 'auto':
+        gateway = get_link_to_jython()
+    channel = gateway.remote_exec("""
+        import dtsa2
+        epq = dtsa2.epq
+        
+        xray_line = '""" + str(xray_line) + """'
+        beam_energy = """ + str(beam_energy) + """
+        beam_energy = epq.ToSI.keV(beam_energy)
+        lim = xray_line.find('_')
+        el = getattr(dtsa2.epq.Element,xray_line[:lim])
+        li = xray_line[lim+1:]
+
+        if 'K' in li:
+            shell = 0
+        elif li == 'Lb3' or li == 'Lb4' or li == 'Lg3':
+            shell = 1
+        elif li == 'Lb1' or li == 'Lbn' or li == 'Lg1':
+            shell= 2
+        elif li == 'La' or li == 'Lb2' or li == 'Ll':
+            shell = 3
+        elif li == 'Mz':
+            shell = 5
+        elif li == 'Mg':
+            shell = 6
+        elif li == 'Mb':
+            shell = 7
+        elif li == 'Ma':
+            shell = 8
+        atomic_shell = epq.AtomicShell(el, shell)
+        print atomic_shell
+        ICS= epq.AbsoluteIonizationCrossSection.\
+            BoteSalvat2008.computeShell(atomic_shell,
+            beam_energy)
+        FY= epq.FluorescenceYield.DefaultShell.compute(
+            atomic_shell)
+        channel.send(ICS)
+        channel.send(FY)
+    """)
+    datas = []
+    for i, item in enumerate(channel):
+        datas.append(item)
+    element, line = _get_element_and_line(xray_line)
+    fact = elements_db[element]['Atomic_properties']\
+        ['Xray_lines'][line]['factor']
+    return datas + [fact]
 
 ############################
 # def animate_legend(figure='last'):
