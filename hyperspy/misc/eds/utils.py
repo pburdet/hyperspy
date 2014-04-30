@@ -2621,8 +2621,14 @@ def get_xray_transition_properties(xray_line, beam_energy, gateway='auto'):
         ICS= epq.AbsoluteIonizationCrossSection.\
             BoteSalvat2008.computeShell(atomic_shell,
             beam_energy)
+        #ICS= epq.AbsoluteIonizationCrossSection.\
+        #    Casnati82.computeShell(atomic_shell,
+        #    beam_energy)   
+
         FY= epq.FluorescenceYield.DefaultShell.compute(
             atomic_shell)
+        #FY= epq.FluorescenceYield.Sogut2002.compute(
+        #    atomic_shell)    
         channel.send(ICS)
         channel.send(FY)
     """)
@@ -2633,6 +2639,48 @@ def get_xray_transition_properties(xray_line, beam_energy, gateway='auto'):
     fact = elements_db[element]['Atomic_properties']\
         ['Xray_lines'][line]['factor']
     return datas + [fact]
+    
+def get_kab(xray_lines, 
+        beam_energy,
+        detector_efficiency=None,
+        gateway = 'auto'):
+    """Calculate the kab cofficient of Cliff-Lorimer method
+    
+    Parameters
+    ----------    
+    xray_lines: list of strin
+        The X-ray lines, e.g. ['Al_Ka', 'Zn_Ka']
+    beam_energy: float
+        The energy of the beam in kV.
+    detector_efficiency: {signals.EDSSEMSpectrum,None}
+        A spectrum containing the detector efficiency. If None, set the 
+        efficiency to one.
+    gateway: execnet Gateway
+        If 'auto', generate automatically the connection to jython.
+    
+    """
+    if gateway == 'auto':
+        gateway = get_link_to_jython()
+
+    kab = []
+    for xray_line in xray_lines:
+        xray_prop = get_xray_transition_properties(
+            xray_line,beam_energy,gateway = gateway)
+        xray_prop = reduce(lambda x, y: x*y, xray_prop)        
+        element, line = _get_element_and_line(xray_line)
+        A = elements_db[element]\
+            ['General_properties']['atomic_weight']
+        
+        if detector_efficiency is None:
+            kab.append(xray_prop/A)
+            
+        else:
+            line_energy = detector_efficiency._get_line_energy(xray_line)
+            kab.append(xray_prop/A*
+                     detector_efficiency[line_energy].data[0])        
+    kab = kab[0]/kab[1]
+    #kab = kab[1]/kab[0]
+    return kab
 
 ############################
 # def animate_legend(figure='last'):
