@@ -993,7 +993,7 @@ class EDSSpectrum(Spectrum):
 # if X-ray are set, no way to see all lines (delete Sample.Xray)
 # Other color for lines set
 
-    def plot_Xray_lines(self,
+    def plot_xray_lines(self,
                         xray_lines=None,
                         only_lines=("a", "b"),
                         only_one=False,
@@ -1009,7 +1009,7 @@ class EDSSpectrum(Spectrum):
             if `mapped.parameters.Sample.elements.xray_lines` contains a
             list of lines use those.
             If `mapped.parameters.Sample.elements.xray_lines` is undefined
-            or empty or if Xray_lines equals 'from_elements' and
+            or empty or if xray_lines equals 'from_elements' and
             `mapped.parameters.Sample.elements` is defined,
             use the same syntax as `add_line` to select a subset of lines
             for the operation.
@@ -1066,8 +1066,8 @@ class EDSSpectrum(Spectrum):
         for xray_line in xray_lines:
             element, line = utils_eds._get_element_and_line(xray_line)
             line_energy.append(self._get_line_energy(xray_line))
-            relative_factor = elements_db[element]['Atomic_properties']['Xray_lines'][
-                line]['factor']
+            relative_factor = elements_db[element][
+                'Atomic_properties']['Xray_lines'][line]['factor']
             a_eng = self._get_line_energy(element + '_' + line[0] + 'a')
             # if fixed_height:
                 # intensity.append(self[..., a_eng].data.flatten().mean()
