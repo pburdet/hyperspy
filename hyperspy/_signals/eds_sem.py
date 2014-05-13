@@ -524,7 +524,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             animate_legend(fig)
 
     # shouldn't be needed
-    #In fact, why not
+    # In fact, why not
     def save_result(self, result, filename, xray_lines='all',
                     extension='hdf5'):
         """
@@ -551,7 +551,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         get_kratio, deconvolove_intensity, quant
 
         """
-        #print 'This is obsolete, it will desapear'
+        # print 'This is obsolete, it will desapear'
         mp = self.metadata
         if xray_lines is 'all':
             if result == 'intensities':

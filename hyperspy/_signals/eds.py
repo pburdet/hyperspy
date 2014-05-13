@@ -560,7 +560,7 @@ class EDSSpectrum(Spectrum):
                                       det].integrate1D(-1).data
             elif lines_deconvolution == 'top_hat':
                 intensities[i] = self.top_hat(line_energy
-                                    ).integrate1D(-1).data
+                                              ).integrate1D(-1).data
             else:
                 if lines_deconvolution == 'model':
                     fp = create_component.Gaussian()
@@ -1185,7 +1185,8 @@ class EDSSpectrum(Spectrum):
         m.multifit(fitter='leastsq', **kwargs)
 
         return m.as_signal()
-    #to be improved, get line energy, FHWM, output...
+    # to be improved, get line energy, FHWM, output...
+
     def top_hat(self, line_energy, width_windows=1.):
         """
         Substact the background with a top hat filter. The width of the
@@ -1240,10 +1241,10 @@ class EDSSpectrum(Spectrum):
         data_s = np.array(data_s)
 
         dim = len(self.data.shape)
-        #spec_th = EDSSEMSpectrum(np.rollaxis(data_s.dot(g),0,dim))        
+        #spec_th = EDSSEMSpectrum(np.rollaxis(data_s.dot(g),0,dim))
 
         spec_th = Spectrum(np.rollaxis(data_s, 0, dim))
-            
+
         return spec_th
 
     def get_MAC_sample(self,
@@ -1321,8 +1322,9 @@ class EDSSpectrum(Spectrum):
                         microscope = std.metadata.Acquisition_instrument.TEM
                     l_time.append(microscope.Detector.EDS.live_time)
                 std_store = copy.deepcopy(mp.Sample.standard_spec)
-                std = utils.stack(std_store)  
-                std.metadata.General.title = std_store[0].metadata.General.title 
+                std = utils.stack(std_store)
+                std.metadata.General.title = std_store[
+                    0].metadata.General.title
                 if "Acquisition_instrument.SEM" in std.metadata:
                     std.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time = l_time
                 elif "Acquisition_instrument.TEM" in std.metadata:

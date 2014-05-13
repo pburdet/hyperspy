@@ -1550,7 +1550,7 @@ def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
                               gateway='auto'):
     """"
     Simulate a spectrum using DTSA-II (NIST-Monte)
-    
+
     Parameters
     ----------
 
@@ -1873,7 +1873,7 @@ def get_detector_properties(name, gateway='auto'):
         prop.split('Energy offset=')[1].split(' eV')[0]) / 1000
     spec.axes_manager[-1].scale = float(
         prop.split('Energy scale=')[1].split(' eV')[0]) / 1000
-    spec.axes_manager[-1].offset +=  spec.axes_manager[-1].scale/2
+    spec.axes_manager[-1].offset += spec.axes_manager[-1].scale / 2
     spec.axes_manager[-1].name = 'Energy'
     spec.axes_manager[-1].units = 'keV'
     spec.metadata.General.title = 'Efficiency'
@@ -2659,9 +2659,9 @@ def get_xray_transition_properties(xray_line, beam_energy, gateway='auto'):
 
 
 def get_kfactors(xray_lines,
-            beam_energy,
-            detector_efficiency=None,
-            gateway='auto'):
+                 beam_energy,
+                 detector_efficiency=None,
+                 gateway='auto'):
     """Calculate the kfactors cofficient of Cliff-Lorimer method ab initio
 
     Parameters
@@ -2698,7 +2698,7 @@ def get_kfactors(xray_lines,
             kab.append(xray_prop / A *
                        detector_efficiency[line_energy].data[0])
     #kab = kab[0] / kab[1]
-    kab = kab[1]/kab[0]
+    kab = kab[1] / kab[0]
     return kab
 
 ############################

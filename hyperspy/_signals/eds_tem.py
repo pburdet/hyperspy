@@ -245,26 +245,25 @@ class EDSTEMSpectrum(EDSSpectrum):
         if mp_ref.has_item("Detector.EDS.live_time"):
             mp.Acquisition_instrument.TEM.Detector.EDS.live_time = \
                 mp_ref.Detector.EDS.live_time / nb_pix
-                
-                
+
     def simulate_binary_standard(self,
-                            common_xray='Si_Ka',                            
-                            nTraj=10000,
-                            dose=100,                            
-                            density='auto',
-                            thickness = 20,
-                            detector='SDD',
-                            gateway='auto'):
+                                 common_xray='Si_Ka',
+                                 nTraj=10000,
+                                 dose=100,
+                                 density='auto',
+                                 thickness=20,
+                                 detector='SDD',
+                                 gateway='auto'):
         """
         Simulate the mixed standard using DTSA-II (NIST-Monte)
-        
+
         For each element of the spectrum (self.metadata.Sample.elements),
         simulate a spectrum with 50wt% of the element and 50wt% of the common
         element. Store the list of spectra in metadata.
-        
+
         Parameters
         ----------
-        
+
         common_xray: str
             The Xray line use as the common element for each standard.
 
@@ -278,7 +277,7 @@ class EDSTEMSpectrum(EDSSpectrum):
             Set the density. If 'auto', obtain from the compo_at.
 
         thickness: float
-            Set the thickness. 
+            Set the thickness.
 
         detector: str
             Give the detector name defined in DTSA-II
@@ -286,168 +285,167 @@ class EDSTEMSpectrum(EDSSpectrum):
         gateway: execnet Gateway
             If 'auto', generate automatically the connection to jython.
         """
-        std_met=self.deepcopy()
+        std_met = self.deepcopy()
         std_met.metadata.Sample.thickness = thickness
         common_element, line = utils_eds._get_element_and_line(common_xray)
-        std=[]
-        for el, xray in zip(self.metadata.Sample.elements, 
+        std = []
+        for el, xray in zip(self.metadata.Sample.elements,
                             self.metadata.Sample.xray_lines):
-            el_binary = [el]+[common_element]
-            xray_binary =[xray]+[common_xray]
-            atomic_percent  = np.array(utils.material.weight_to_atomic(
-                el_binary,[0.5,0.5]) )
+            el_binary = [el] + [common_element]
+            xray_binary = [xray] + [common_xray]
+            atomic_percent = np.array(utils.material.weight_to_atomic(
+                el_binary, [0.5, 0.5]))
             std_met.set_elements(el_binary)
             std_met.set_lines(xray_binary)
-            std.append(utils_eds.simulate_one_spectrum_TEM(nTraj, 
-                                dose=dose, mp=std_met.metadata,
-                                detector=detector, compo_at=atomic_percent,
-                                  gateway=gateway))
+            std.append(utils_eds.simulate_one_spectrum_TEM(nTraj,
+                                                           dose=dose, mp=std_met.metadata,
+                                                           detector=detector, compo_at=atomic_percent,
+                                                           gateway=gateway))
             std[-1].metadata.General.title = el + '_'\
-                    + common_element + '_binary'
-            std[-1].metadata.Sample.weight_percent =  [0.5,0.5]
+                + common_element + '_binary'
+            std[-1].metadata.Sample.weight_percent = [0.5, 0.5]
         self.metadata.Sample.standard_spec = std
-        
+
     def get_kfactors_from_standard(self,
-                                  common_line='Ka',
-                                  **kwargs):
+                                   common_line='Ka',
+                                   **kwargs):
         """
         Exctract the kfactor from binary standard
-        
+
         Store the kfactor in metadata.sample.kfactors
-        
+
         Parameters
         ----------
-        
+
         common_line: str
             The line for the common element to use.
-        
+
         kwargs
         The extra keyword arguments for get_lines_intensity
-        
+
         See also
         -------
-        
+
         simulate_binary_standard, get_lines_intensity
-        
+
         """
         std_title = self.metadata.Sample.standard_spec[0
-                        ].metadata.General.title
+                                                       ].metadata.General.title
         if 'binary' not in std_title:
             raise ValueError(
-            "Binary standard are needed.")
-        else : 
-            common_element = std_title[std_title.find('_')+1:]
+                "Binary standard are needed.")
+        else:
+            common_element = std_title[std_title.find('_') + 1:]
             common_element = common_element[:common_element.find('_')]
-            common_xray = str(common_element +  '_' + common_line)
+            common_xray = str(common_element + '_' + common_line)
 
         kfactors = []
-        kfactors_name  = []
+        kfactors_name = []
         for i, (std, el, xray) in enumerate(zip(self.metadata.Sample.standard_spec,
-                                 self.metadata.Sample.elements, 
-                                self.metadata.Sample.xray_lines)):
-            intens =  std.get_lines_intensity([xray]+[common_xray],**kwargs)
+                                                self.metadata.Sample.elements,
+                                                self.metadata.Sample.xray_lines)):
+            intens = std.get_lines_intensity([xray] + [common_xray], **kwargs)
             kfactor = intens[1].data / intens[0].data
             if i == 0:
-                kfactor0 = kfactor 
+                kfactor0 = kfactor
                 kfactor0_name = xray
-            else : 
-                kfactors.append(kfactor0/kfactor)
-                kfactors_name.append(kfactor0_name+'/'+xray)
-        self.metadata.Sample.kfactors = kfactors   
-        self.metadata.Sample.kfactors_name = kfactors_name 
-        
+            else:
+                kfactors.append(kfactor0 / kfactor)
+                kfactors_name.append(kfactor0_name + '/' + xray)
+        self.metadata.Sample.kfactors = kfactors
+        self.metadata.Sample.kfactors_name = kfactors_name
+
     def quant_cliff_lorimer(self,
-            kfactors='auto',
-            plot_result=True,
-            **kwargs):
+                            kfactors='auto',
+                            plot_result=True,
+                            **kwargs):
         """
-        
+
         Parameters
         ----------
-        
+
         kfactors: {list of float | 'auto'}
-            the list of kfactor, compared to the first 
-            elements. eg. kfactors = [1.2, 2.5] 
+            the list of kfactor, compared to the first
+            elements. eg. kfactors = [1.2, 2.5]
             for kfactors_name = ['Al_Ka/Cu_Ka', 'Al_Ka/Nb_Ka']
             if 'auto', take the kfactors stored in metadata
-            
+
         plot_result: bool
-          If true (default option), plot the result.   
-          
+          If true (default option), plot the result.
+
         kwargs
             The extra keyword arguments for get_lines_intensity
-        
+
         See also
         --------
-        
-        get_kfactors_from_standard, simulate_binary_standard, 
+
+        get_kfactors_from_standard, simulate_binary_standard,
             get_lines_intensity
-            
+
         """
-        
+
         xrays = self.metadata.Sample.xray_lines
         beam_energy = self.metadata.Acquisition_instrument.TEM.beam_energy
         intensities = self.get_lines_intensity(**kwargs)
 
         if kfactors == 'auto':
             kfactors = self.metadata.Sample.kfactors
-        #kab = kfactors 
-        ab=[]
-        for i, kab in enumerate(kfactors):        
+        #kab = kfactors
+        ab = []
+        for i, kab in enumerate(kfactors):
             # ab = Ia/Ib * kab
-            ab.append(intensities[0].data / intensities[i+1].data * kab)
+            ab.append(intensities[0].data / intensities[i + 1].data * kab)
 
         # Ca = ab /(1 + ab + ab/ac + ab/ad + ...)
         composition = np.ones(ab[0].shape)
         for i, ab1 in enumerate(ab):
             if i == 0:
                 composition += ab[0]
-            else :
-                composition += (ab[0]/ab1)
+            else:
+                composition += (ab[0] / ab1)
         composition = ab[0] / composition
         # Cb = Ca / ab
         for i, xray in enumerate(xrays):
             if i == 0:
                 self._set_result(xray_line=xray, result='quant',
-                        data_res=composition, 
-                        plot_result=plot_result, store_in_mp=True)
+                                 data_res=composition,
+                                 plot_result=plot_result, store_in_mp=True)
             else:
                 self._set_result(xray_line=xray, result='quant',
-                        data_res=composition / ab[i-1], 
-                        plot_result=plot_result, store_in_mp=True)
-                        
+                                 data_res=composition / ab[i - 1],
+                                 plot_result=plot_result, store_in_mp=True)
+
     def get_kfactors_from_first_principles(self,
-            detector_efficiency=None,
-            gateway = 'auto'):
+                                           detector_efficiency=None,
+                                           gateway='auto'):
         """
         Get the kfactors from first principles
-        
+
         Parameters
-        ----------    
+        ----------
         detector_efficiency: signals.Spectrum
-        
+
         gateway: execnet Gateway
             If 'auto', generate automatically the connection to jython.
-        
+
         See also
-        --------    
+        --------
         utils_eds.get_detector_properties, simulate_binary_standard,
         get_link_to_jython
-        
+
         """
         xrays = self.metadata.Sample.xray_lines
         beam_energy = self.metadata.Acquisition_instrument.TEM.beam_energy
         kfactors = []
-        kfactors_name  = []
+        kfactors_name = []
         if gateway == 'auto':
             gateway = get_link_to_jython()
         for i, xray in enumerate(xrays):
             if i != 0:
-                kfactors.append(utils_eds.get_kfactors([xrays[0],xray],
-                            beam_energy=beam_energy,
-                            detector_efficiency=detector_efficiency,
-                            gateway = gateway))
-                kfactors_name.append(xrays[0]+'/'+xray)
-        self.metadata.Sample.kfactors = kfactors   
-        self.metadata.Sample.kfactors_name = kfactors_name 
-
+                kfactors.append(utils_eds.get_kfactors([xrays[0], xray],
+                                                       beam_energy=beam_energy,
+                                                       detector_efficiency=detector_efficiency,
+                                                       gateway=gateway))
+                kfactors_name.append(xrays[0] + '/' + xray)
+        self.metadata.Sample.kfactors = kfactors
+        self.metadata.Sample.kfactors_name = kfactors_name
