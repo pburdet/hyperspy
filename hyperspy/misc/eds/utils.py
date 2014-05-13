@@ -818,8 +818,15 @@ def _set_result_signal_list(mp, result):
     if result == 'standard_spec':
         # Need to change
         # number_of_parts=len(mp.Sample.elements)
-        l_time = std.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time
+        if "Acquisition_instrument.SEM" in std.metadata:
+            l_time = std.metadata.Acquisition_instrument\
+                .SEM.Detector.EDS.live_time
+        elif "Acquisition_instrument.TEM" in std.metadata:
+            l_time = std.metadata.Acquisition_instrument\
+                .TEM.Detector.EDS.live_time
         # number_of_parts=len(mp.Sample.xray_lines)
+        title_back = std.metadata.General.title
+        title_back = title_back[title_back.find('_'):]
         temp = std.split(axis=0, number_of_parts=number_of_parts)
     elif len(std.data.shape) == 1:
         temp = std.split(axis=0, number_of_parts=number_of_parts)
@@ -839,9 +846,13 @@ def _set_result_signal_list(mp, result):
                     el, li = _get_element_and_line(mp.Sample.elements[i])
             else:
                 el = mp.Sample.elements[i]
-            tp.metadata.General.title = el + '_std'
-            tp.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time = l_time[
-                i]
+            tp.metadata.General.title = el + title_back
+            if "Acquisition_instrument.SEM" in tp.metadata:
+                tp.metadata.Acquisition_instrument.\
+                    SEM.Detector.EDS.live_time = l_time[i]
+            elif "Acquisition_instrument.TEM" in tp.metadata:
+                tp.metadata.Acquisition_instrument.\
+                    TEM.Detector.EDS.live_time = l_time[i]
         elif number_of_parts == len(mp.Sample.xray_lines):
             tp.metadata.General.title = result + ' ' + mp.Sample.xray_lines[i]
         elif number_of_parts == len(mp.Sample.elements):
@@ -1539,6 +1550,7 @@ def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
                               gateway='auto'):
     """"
     Simulate a spectrum using DTSA-II (NIST-Monte)
+    
     Parameters
     ----------
 
@@ -1605,7 +1617,7 @@ def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
         else:
             spec = signals.EDSTEMSpectrum(np.zeros(2048))
         spec.metadata = mp.deepcopy()
-        mp = spec.metadata
+        #mp = spec.metadata
     # Sample
     if elements == 'auto':
         if hasattr(mp.Sample, 'elements'):
@@ -1764,7 +1776,7 @@ def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
                 #epq.SpectrumProperties.FaradayBegin,1.0)
             #propsb[-1].setNumericProperty(
                 #epq.SpectrumProperties.BeamEnergy,e0)
-            #dtsa2.display(specb[-1])
+            dtsa2.display(specb[-1])
             #noisyb=epq.SpectrumUtils.addNoiseToSpectrum(
                 #specb[-1],live_time)
             #dtsa2.display(noisyb)
@@ -1797,6 +1809,9 @@ def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
     spec.metadata.Acquisition_instrument.TEM.Detector\
         .EDS.azimuth_angle = mp.Acquisition_instrument.\
         TEM.Detector.EDS.elevation_angle
+    spec.metadata.Acquisition_instrument.TEM.Detector\
+        .EDS.live_time = mp.Acquisition_instrument.\
+        TEM.Detector.EDS.live_time
     spec.axes_manager._axes[-1] = spec_dir.axes_manager._axes[-1]
     spec.original_metadata.spectrum_properties = \
         spec_dir.original_metadata.spectrum_properties
@@ -1858,6 +1873,7 @@ def get_detector_properties(name, gateway='auto'):
         prop.split('Energy offset=')[1].split(' eV')[0]) / 1000
     spec.axes_manager[-1].scale = float(
         prop.split('Energy scale=')[1].split(' eV')[0]) / 1000
+    spec.axes_manager[-1].offset +=  spec.axes_manager[-1].scale/2
     spec.axes_manager[-1].name = 'Energy'
     spec.axes_manager[-1].units = 'keV'
     spec.metadata.General.title = 'Efficiency'
@@ -2642,11 +2658,11 @@ def get_xray_transition_properties(xray_line, beam_energy, gateway='auto'):
     return datas + [fact]
 
 
-def get_kab(xray_lines,
+def get_kfactors(xray_lines,
             beam_energy,
             detector_efficiency=None,
             gateway='auto'):
-    """Calculate the kab cofficient of Cliff-Lorimer method
+    """Calculate the kfactors cofficient of Cliff-Lorimer method ab initio
 
     Parameters
     ----------
@@ -2661,6 +2677,7 @@ def get_kab(xray_lines,
         If 'auto', generate automatically the connection to jython.
 
     """
+    print "Not confident in result"
     if gateway == 'auto':
         gateway = get_link_to_jython()
 
@@ -2680,8 +2697,8 @@ def get_kab(xray_lines,
             line_energy = detector_efficiency._get_line_energy(xray_line)
             kab.append(xray_prop / A *
                        detector_efficiency[line_energy].data[0])
-    kab = kab[0] / kab[1]
-    #kab = kab[1]/kab[0]
+    #kab = kab[0] / kab[1]
+    kab = kab[1]/kab[0]
     return kab
 
 ############################

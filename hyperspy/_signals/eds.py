@@ -475,7 +475,7 @@ class EDSSpectrum(Spectrum):
             above an overvoltage of 2 (< beam energy / 2).
         only_lines : {None, list of strings}
             If not None, use only the given lines.
-        lines_deconvolution : None or 'model' or 'standard'
+        lines_deconvolution : None or 'model' or 'standard' or 'top_hat'
             Deconvolution of the line with a gaussian model. Take time
         bck : float
             background to substract. Only for deconvolution
@@ -558,6 +558,9 @@ class EDSSpectrum(Spectrum):
             if lines_deconvolution is None:
                 intensities[i] = self[..., line_energy - det:line_energy +
                                       det].integrate1D(-1).data
+            elif lines_deconvolution == 'top_hat':
+                intensities[i] = self.top_hat(line_energy
+                                    ).integrate1D(-1).data
             else:
                 if lines_deconvolution == 'model':
                     fp = create_component.Gaussian()
@@ -610,7 +613,7 @@ class EDSSpectrum(Spectrum):
                             fp_sub.A.twin_inverse_function = lambda x: x / \
                                 ratio_line
                             m.append(fp_sub)
-        if lines_deconvolution is not None:
+        if lines_deconvolution == 'model' or lines_deconvolution == 'standard':
             m.multifit(fitter='leastsq', grad=grad)
             if plot_fit:
                 m.plot()
@@ -626,7 +629,7 @@ class EDSSpectrum(Spectrum):
                 data_res = m[xray_line].yscale.map['values']
                 if self.axes_manager.navigation_dimension == 0:
                     data_res = data_res[0]
-            elif lines_deconvolution is None:
+            else:
                 data_res = intensities[i]
 
             img = self._set_result(xray_line, 'intensities',
@@ -1182,6 +1185,66 @@ class EDSSpectrum(Spectrum):
         m.multifit(fitter='leastsq', **kwargs)
 
         return m.as_signal()
+    #to be improved, get line energy, FHWM, output...
+    def top_hat(self, line_energy, width_windows=1.):
+        """
+        Substact the background with a top hat filter. The width of the
+        lobs are defined with the width of the peak at the line_energy.
+
+        Parameters
+        ----------------
+        line_energy: float
+            The energy in keV used to set the lob width calculate with
+            FHWM_eds.
+
+        width_windows: float or list(min,max)
+            The width of the windows on which is applied the top_hat.
+            By default set to 1, which is equivalent to the size of the
+            filtering object.
+
+        Notes
+        -----
+        See the textbook of Goldstein et al., Plenum publisher,
+        third edition p 399
+
+        """
+        offset = np.copy(self.axes_manager.signal_axes[0].offset)
+        scale_s = np.copy(self.axes_manager.signal_axes[0].scale)
+        #FWHM_MnKa = self.metadata.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa
+        if self.metadata.Signal.signal_type == 'EDS_SEM':
+            FWHM_MnKa = self.metadata.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa
+        elif self.metadata.Signal.signal_type == 'EDS_TEM':
+            FWHM_MnKa = self.metadata.Acquisition_instrument.TEM.Detector.EDS.energy_resolution_MnKa
+        line_FWHM = utils_eds.get_FWHM_at_Energy(FWHM_MnKa, line_energy)
+        if np.ndim(width_windows) == 0:
+            det = [width_windows * line_FWHM, width_windows * line_FWHM]
+        else:
+            det = width_windows
+
+        olob = int(round(line_FWHM / scale_s / 2) * 2)
+        g = []
+        for lob in range(-olob, olob):
+            if abs(lob) > olob / 2:
+                g.append(-1. / olob)
+            else:
+                g.append(1. / (olob + 1))
+        g = np.array(g)
+
+        bornA = [int(round((line_energy - det[0] - offset) / scale_s)),
+                 int(round((line_energy + det[1] - offset) / scale_s))]
+
+        data_s = []
+        for i in range(bornA[0], bornA[1]):
+            data_s.append(self.data[..., i - olob:i + olob].dot(g))
+            # data_s.append(self.data[...,i-olob:i+olob])
+        data_s = np.array(data_s)
+
+        dim = len(self.data.shape)
+        #spec_th = EDSSEMSpectrum(np.rollaxis(data_s.dot(g),0,dim))        
+
+        spec_th = Spectrum(np.rollaxis(data_s, 0, dim))
+            
+        return spec_th
 
     def get_MAC_sample(self,
                        xray_lines='auto',
@@ -1209,7 +1272,79 @@ class EDSSpectrum(Spectrum):
         return utils_eds.get_MAC_sample(xray_lines=xray_lines,
                                         weight_percent=weight_percent, elements=elements)
 
+    def save(self, filename=None, overwrite=None, extension=None,
+             **kwds):
+        """Saves the signal in the specified format.
 
+        The function gets the format from the extension.:
+            - hdf5 for HDF5
+            - rpl for Ripple (useful to export to Digital Micrograph)
+            - msa for EMSA/MSA single spectrum saving.
+            - Many image formats such as png, tiff, jpeg...
+
+        If no extension is provided the default file format as defined
+        in the `preferences` is used.
+        Please note that not all the formats supports saving datasets of
+        arbitrary dimensions, e.g. msa only suports 1D data.
+
+        Each format accepts a different set of parameters. For details
+        see the specific format documentation.
+
+        Parameters
+        ----------
+        filename : str or None
+            If None (default) and tmp_parameters.filename and
+            `tmp_paramters.folder` are defined, the
+            filename and path will be taken from there. A valid
+            extension can be provided e.g. "my_file.rpl", see `extension`.
+        overwrite : None, bool
+            If None, if the file exists it will query the user. If
+            True(False) it (does not) overwrites the file if it exists.
+        extension : {None, 'hdf5', 'rpl', 'msa',common image extensions e.g. 'tiff', 'png'}
+            The extension of the file that defines the file format.
+            If None, the extesion is taken from the first not None in the follwoing list:
+            i) the filename
+            ii)  `tmp_parameters.extension`
+            iii) `preferences.General.default_file_format` in this order.
+        """
+        mp = self.metadata
+
+        if hasattr(mp, 'Sample'):
+            if hasattr(mp.Sample, 'standard_spec'):
+                l_time = []
+                for el in range(len(mp.Sample.elements)):
+                # for el in range(len(mp.Sample.xray_lines)):
+                    std = mp.Sample.standard_spec[el]
+                    if "Acquisition_instrument.SEM" in std.metadata:
+                        microscope = std.metadata.Acquisition_instrument.SEM
+                    elif "Acquisition_instrument.TEM" in std.metadata:
+                        microscope = std.metadata.Acquisition_instrument.TEM
+                    l_time.append(microscope.Detector.EDS.live_time)
+                std_store = copy.deepcopy(mp.Sample.standard_spec)
+                std = utils.stack(std_store)  
+                std.metadata.General.title = std_store[0].metadata.General.title 
+                if "Acquisition_instrument.SEM" in std.metadata:
+                    std.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time = l_time
+                elif "Acquisition_instrument.TEM" in std.metadata:
+                    std.metadata.Acquisition_instrument.TEM.Detector.EDS.live_time = l_time
+                mp.Sample.standard_spec = std
+            result_store = []
+            for result in ['kratios', 'quant', 'quant_enh', 'intensities']:
+                if hasattr(mp.Sample, result):
+                    result_store.append(copy.deepcopy(mp.Sample[result]))
+                    mp.Sample[result] = utils.stack(mp.Sample[result])
+                    del mp.Sample[result].original_parameters.stack_elements
+
+        super(EDSSpectrum, self).save(filename, overwrite, extension)
+
+        if hasattr(mp, 'Sample'):
+            if hasattr(mp.Sample, 'standard_spec'):
+                mp.Sample.standard_spec = std_store
+            i = 0
+            for result in ['kratios', 'quant', 'quant_enh', 'intensities']:
+                if hasattr(mp.Sample, result):
+                    mp.Sample[result] = result_store[i]
+                    i = i + 1
 
 
     # def running_sum(self, shape_convo='square', corner=-1):

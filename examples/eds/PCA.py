@@ -13,7 +13,7 @@ s.plot_decomposition_results()
 f = s.get_decomposition_factors()
 f.get_calibration_from(s)
 f.add_elements(elements)
-f.plot_Xray_lines(navigator='slider')
+f.plot_xray_lines(navigator='slider')
 
 sr = s.get_decomposition_model(5)
 

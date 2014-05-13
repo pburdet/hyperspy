@@ -309,61 +309,6 @@ class EDSSEMSpectrum(EDSSpectrum):
             if test_file_exist == False:
                 print("\nStandard file for %s not found\n" % element)
 
-    def top_hat(self, line_energy, width_windows=1.):
-        """
-        Substact the background with a top hat filter. The width of the
-        lobs are defined with the width of the peak at the line_energy.
-
-        Parameters
-        ----------------
-        line_energy: float
-            The energy in keV used to set the lob width calculate with
-            FHWM_eds.
-
-        width_windows: float or list(min,max)
-            The width of the windows on which is applied the top_hat.
-            By default set to 1, which is equivalent to the size of the
-            filtering object.
-
-        Notes
-        -----
-        See the textbook of Goldstein et al., Plenum publisher,
-        third edition p 399
-
-        """
-        offset = np.copy(self.axes_manager.signal_axes[0].offset)
-        scale_s = np.copy(self.axes_manager.signal_axes[0].scale)
-        FWHM_MnKa = self.metadata.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa
-        line_FWHM = utils_eds.get_FWHM_at_Energy(FWHM_MnKa, line_energy)
-        if np.ndim(width_windows) == 0:
-            det = [width_windows * line_FWHM, width_windows * line_FWHM]
-        else:
-            det = width_windows
-
-        olob = int(round(line_FWHM / scale_s / 2) * 2)
-        g = []
-        for lob in range(-olob, olob):
-            if abs(lob) > olob / 2:
-                g.append(-1. / olob)
-            else:
-                g.append(1. / (olob + 1))
-        g = np.array(g)
-
-        bornA = [int(round((line_energy - det[0] - offset) / scale_s)),
-                 int(round((line_energy + det[1] - offset) / scale_s))]
-
-        data_s = []
-        for i in range(bornA[0], bornA[1]):
-            data_s.append(self.data[..., i - olob:i + olob].dot(g))
-            # data_s.append(self.data[...,i-olob:i+olob])
-        data_s = np.array(data_s)
-
-        dim = len(self.data.shape)
-        #spec_th = EDSSEMSpectrum(np.rollaxis(data_s.dot(g),0,dim))
-        spec_th = EDSSEMSpectrum(np.rollaxis(data_s, 0, dim))
-
-        return spec_th
-
     def _get_kratio(self, xray_lines, plot_result):
         """
         Calculate the k-ratio without deconvolution
@@ -579,6 +524,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             animate_legend(fig)
 
     # shouldn't be needed
+    #In fact, why not
     def save_result(self, result, filename, xray_lines='all',
                     extension='hdf5'):
         """
@@ -605,11 +551,11 @@ class EDSSEMSpectrum(EDSSpectrum):
         get_kratio, deconvolove_intensity, quant
 
         """
-        print 'This is obsolete, it will desapear'
+        #print 'This is obsolete, it will desapear'
         mp = self.metadata
         if xray_lines is 'all':
             if result == 'intensities':
-                xray_lines = mp.Sample.elements
+                xray_lines = mp.Sample.xray_lines
             else:
                 xray_lines = mp.Sample.xray_lines
         for xray_line in xray_lines:
@@ -1355,72 +1301,6 @@ class EDSSEMSpectrum(EDSSpectrum):
         if elements != 'all':
             return f
 
-    def save(self, filename=None, overwrite=None, extension=None,
-             **kwds):
-        """Saves the signal in the specified format.
-
-        The function gets the format from the extension.:
-            - hdf5 for HDF5
-            - rpl for Ripple (useful to export to Digital Micrograph)
-            - msa for EMSA/MSA single spectrum saving.
-            - Many image formats such as png, tiff, jpeg...
-
-        If no extension is provided the default file format as defined
-        in the `preferences` is used.
-        Please note that not all the formats supports saving datasets of
-        arbitrary dimensions, e.g. msa only suports 1D data.
-
-        Each format accepts a different set of parameters. For details
-        see the specific format documentation.
-
-        Parameters
-        ----------
-        filename : str or None
-            If None (default) and tmp_parameters.filename and
-            `tmp_paramters.folder` are defined, the
-            filename and path will be taken from there. A valid
-            extension can be provided e.g. "my_file.rpl", see `extension`.
-        overwrite : None, bool
-            If None, if the file exists it will query the user. If
-            True(False) it (does not) overwrites the file if it exists.
-        extension : {None, 'hdf5', 'rpl', 'msa',common image extensions e.g. 'tiff', 'png'}
-            The extension of the file that defines the file format.
-            If None, the extesion is taken from the first not None in the follwoing list:
-            i) the filename
-            ii)  `tmp_parameters.extension`
-            iii) `preferences.General.default_file_format` in this order.
-        """
-
-        mp = self.metadata
-        if hasattr(mp, 'Sample'):
-            if hasattr(mp.Sample, 'standard_spec'):
-                l_time = []
-                for el in range(len(mp.Sample.elements)):
-                # for el in range(len(mp.Sample.xray_lines)):
-                    l_time.append(
-                        mp.Sample.standard_spec[el].metadata.Acquisition_instrument.SEM.Detector.EDS.live_time)
-                std = copy.deepcopy(mp.Sample.standard_spec)
-                mp.Sample.standard_spec = utils.stack(mp.Sample.standard_spec)
-                del mp.Sample.standard_spec.original_parameters.stack_elements
-                mp.Sample.standard_spec.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time = l_time
-            result_store = []
-            for result in ['kratios', 'quant', 'quant_enh', 'intensities']:
-                if hasattr(mp.Sample, result):
-                    result_store.append(copy.deepcopy(mp.Sample[result]))
-                    mp.Sample[result] = utils.stack(mp.Sample[result])
-                    del mp.Sample[result].original_parameters.stack_elements
-
-        super(EDSSEMSpectrum, self).save(filename, overwrite, extension)
-
-        if hasattr(mp, 'Sample'):
-            if hasattr(mp.Sample, 'standard_spec'):
-                mp.Sample.standard_spec = std
-            i = 0
-            for result in ['kratios', 'quant', 'quant_enh', 'intensities']:
-                if hasattr(mp.Sample, result):
-                    mp.Sample[result] = result_store[i]
-                    i = i + 1
-
     def align_results(self,
                       results='all',
                       reference=['kratios', 0],
@@ -1872,7 +1752,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         >>> from hyperspy.misc.config_dir import config_path
         >>> s.add_elements(['Hf','Ta'])
         >>> s.link_standard(config_path+'/database/std_RR')
-        >>> s2 = s.add_standards_to_signal('all')
+        >>> s2 = s.add_standards_to_signal(['Hf'])
 
         To show that works
 
