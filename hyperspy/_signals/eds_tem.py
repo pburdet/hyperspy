@@ -289,6 +289,8 @@ class EDSTEMSpectrum(EDSSpectrum):
         std_met.metadata.Sample.thickness = thickness
         common_element, line = utils_eds._get_element_and_line(common_xray)
         std = []
+        if gateway == 'auto':
+            gateway = utils_eds.get_link_to_jython()
         for el, xray in zip(self.metadata.Sample.elements,
                             self.metadata.Sample.xray_lines):
             el_binary = [el] + [common_element]
@@ -390,12 +392,10 @@ class EDSTEMSpectrum(EDSSpectrum):
 
         if kfactors == 'auto':
             kfactors = self.metadata.Sample.kfactors
-        #kab = kfactors
         ab = []
         for i, kab in enumerate(kfactors):
             # ab = Ia/Ib * kab
             ab.append(intensities[0].data / intensities[i + 1].data * kab)
-
         # Ca = ab /(1 + ab + ab/ac + ab/ad + ...)
         composition = np.ones(ab[0].shape)
         for i, ab1 in enumerate(ab):
@@ -439,7 +439,7 @@ class EDSTEMSpectrum(EDSSpectrum):
         kfactors = []
         kfactors_name = []
         if gateway == 'auto':
-            gateway = get_link_to_jython()
+            gateway = utils_eds.get_link_to_jython()
         for i, xray in enumerate(xrays):
             if i != 0:
                 kfactors.append(utils_eds.get_kfactors([xrays[0], xray],

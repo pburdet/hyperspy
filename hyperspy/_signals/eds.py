@@ -437,6 +437,7 @@ class EDSSpectrum(Spectrum):
                             bounded=False,
                             grad=False,
                             init=True,
+                            return_model=False,
                             **kwargs):
         """Return the intensity map of selected Xray lines.
 
@@ -487,6 +488,8 @@ class EDSSpectrum(Spectrum):
             fit option, fast with PCA
         init: bool
             initialize value
+        return_model: bool
+            return the model instead of the intensities
         kwargs
             The extra keyword arguments for plotting. See
             `utils.plot.plot_signals`
@@ -650,8 +653,11 @@ class EDSSpectrum(Spectrum):
             intensities[i] = img
         if plot_result and img.axes_manager.signal_dimension != 0:
             utils.plot.plot_signals(intensities, **kwargs)
-
-        return intensities
+        
+        if return_model :
+            return m
+        else:
+            return intensities
 
     def convolve_sum(self, kernel='square', size=3, **kwargs):
         """
@@ -1251,7 +1257,8 @@ class EDSSpectrum(Spectrum):
                        xray_lines='auto',
                        weight_percent='auto',
                        elements='auto'):
-        """Return the mass absorption coefficients of a sample
+        """Return the mass absorption coefficients of for the different
+        xray in a sample
 
         Parameters
         ----------
@@ -1266,10 +1273,17 @@ class EDSSpectrum(Spectrum):
 
         if xray_lines == 'auto'and 'Sample.xray_lines' in self.metadata:
             xray_lines = self.metadata.Sample.xray_lines
-        if weight_percent == 'auto' and 'Sample.weight_percent' in self.metadata:
-            weight_percent = self.metadata.Sample.weight_percent
+
         if elements == 'auto'and 'Sample.elements' in self.metadata:
             elements = self.metadata.Sample.elements
+        if weight_percent == 'auto':
+            if 'Sample.weight_percent' in self.metadata:
+                weight_percent = self.metadata.Sample.weight_percent
+            else : 
+                weight_percent = []
+                for elm in elements:
+                    weight_percent.append(1. / len(elements))
+                print 'Weight percent is ' + str(weight_percent)
         return utils_eds.get_MAC_sample(xray_lines=xray_lines,
                                         weight_percent=weight_percent, elements=elements)
 
