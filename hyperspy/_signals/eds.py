@@ -653,8 +653,8 @@ class EDSSpectrum(Spectrum):
             intensities[i] = img
         if plot_result and img.axes_manager.signal_dimension != 0:
             utils.plot.plot_signals(intensities, **kwargs)
-        
-        if return_model :
+
+        if return_model:
             return m
         else:
             return intensities
@@ -1279,7 +1279,7 @@ class EDSSpectrum(Spectrum):
         if weight_percent == 'auto':
             if 'Sample.weight_percent' in self.metadata:
                 weight_percent = self.metadata.Sample.weight_percent
-            else : 
+            else:
                 weight_percent = []
                 for elm in elements:
                     weight_percent.append(1. / len(elements))
