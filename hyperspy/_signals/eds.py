@@ -33,6 +33,16 @@ from hyperspy.drawing import marker
 from hyperspy.drawing.utils import plot_histograms
 
 
+def _get_ratio(element,line):
+    ratio_line = elements_db[
+        element]['Atomic_properties']['Xray_lines'][line]['factor']
+    return lambda x: x * ratio_line
+    
+def _get_iratio(element,line):
+    ratio_line = elements_db[
+        element]['Atomic_properties']['Xray_lines'][line]['factor']
+    return lambda x: x / ratio_line
+
 class EDSSpectrum(Spectrum):
     _signal_type = "EDS"
 
@@ -610,11 +620,9 @@ class EDSSpectrum(Spectrum):
                             fp_sub.A.twin = fp.A
                             fp_sub.centre.free = False
                             fp_sub.sigma.free = False
-                            ratio_line = elements_db[
-                                element]['Atomic_properties']['Xray_lines'][li]['factor']
-                            fp_sub.A.twin_function = lambda x: x * ratio_line
-                            fp_sub.A.twin_inverse_function = lambda x: x / \
-                                ratio_line
+                            fp_sub.A.twin_function = _get_ratio(element,li)
+                            fp_sub.A.twin_inverse_function = _get_iratio(
+                                element,li)
                             m.append(fp_sub)
         if lines_deconvolution == 'model' or lines_deconvolution == 'standard':
             m.multifit(fitter='leastsq', grad=grad)

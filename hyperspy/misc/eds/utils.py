@@ -341,7 +341,6 @@ def simulate_one_spectrum(nTraj, dose=100, mp='gui',
     """
     from hyperspy import signals
     from hyperspy import utils
-    #spec = signals.EDSSEMSpectrum(np.zeros(1024))
 
     if mp == 'gui':
         if elements == 'auto':
@@ -354,8 +353,6 @@ def simulate_one_spectrum(nTraj, dose=100, mp='gui',
             spec.add_lines()
         mp = spec.metadata
     else:
-        #spec.metadata = mp.deepcopy()
-        #mp = spec.metadata
         mp = mp.deepcopy()
 
     if elements == 'auto':
@@ -482,13 +479,13 @@ def _create_spectrum_from_DTSA_detector(datas,
 
     Parameters
     ----------
-
     datas: np.array
         The simulated data
     nTraj: int
         number of electron trajectories
     mp: dict
-        Microscope parameters. If 'gui' raise a general interface.
+        The spectrum metadata containing the simulation properties.
+        eg s.metadata
     spec_detector: signals.EDSSEMSpectrum
         Give the detector name defined in DTSA-II
     gateway: execnet Gateway
