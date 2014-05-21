@@ -73,11 +73,11 @@ class Image(Signal):
         Example
         --------
 
-        >>> img = utils_eds.database_3Dimage()
+        >>> img = database.image3D()
         >>> # Plot two iso-surfaces from one stack of images
         >>> fig,src,iso = img.plot_3D_iso_surface([0.2,0.8])
         >>> # Plot an iso-surface from another stack of images
-        >>> s = utils_eds.database_3Dresult()
+        >>> s = database.result3D()
         >>> img2 = s.get_result('Ni','quant')
         >>> fig,src2,iso2 = img2.plot_3D_iso_surface(0.2, figure=fig,
         >>>     outline=False)

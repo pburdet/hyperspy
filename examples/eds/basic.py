@@ -15,9 +15,9 @@ else:
     others = 'database'
     #others = 'model'
     if others == 'database':
-        s = utils_eds.database_3Dspec('noisy').as_spectrum(0)
+        s = database.spec3D('noisy').as_spectrum(0)
         s.set_signal_type('EDS_SEM')
-        s_1_pixel = utils_eds.database_1Dspec('noisy')
+        s_1_pixel = database.spec1D('noisy')
         s_1_pixel.set_signal_type('EDS_SEM')
     elif others == 'model':
         s = utils_eds.simulate_model(['Al', 'Zn'], shape_spectrum=[2, 3, 1024])

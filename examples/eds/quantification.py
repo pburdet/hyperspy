@@ -10,15 +10,15 @@ xray = ['Ti_Ka', 'Fe_Ka', 'Ni_La']
 #xray = ['Ti_Ka', 'Fe_Ka', 'Ni_La']
 from hyperspy.misc.config_dir import config_path
 
-s3 = utils_eds.database_3Dspec('Ti_SEM')
+s3 = database.spec3D('Ti_SEM')
 s3.set_microscope_parameters(live_time=0.12)
 s3.set_elements(elements)
 s3.set_lines(xray)
 s3.link_standard(config_path + '/database/std_TiFeNi')
 
 
-s4 = utils_eds.database_4Dspec()
-r4 = utils_eds.database_3Dresult()
+s4 = database.spec4D()
+r4 = database.result3D()
 s4.get_calibration_from(r4)
 s4.link_standard(config_path + '/database/std_RR')
 

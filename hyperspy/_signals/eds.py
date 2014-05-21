@@ -534,19 +534,19 @@ class EDSSpectrum(Spectrum):
 
         #Mode standard
 
-        >>> s = utils_eds.database_3Dspec('SEM')
+        >>> s = database.spec3D('SEM')
         >>> s[102:134,125:152].get_lines_intensity(["Hf_Ma", "Ta_Ma"],
                 plot_result=True)
 
         #Mode 'model'
 
-        >>> s = utils_eds.database_3Dspec('SEM')
+        >>> s = database.spec3D('SEM')
         >>> s[102:134,125:152].get_lines_intensity(["Hf_Ma", "Ta_Ma"],
                 plot_result=True,lines_deconvolution='model',plot_fit=True)
 
         #Mode 'standard'
 
-        >>> s = utils_eds.database_3Dspec('SEM')
+        >>> s = database.spec3D('SEM')
         >>> from hyperspy.misc.config_dir import config_path
         >>> s.add_elements(['Hf','Ta'])
         >>> s.link_standard(config_path+'/database/std_RR')
@@ -1064,7 +1064,7 @@ class EDSSpectrum(Spectrum):
         Examples
         --------
 
-        >>> s = utils_eds.database_3Dspec('Ti_SEM')
+        >>> s = database.spec3D('Ti_SEM')
         >>> s.plot_Xray_lines()
 
         >>> s.plot_Xray_lines('from_elements')
@@ -1159,7 +1159,7 @@ class EDSSpectrum(Spectrum):
 
         Quick example
 
-        >>> s = utils_eds.database_3Dspec()
+        >>> s = database.spec3D()
         >>> s.change_dtype('float')
         >>> s = s[:6,:8]
         >>> s2 = s.deepcopy()
@@ -1170,7 +1170,7 @@ class EDSSpectrum(Spectrum):
 
         Slower that makes sense
 
-        >>> s = utils_eds.database_4Dspec('TEM')[::,::,1]
+        >>> s = database.spec4D('TEM')[::,::,1]
         >>> s.change_dtype('float')
         >>> dim = s.axes_manager.shape
         >>> s = s.rebin((dim[0]/4, dim[1]/4, dim[2]))

@@ -466,7 +466,7 @@ class EDSTEMSpectrum(EDSSpectrum):
 
         Examples
         ---------
-        >>> s = utils_eds.database_3Dspec('TEM')
+        >>> s = database.spec3D('TEM')
         >>> s.set_elements(["Ni", "Cr",'Al'])
         >>> s.set_lines(["Ni_Ka", "Cr_Ka", "Al_Ka"])
         >>> kfactors = [s.metadata.Sample.kfactors[2],

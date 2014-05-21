@@ -1676,7 +1676,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         Examples
         --------
 
-        >>> s = utils_eds.database_3Dresult()
+        >>> s = database.result3D()
         >>> fig,src,iso = s.plot_3D_iso_surface_result(['Hf','Ta','Ni'],'quant',
         >>>     [0.8,0.8,0.3])
         >>> # Change the threshold of the second iso-surface
@@ -1748,7 +1748,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         Example
         -------
 
-        >>> s = utils_eds.database_3Dspec('SEM')
+        >>> s = database.spec3D('SEM')
         >>> from hyperspy.misc.config_dir import config_path
         >>> s.add_elements(['Hf','Ta'])
         >>> s.link_standard(config_path+'/database/std_RR')

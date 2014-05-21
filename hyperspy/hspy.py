@@ -55,6 +55,7 @@ from hyperspy import utils
 
 # dev
 from hyperspy.misc.eds import utils as utils_eds
+from hyperspy.misc.eds import database as database
 from hyperspy.misc.eds.MAC import MAC_db as MAC
 
 

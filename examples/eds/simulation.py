@@ -30,7 +30,7 @@ s.plot()
 
 # Monte Carlo
 
-sm = utils_eds.database_1Dspec()
+sm = database.spec1D()
 s4 = utils_eds.simulate_one_spectrum(100, mp=sm.metadata,
                                      dose=1,
                                      compo_at=[0.6, 0.4],

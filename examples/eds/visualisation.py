@@ -6,8 +6,8 @@ pyplot.set_cmap('RdYlBu_r')
 
 # 3D spectrum
 
-s = utils_eds.database_3Dspec('Ti_SEM')
-im = utils_eds.database_2Dimage('Ti_SEM')
+s = database.spec3D('Ti_SEM')
+im = database.image2D('Ti_SEM')
 
 # elemental map and histogram
 res = s.get_lines_intensity(plot_result=True)
@@ -25,8 +25,8 @@ s.plot_Xray_lines('from_elements', navigator=im)
 
 # 3D image
 
-img = utils_eds.database_3Dimage()
-s = utils_eds.database_3Dresult()
+img = database.image3D()
+s = database.result3D()
 img2 = s.get_result('Ni', 'quant')
 
 # Mayavi

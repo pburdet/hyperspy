@@ -2,7 +2,7 @@
 pyplot.set_cmap('RdYlBu_r')
 
 elements = ["C", "Al", "Ti", "Cr", "Co", "Ni", "Mo", "Hf", "Ta", 'Zr']
-s = utils_eds.database_3Dspec('SEM')
+s = database.spec3D('SEM')
 
 # basic pca
 s.change_dtype('float')
@@ -29,7 +29,7 @@ s.change_dtype('int16')
 # do not try to save the model, just the s with the matrix score
 
 # extra spectrum from standard
-s = utils_eds.database_3Dspec('SEM')
+s = database.spec3D('SEM')
 from hyperspy.misc.config_dir import config_path
 s.add_elements(['Hf', 'Ta'])
 s.link_standard(config_path + '/database/std_RR')
@@ -42,7 +42,7 @@ sr[102:134, 125:152].get_lines_intensity(
     plot_result=True, lines_deconvolution='standard')
 
 # back fitting
-s = utils_eds.database_4Dspec('TEM')[64:, 64:, 1]
+s = database.spec4D('TEM')[64:, 64:, 1]
 s.change_dtype('float')
 dim = s.axes_manager.shape
 s = s.rebin((dim[0] / 4, dim[1] / 4, dim[2]))
