@@ -3,12 +3,12 @@ import numpy as np
 
 from hyperspy.misc.config_dir import config_path
 
-
 def _load_in_database(name, result=False):
+    from hyperspy.misc.eds import utils as utils_eds
     from hyperspy.io import load
     foldername = os.path.join(config_path, 'database//' + name)
     if result:
-        return load_EDSSEMSpectrum(foldername)
+        return utils_eds.load_EDSSEMSpectrum(foldername)
     else:
         return load(foldername)
 

@@ -509,13 +509,14 @@ class Test_tools_bulk:
             mp.Sample.xray_lines[0],
             mp.Acquisition_instrument.SEM.beam_energy,
             density=4.37499648818)
-        assert_equal(xr_range, 0.1900207, atol=1e-3)
+        assert_true(np.allclose(xr_range, 0.1900207, atol=1e-3))
+        #assert_equal(xr_range, 0.1900207, atol=1e-3)
 
 
 class Test_decomposition_model_from:
 
     def setUp(self):
-        s = utils_eds.database_3Dspec()
+        s = database.spec3D()
         s.change_dtype('float')
         s = s[:4, :6, :10]
         self.signal = s
@@ -529,7 +530,7 @@ class Test_decomposition_model_from:
         a = s.get_decomposition_model_from(s2, components=3)
         assert_true(a.axes_manager.shape == s.axes_manager.shape)
 
-    def test_decomposition_model_from_2D(self):
+    def test_decomposition_model_from_3D(self):
         s = self.signal
         s = utils.stack([s, s])
         s2 = s.deepcopy()

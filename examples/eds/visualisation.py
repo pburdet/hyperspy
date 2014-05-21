@@ -36,4 +36,4 @@ fig, src2, iso2 = img2.plot_3D_iso_surface(0.2, figure=fig,
 iso2.contour.contours = [0.73, ]
 
 # orthoview
-utils_eds.plot_orthoview_animated(img2)
+image_eds.plot_orthoview_animated(img2)

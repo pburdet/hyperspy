@@ -27,6 +27,7 @@ from hyperspy.signal import Signal
 from hyperspy._signals.image import Image
 from hyperspy.misc.elements import elements as elements_db
 from hyperspy.misc.eds import utils as utils_eds
+from hyperspy.misc.eds import image_eds
 from hyperspy.misc.utils import isiterable
 import hyperspy.components as create_component
 from hyperspy.drawing import marker
@@ -943,10 +944,7 @@ class EDSSpectrum(Spectrum):
     def plot_orthoview_result(self,
                               element,
                               result,
-                              index,
-                              plot_index=False,
-                              space=2,
-                              plot_result=True,
+                              isotropic_voxel=True,
                               normalize=False):
         """
         Plot an orthogonal view of a 3D images
@@ -960,14 +958,9 @@ class EDSSpectrum(Spectrum):
         result: str
             The result to get
 
-        index: list
-            The position [x,y,z] of the view.
-
-        plot_index: bool
-            Plot the line indicating the index position.
-
-        space: int
-            the spacing between the images in pixel.
+        isotropic_voxel:
+            If True, generate a new image, scaling z in order to obtain isotropic
+            voxel.
         """
         if element == 'all':
             res_element = copy.deepcopy(self.metadata.Sample[result])
@@ -977,8 +970,7 @@ class EDSSpectrum(Spectrum):
             res_element = self.normalize_result(result, return_element=element)
         else:
             res_element = self.get_result(element, result)
-        fig = utils_eds.plot_orthoview(res_element,
-                                       index, plot_index, space, plot_result)
+        fig = image_eds.plot_orthoview_animated(res_element,isotropic_voxel)
 
         return fig
 

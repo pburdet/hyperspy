@@ -33,6 +33,7 @@ from hyperspy.decorators import only_interactive
 from hyperspy.io import load
 import hyperspy.components as components
 from hyperspy.misc.eds import utils as utils_eds
+from hyperspy.misc.eds import image_eds
 from hyperspy import utils
 from hyperspy.misc.elements import elements as elements_db
 from hyperspy.misc.config_dir import config_path, os_name, data_path
@@ -1368,7 +1369,7 @@ class EDSSEMSpectrum(EDSSpectrum):
 
         mp_ref = reference.metadata
         if shifts == 'StackReg':
-            utils_eds.align_with_stackReg(reference,
+            image_eds.align_with_stackReg(reference,
                                           starting_slice=starting_slice, align_img=False,
                                           return_align_img=False)
             shifts = mp_ref.align.shifts

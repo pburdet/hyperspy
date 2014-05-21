@@ -48,7 +48,7 @@ s3.quant()
 s3.plot_histogram_result('quant')
 s3.get_result(elements[0], 'quant')
 
-# utils_eds.phase_inspector(s.metadata.Sample.quant)
+# image_eds.phase_inspector(s.metadata.Sample.quant)
 
 # 4D enhanced standard quant
 
@@ -57,7 +57,7 @@ if long_time is False:
     s4 = s4[50:60, 40:50]
 
 r = s4.get_lines_intensity(plot_result=False)
-utils_eds.plot_orthoview_animated(r[2])
+image_eds.plot_orthoview_animated(r[2])
 
 s4.get_kratio([[['Ni_Ka', 'Co_Ka'], ['Ni', 'Co'], [6.7, 7.75]],
                [["Ta_Ma", "Hf_Ma", 'Al_Ka'], ["Ta", "Hf", 'Al'], [1.25, 1.95]]], plot_result=False)
@@ -67,11 +67,11 @@ s4.quant(plot_result=False)
 s4.align_results(reference=['kratios', 6], starting_slice=0)
 
 r = s4.get_result(xray[0], 'kratios')
-utils_eds.plot_orthoview_animated(r)
+image_eds.plot_orthoview_animated(r)
 s4.plot_histogram_result('kratios')
 
 r = s4.get_result(elements[0], 'quant')
-utils_eds.plot_orthoview_animated(r)
+image_eds.plot_orthoview_animated(r)
 s4.plot_histogram_result('quant')
 
 """ Ehnanced quantification
@@ -102,6 +102,6 @@ if 1 == 0:
     err = s4.read_enh_ouput(compiler=0)
 
     r = s4.get_result(elements[0], 'quant_enh')
-    utils_eds.plot_orthoview_animated(r)
+    image_eds.plot_orthoview_animated(r)
     s4.plot_histogram_result('quant_enh')
     err[::, 2].get_histogram().plot()
