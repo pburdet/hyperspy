@@ -2777,15 +2777,16 @@ def get_mass_absorption_coefficient(energy,
     # if isinstance(energy, list) is False:
     #    print 'with uncertainty'
     return datas
-    
-def get_energy_and_weight(line,gateway = 'auto'):
+
+
+def get_energy_and_weight(line, gateway='auto'):
     """ Get the transition energy and the wieght
-    
-    Compute the transition energy (Chantler2005) and the weight of the 
+
+    Compute the transition energy (Chantler2005) and the weight of the
     line (epq library)
-    
+
     Parameters
-    ----------    
+    ----------
     line: str
         The X-ray line, e.g. 'Al_Ka'
     gateway: execnet Gateway
@@ -2825,7 +2826,7 @@ def get_energy_and_weight(line,gateway = 'auto'):
     datas = []
     for i, item in enumerate(channel):
         datas.append(item)
-    return datas[0]/1.60217653E-16, datas[1]
+    return datas[0] / 1.60217653E-16, datas[1]
 
 
 def get_kfactors(xray_lines,

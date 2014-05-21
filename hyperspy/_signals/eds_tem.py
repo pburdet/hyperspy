@@ -477,7 +477,7 @@ class EDSTEMSpectrum(EDSSpectrum):
         >>> utils.plot.plot_signals(res)
         """
 
-        xrays = self.metadata.Sample.xray_lines        
+        xrays = self.metadata.Sample.xray_lines
         beam_energy = self._get_beam_energy()
         #intensities = self.get_lines_intensity(**kwargs)
 
