@@ -561,3 +561,201 @@ def mean_filter(self, size):
     kernel = kernel / kernel.sum()
     img = self.map(scipy.ndimage.convolve, weights=kernel)
     return img
+    
+# must be more general, compare image
+def compare_results(specs, results, sum_elements=False,
+                    normalize=False, plot_result=True, expand=False):
+    """
+    Plot different results side by side
+
+    The results are found in 'mapped.metadata.Sample['results_name']'.
+    They need to have the same dimension
+
+    Parameters
+    ----------
+    specs: list || list of list || spec
+        The list (list of list) of spectra containing the results.
+
+    results: list || list of list || str
+        The list (list of list) of name of the results (or a list of specs).
+
+    normalize: bool
+        If True, each result are normalized.
+
+    plot_result : bool
+        If True (default option), plot the result. If False, return
+        the result.
+
+    expand : bool
+        if results and specs have different shape, expand in a matrix/lines.
+
+    """
+    from hyperspy import utils
+    if expand == True:
+        specs = copy.deepcopy(specs)
+        if isinstance(specs, list):
+            results = [results] * len(specs)
+            for i, spec in enumerate(specs):
+                specs[i] = [specs[i]] * len(results[0])
+        else:
+            if isinstance(results[0], list):
+                specs = [[specs] * len(results[0])] * len(results)
+            else:
+                specs = [specs] * len(results)
+
+    if isinstance(specs[0], list):
+        if isinstance(results, list) is False:
+            results = [[results] * len(specs[0])] * len(specs)
+        check = []
+        for j, spec in enumerate(specs):
+            check_temp = []
+            for i, s in enumerate(spec):
+                if isinstance(results[j][i], str) is False:
+                    temp = results[j][i].deepcopy()
+                elif normalize:
+                    temp = s.normalize_result(results[j][i])
+                else:
+                    temp = copy.deepcopy(
+                        s.metadata.Sample[results[j][i]])
+                temp = utils.stack(temp)
+                if sum_elements:
+                    temp = temp.sum(1)
+                check_temp.append(temp)
+            check.append(utils.stack(check_temp,
+                                     axis=temp.axes_manager.signal_axes[0].name))
+
+        check = utils.stack(check, axis=temp.axes_manager.signal_axes[1].name)
+        check.axes_manager[-2].name += ' + results'
+        check.axes_manager[-1].name += ' + specs'
+
+    elif isinstance(specs, list):
+        if isinstance(results, list) is False:
+            results = [results] * len(specs)
+        check = []
+        for i, s in enumerate(specs):
+            if isinstance(results[i], str) is False:
+                temp = results[i].deepcopy()
+            elif normalize:
+                temp = s.normalize_result(results[i])
+            else:
+                temp = copy.deepcopy(s.metadata.Sample[results[i]])
+            temp = utils.stack(temp)
+            if sum_elements:
+                temp = temp.sum(1)
+            check.append(temp)
+
+        check = utils.stack(check, axis=temp.axes_manager.signal_axes[0].name)
+    else:
+        raise ValueError("specs is not a list")
+
+    check.metadata.General.title = 'Compared Results'
+    if plot_result:
+        check.plot(navigator='slider')
+    else:
+        return check
+
+# Should use utils.plot.plot_histograms
+
+def compare_histograms_results(specs,
+                               element,
+                               results,
+                               normalizeI=False,
+                               normalizex=False,
+                               bins='freedman',
+                               color=None,
+                               line_style=None,
+                               legend='auto',
+                               fig=None):
+    """
+    Plot the histrogram for different results for one element.
+
+    The results are found in 'mapped.metadata.Sample['results_name']'.
+
+    Paramters
+    ---------
+
+    specs: list
+        The list of spectra containing the results.
+
+    element: str
+        The element to consider. 'all' return the sum over all elements.
+
+    results: list || str
+        The list of name of the results (or a list of images).
+
+    normalizeI: bool
+        nomralize the intensity
+
+    normalizex: bool
+        nomralize over all the results
+
+    bins : int or list or str (optional)
+        If bins is a string, then it must be one of:
+        'knuth' : use Knuth's rule to determine bins
+        'scotts' : use Scott's rule to determine bins
+        'freedman' : use the Freedman-diaconis rule to determine bins
+        'blocks' : use bayesian blocks for dynamic bin widths
+
+    color : valid matplotlib color or a list of them or `None`
+        Sets the color of the lines of the plots when `style` is "cascade"
+        or "mosaic". If a list, if its length is
+        less than the number of spectra to plot, the colors will be cycled. If
+        If `None`, use default matplotlib color cycle.
+
+    line_style: valid matplotlib line style or a list of them or `None`
+        Sets the line style of the plots for "cascade"
+        or "mosaic". The main line style are '-','--','steps','-.',':'.
+        If a list, if its length is less than the number of
+        spectra to plot, line_style will be cycled. If
+        If `None`, use continuous lines, eg: ('-','--','steps','-.',':')
+
+    legend: None | list of str | 'auto'
+       If list of string, legend for "cascade" or title for "mosaic" is
+       displayed. If 'auto', the title of each spectra (metadata.General.title)
+       is used.
+
+    fig : {matplotlib figure, None}
+        If None, a default figure will be created.
+
+    """
+    from hyperspy import utils
+    specs = copy.deepcopy(specs)
+    if isinstance(results, list) is False:
+        results = [results] * len(specs)
+    elif isinstance(specs, list) is False:
+        specs = [specs] * len(results)
+    # else:
+    #    dim_results = len(results)
+    #    results = np.repeat(results,len(specs))
+    #    specs = specs*dim_results
+    hists = []
+    for i, spec in enumerate(specs):
+        if element == 'all':
+            re = copy.deepcopy(spec.metadata.Sample[results[i]])
+            re = utils.stack(re)
+            re = re.sum(1)
+            re.metadata.General.title = 'Sum ' + \
+                results[i] + ' ' + spec.metadata.General.title
+        elif isinstance(results[i], str):
+            if normalizex:
+                re = spec.normalize_result(
+                    results[i])[list(spec.metadata.Sample.elements).index(element)]
+            else:
+                re = spec.get_result(element, results[i])
+            re.metadata.General.title = element + ' ' + \
+                results[i] + ' ' + spec.metadata.General.title
+        else:
+            re = results[i].deepcopy()
+            # print 'Normalise x not available yet'
+            re.metadata.General.title = (element + ' ' +
+                                         re.metadata.General.title + ' ' + spec.metadata.General.title)
+        #data = re.data.flatten()
+        #center, hist1 = _histo_data_plot(data,bins)
+        hist_tmp = re.get_histogram(bins)
+        if normalizeI:
+            hist_tmp = hist_tmp / float(hist_tmp.sum(0).data)
+        hists.append(hist_tmp)
+
+    return utils.plot.plot_spectra(hists, style='overlap', color=color,
+                                   line_style=line_style, legend=legend, fig=fig)
+
