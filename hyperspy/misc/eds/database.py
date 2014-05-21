@@ -3,6 +3,7 @@ import numpy as np
 
 from hyperspy.misc.config_dir import config_path
 
+
 def _load_in_database(name, result=False):
     from hyperspy.io import load
     foldername = os.path.join(config_path, 'database//' + name)
@@ -112,7 +113,8 @@ def result3D():
     load RR 2 3D
     """
     return _load_in_database('2res3DrsAH.hdf5', result=True)
-    
+
+
 def detector_efficiency_INCA(index=4):
     """
     Import the detector efficiency detector used by INCA
