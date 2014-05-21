@@ -223,6 +223,7 @@ def get_MAC_sample(xray_lines, weight_percent, elements='auto'):
             macs[-1] += weight_percent[i_el] / 100 * MAC[el_emit][line][el_abs]
     return macs
 
+
 def simulate_one_spectrum(nTraj, dose=100, mp='gui',
                           elements='auto',
                           compo_at='auto',
@@ -785,10 +786,7 @@ def _set_result_signal_list(mp, result):
     mp.Sample[result] = std
 
 
-
 # must be more general, compare image
-
-
 def compare_results(specs, results, sum_elements=False,
                     normalize=False, plot_result=True, expand=False):
     """
@@ -1616,6 +1614,7 @@ def get_detector_properties(name, gateway='auto'):
 
     return spec
 
+
 def fft_power_spectrum(self):
     """Compute the power spectrum
     """
@@ -1879,6 +1878,7 @@ def fft(self, shape_fft=None, axes=None, scale=None):
         print ('scale not given')
 
     return im_fft
+
 
 def simulate_model(elements=None,
                    shape_spectrum=None,

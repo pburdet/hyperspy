@@ -970,7 +970,7 @@ class EDSSpectrum(Spectrum):
             res_element = self.normalize_result(result, return_element=element)
         else:
             res_element = self.get_result(element, result)
-        fig = image_eds.plot_orthoview_animated(res_element,isotropic_voxel)
+        fig = image_eds.plot_orthoview_animated(res_element, isotropic_voxel)
 
         return fig
 
