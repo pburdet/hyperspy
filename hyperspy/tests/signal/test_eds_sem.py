@@ -509,7 +509,7 @@ class Test_tools_bulk:
             mp.Sample.xray_lines[0],
             mp.Acquisition_instrument.SEM.beam_energy,
             density=4.37499648818)
-        assert_equal(xr_range, 0.19002078834050035)
+        assert_equal(xr_range, 0.1900207, atol=1e-3)
 
 
 class Test_decomposition_model_from:
