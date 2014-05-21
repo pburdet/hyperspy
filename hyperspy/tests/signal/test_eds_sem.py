@@ -26,6 +26,7 @@ from hyperspy.defaults_parser import preferences
 from hyperspy.components import Gaussian
 from hyperspy.misc.elements import elements_db as elements_EDS
 from hyperspy.misc.eds import utils as utils_eds
+from hyperspy.misc.eds import database
 from hyperspy import utils
 from hyperspy.misc.config_dir import config_path
 

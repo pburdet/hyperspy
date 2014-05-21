@@ -1,4 +1,5 @@
 """
+Visualisation
 
 """
 
@@ -21,7 +22,7 @@ utils.plot.plot_spectra(res, legend='auto')
 # Nav with SE image
 dim = s.axes_manager.shape
 im = im.rebin((dim[0], dim[1]))
-s.plot_Xray_lines('from_elements', navigator=im)
+s.plot_xray_lines('from_elements', navigator=im)
 
 # 3D image
 

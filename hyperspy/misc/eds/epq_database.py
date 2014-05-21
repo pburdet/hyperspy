@@ -79,7 +79,8 @@ def get_mass_absorption_coefficient(energy,
     # if isinstance(energy, list) is False:
     #    print 'with uncertainty'
     return datas
-    
+
+
 def get_xray_transition_properties(xray_line, beam_energy, gateway='auto'):
     """ Return the properties of a given Xray transition:
 
@@ -157,6 +158,7 @@ def get_xray_transition_properties(xray_line, beam_energy, gateway='auto'):
     fact = elements_db[element]['Atomic_properties']\
         ['Xray_lines'][line]['factor']
     return datas + [fact]
+
 
 def get_energy_and_weight(line, gateway='auto'):
     """ Get the transition energy and the wieght

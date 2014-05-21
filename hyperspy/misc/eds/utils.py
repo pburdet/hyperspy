@@ -1720,7 +1720,8 @@ def simulate_model(elements=None,
     else:
         model = s.simulate_model(elemental_map=elemental_map)
         return model
-    
+
+
 def get_kfactors(xray_lines,
                  beam_energy,
                  detector_efficiency=None,

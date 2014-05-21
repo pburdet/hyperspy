@@ -561,8 +561,10 @@ def mean_filter(self, size):
     kernel = kernel / kernel.sum()
     img = self.map(scipy.ndimage.convolve, weights=kernel)
     return img
-    
+
 # must be more general, compare image
+
+
 def compare_results(specs, results, sum_elements=False,
                     normalize=False, plot_result=True, expand=False):
     """
@@ -655,6 +657,7 @@ def compare_results(specs, results, sum_elements=False,
         return check
 
 # Should use utils.plot.plot_histograms
+
 
 def compare_histograms_results(specs,
                                element,
@@ -758,4 +761,3 @@ def compare_histograms_results(specs,
 
     return utils.plot.plot_spectra(hists, style='overlap', color=color,
                                    line_style=line_style, legend=legend, fig=fig)
-
