@@ -408,11 +408,11 @@ class EDSTEMSpectrum(EDSSpectrum):
         for i, xray in enumerate(xrays):
             if i == 0:
                 self._set_result(xray_line=xray, result='quant',
-                                 data_res=composition,
+                                 data_res=np.nan_to_num(composition),
                                  plot_result=plot_result, store_in_mp=True)
             else:
                 self._set_result(xray_line=xray, result='quant',
-                                 data_res=composition / ab[i - 1],
+                                 data_res=np.nan_to_num(composition / ab[i - 1]),
                                  plot_result=plot_result, store_in_mp=True)
 
     def get_kfactors_from_first_principles(self,
@@ -449,3 +449,101 @@ class EDSTEMSpectrum(EDSSpectrum):
                 kfactors_name.append(xrays[0] + '/' + xray)
         self.metadata.Sample.kfactors = kfactors
         self.metadata.Sample.kfactors_name = kfactors_name
+        
+        
+    def quant_cliff_lorimer_simple(self,
+                            intensities,
+                            kfactors):
+            """
+            Quantified for giorgio, 21.05.2014
+
+            Parameters
+            ----------
+            kfactors: list of float 
+                the list of kfactor, compared to the first
+                elements. eg. kfactors = [1.2, 2.5]
+                for kfactors_name = ['Al_Ka/Cu_Ka', 'Al_Ka/Nb_Ka']
+                
+            Examples
+            ---------
+            >>> s = utils_eds.database_3Dspec('TEM')
+            >>> s.set_elements(["Ni", "Cr",'Al'])
+            >>> s.set_lines(["Ni_Ka", "Cr_Ka", "Al_Ka"])
+            >>> kfactors = [s.metadata.Sample.kfactors[2],
+            >>>         s.metadata.Sample.kfactors[6]]
+            >>> intensities = s.get_two_windows_intensities(
+            >>>      bck_position=[[1.2,3.0],[5.0,5.7],[5.0,9.5]])
+            >>> res = s.quant_cliff_lorimer_simple(intensities,kfactors)
+            >>> utils.plot.plot_signals(res)
+            """
+
+            xrays = self.metadata.Sample.xray_lines
+            beam_energy = self.metadata.Acquisition_instrument.TEM.beam_energy
+            #intensities = self.get_lines_intensity(**kwargs)
+
+            ab = []
+            for i, kab in enumerate(kfactors):
+                # ab = Ia/Ib * kab
+                ab.append(intensities[0].data / intensities[i + 1].data * kab)
+                #signals.Image(ab[-1]).plot()
+            # Ca = ab /(1 + ab + ab/ac + ab/ad + ...)
+            composition = np.ones(ab[0].shape)
+            for i, ab1 in enumerate(ab):
+                if i == 0:
+                    composition += ab[0]
+                else:
+                    composition += (ab[0] / ab1)
+            composition = ab[0] / composition
+            res_compo = []
+            # Cb = Ca / ab
+            for i, xray in enumerate(xrays):
+                if i == 0:
+                    data_res=composition            
+                else:
+                    data_res=composition / ab[i - 1]
+                data_res = np.nan_to_num(data_res)
+                res_compo.append(intensities[i].deepcopy())
+                res_compo[-1].data = data_res
+                res_compo[-1].metadata.General.title = 'Composition ' + xray
+            return res_compo   
+            
+    def get_two_windows_intensities(self,bck_position):
+        """
+        Quantified for giorgio, 21.05.2014
+        
+        Parameters
+        ----------
+        bck_position: list
+            The position of the bck to substract eg [[1.2,1.4],[2.5,2.6]]
+        """   
+        if 'Sample.xray_lines' in self.metadata:
+            xray_lines = self.metadata.Sample.xray_lines
+            print xray_lines
+        else:
+            print('Set the Xray lines with set_lines')
+        intensities = []
+        t = self.deepcopy()
+        for i, Xray_line in enumerate(xray_lines):
+            line_energy, line_FWHM = self._get_line_energy(Xray_line,
+                                                   FWHM_MnKa='auto')
+            det = line_FWHM
+            img = self[..., line_energy - det:line_energy + det
+                           ].integrate1D(-1)
+            img1 = self[..., bck_position[i][0] - det:bck_position[i][0] + det
+                           ].integrate1D(-1)
+            img2 = self[..., bck_position[i][1] - det:bck_position[i][1] + det
+                           ].integrate1D(-1)
+            img = img-(img1+img2)/2
+            img.metadata.General.title = (
+                    'Intensity of %s at %.2f %s from %s' %
+                    (Xray_line,
+                     line_energy,
+                     self.axes_manager.signal_axes[0].units,
+                     self.metadata.General.title))
+            intensities.append(img)
+            
+            t[..., line_energy - det:line_energy + det] = 10
+            t[..., bck_position[i][0] - det:bck_position[i][0] + det] = 10
+            t[..., bck_position[i][1] - det:bck_position[i][1] + det] = 10
+        t.plot()
+        return intensities

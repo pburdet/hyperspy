@@ -2427,6 +2427,7 @@ def database_3Dspec(which_spec='PCA_SEM'):
 
     which_spec: {'PCA_SEM','SEM','Ti_SEM','rpl','noisy'}
         if 'PCA_SEM', load RR 46 PCA rec
+        if 'TEM', 0 degree roabert A5
         if 'SEM', load RR 46 no PCA
         ifs 'Ti_SEM', load TiFeNi no PCA jonas1h croped (::,:12)
         if 'rpl', jonas1h raw
@@ -2434,7 +2435,9 @@ def database_3Dspec(which_spec='PCA_SEM'):
     """
 
     if which_spec == 'PCA_SEM':
-        return _load_in_database('specImg3DBinPCAre46.hdf5')
+        return _load_in_database('specImg3DBinPCAre46.hdf5')        
+    elif which_spec == 'TEM':
+        return _load_in_database('robert_a5.hdf5')
     elif which_spec == 'SEM':
         return _load_in_database('specImg3D46.hdf5')
     elif which_spec == 'Ti_SEM':
