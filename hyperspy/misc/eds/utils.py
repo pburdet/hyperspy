@@ -2435,7 +2435,7 @@ def database_3Dspec(which_spec='PCA_SEM'):
     """
 
     if which_spec == 'PCA_SEM':
-        return _load_in_database('specImg3DBinPCAre46.hdf5')        
+        return _load_in_database('specImg3DBinPCAre46.hdf5')
     elif which_spec == 'TEM':
         return _load_in_database('robert_a5.hdf5')
     elif which_spec == 'SEM':
