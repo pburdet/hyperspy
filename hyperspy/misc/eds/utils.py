@@ -2777,6 +2777,55 @@ def get_mass_absorption_coefficient(energy,
     # if isinstance(energy, list) is False:
     #    print 'with uncertainty'
     return datas
+    
+def get_energy_and_weight(line,gateway = 'auto'):
+    """ Get the transition energy and the wieght
+    
+    Compute the transition energy (Chantler2005) and the weight of the 
+    line (epq library)
+    
+    Parameters
+    ----------    
+    line: str
+        The X-ray line, e.g. 'Al_Ka'
+    gateway: execnet Gateway
+        If 'auto', generate automatically the connection to jython.
+    """
+    if gateway == 'auto':
+        gateway = get_link_to_jython()
+    channel = gateway.remote_exec("""
+        import dtsa2
+        epq = dtsa2.epq
+        xray_line = '""" + str(line) + """'
+        lim = xray_line.find('_')
+        el = getattr(dtsa2.epq.Element,xray_line[:lim])
+        li = xray_line[lim+1:]
+        print li
+        lines = ['Ka','Kb','La','Lb1','Lb2',
+                 'Lb3','Lb4', 'Lg1', 'Lg3', 'Ll',
+                'Ln', 'M2N4','Ma','Mb','Mg', 'Mz']
+        transset = [0,2,12,31,15,
+                 45,46,33,50,19,
+                 37,57,72,69,66,74]
+        for i, line in enumerate(lines):
+            if li==line:
+                trans = transset[i]
+        print trans
+        xray_transition = epq.XRayTransition(el, trans)
+        print xray_transition
+        #a = epq.IonizationCrossSection
+        e = epq.TransitionEnergy.Chantler2005.compute(
+            xray_transition)
+        #ICS= epq.FluorescenceYield.DefaultShell.compute(
+        #    atomic_shell)
+        channel.send(e)
+        w = epq.XRayTransition.getWeight(el, trans,0)
+        channel.send(w)
+    """)
+    datas = []
+    for i, item in enumerate(channel):
+        datas.append(item)
+    return datas[0]/1.60217653E-16, datas[1]
 
 
 def get_kfactors(xray_lines,

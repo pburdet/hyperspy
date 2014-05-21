@@ -387,7 +387,7 @@ class EDSTEMSpectrum(EDSSpectrum):
         """
 
         xrays = self.metadata.Sample.xray_lines
-        beam_energy = self.metadata.Acquisition_instrument.TEM.beam_energy
+        beam_energy = self._get_beam_energy()
         intensities = self.get_lines_intensity(**kwargs)
 
         if kfactors == 'auto':
@@ -436,7 +436,7 @@ class EDSTEMSpectrum(EDSSpectrum):
 
         """
         xrays = self.metadata.Sample.xray_lines
-        beam_energy = self.metadata.Acquisition_instrument.TEM.beam_energy
+        beam_energy = self._get_beam_energy()
         kfactors = []
         kfactors_name = []
         if gateway == 'auto':
@@ -477,8 +477,8 @@ class EDSTEMSpectrum(EDSSpectrum):
         >>> utils.plot.plot_signals(res)
         """
 
-        xrays = self.metadata.Sample.xray_lines
-        beam_energy = self.metadata.Acquisition_instrument.TEM.beam_energy
+        xrays = self.metadata.Sample.xray_lines        
+        beam_energy = self._get_beam_energy()
         #intensities = self.get_lines_intensity(**kwargs)
 
         ab = []

@@ -967,7 +967,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         from hyperspy.hspy import create_model
 
         live_time = self.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time
-        beam_energy = self.metadata.Acquisition_instrument.SEM.beam_energy
+        beam_energy = self._get_beam_energy()
         FWHM_MnKa = self.metadata.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa
         energy_axis = self.axes_manager.signal_axes[0]
         elements = self.metadata.Sample.elements
@@ -1080,7 +1080,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             return 0
 
         elements = list(mp.Sample.elements)
-        e0 = mp.Acquisition_instrument.SEM.beam_energy
+        e0 = self._get_beam_energy()
         tilt = np.radians(mp.Acquisition_instrument.SEM.tilt_stage)
 
         # Units!!
@@ -1502,7 +1502,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             raise ValueError('kratios need to be defined')
             return 0
 
-        e0 = mp.Acquisition_instrument.SEM.beam_energy
+        e0 = self._get_beam_energy()
         tilt = np.radians(mp.Acquisition_instrument.SEM.tilt_stage)
         elevation = np.radians(
             mp.Acquisition_instrument.SEM.Detector.EDS.elevation_angle)
