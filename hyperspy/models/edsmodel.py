@@ -27,6 +27,7 @@ from hyperspy.misc.eds import utils as utils_eds
 from hyperspy.misc.eds import model as model_eds
 import hyperspy.components as create_component
 
+
 def _get_ratio(element, line):
     ratio_line = elements_db[
         element]['Atomic_properties']['Xray_lines'][line]['factor']
@@ -37,6 +38,7 @@ def _get_iratio(element, line):
     ratio_line = elements_db[
         element]['Atomic_properties']['Xray_lines'][line]['factor']
     return lambda x: x / ratio_line
+
 
 class EDSModel(Model):
 
@@ -53,29 +55,29 @@ class EDSModel(Model):
     """
 
     def __init__(self, spectrum, auto_background=True,
-                auto_add_lines=True,
+                 auto_add_lines=True,
                  *args, **kwargs):
-                     
+
                     #,
                  #auto_add_edges=True, ll=None,
-                 #GOS=None, *args, **kwargs):
+                 # GOS=None, *args, **kwargs):
         Model.__init__(self, spectrum, *args, **kwargs)
         #self._suspend_auto_fine_structure_width = False
         #self.convolved = False
         #self.low_loss = ll
         #self.GOS = GOS
         self.xray_lines = list()
-        #if auto_background is True:
+        # if auto_background is True:
         #    interactive_ns = get_interactive_ns()
         #    background = PowerLaw()
         #    background.name = 'background'
         #    interactive_ns['background'] = background
         #    self.append(background)
 
-        #if self.spectrum.xray_lines and auto_add_lines is True:
+        # if self.spectrum.xray_lines and auto_add_lines is True:
         if auto_add_lines is True:
             self._add_lines()
-        #if auto_background is True:
+        # if auto_background is True:
         #    self._add_background()
 
     @property
@@ -92,12 +94,11 @@ class EDSModel(Model):
                 "This attribute can only contain an EDSSpectrum "
                 "but an object of type %s was provided" %
                 str(type(value)))
-            
-                    
-    def _add_lines(self,xray_lines=None,only_one=False,
-                    only_lines=("Ka", "La", "Ma")):
+
+    def _add_lines(self, xray_lines=None, only_one=False,
+                   only_lines=("Ka", "La", "Ma")):
         """Create the Xray-lines instances and configure them appropiately
-        
+
         Parameters
         -----------
         xray_lines: {None, "best", list of string}
@@ -132,7 +133,7 @@ class EDSModel(Model):
         for i, xray_line in enumerate(xray_lines):
             element, line = utils_eds._get_element_and_line(xray_line)
             line_energy, line_FWHM = self.spectrum._get_line_energy(xray_line,
-                                               FWHM_MnKa='auto')
+                                                                    FWHM_MnKa='auto')
             fp = create_component.Gaussian()
             fp.centre.value = line_energy
             fp.sigma.value = line_FWHM / 2.355
@@ -140,13 +141,13 @@ class EDSModel(Model):
             fp.sigma.free = False
             fp.name = xray_line
             self.append(fp)
-            init=True
+            init = True
             if init:
                 self[xray_line].A.map[
                     'values'] = self.spectrum[..., line_energy].data
                 self[xray_line].A.map['is_set'] = (
                     np.ones(self.spectrum[..., line_energy].data.shape) == 1)
-            #if bounded:
+            # if bounded:
             #    fp.A.ext_bounded = True
             #    fp.A.ext_force_positive = True
             for li in elements_db[element]['Atomic_properties']['Xray_lines']:
@@ -165,13 +166,13 @@ class EDSModel(Model):
                     fp_sub.A.twin_inverse_function = _get_iratio(
                         element, li)
                     self.append(fp_sub)
-                    
+
     def get_line_intensities(self,
                              plot_result=True,
                              store_in_mp=True,
                              **kwargs):
         """
-        
+
         Parameters
         ----------
         plot_result : bool
@@ -183,20 +184,20 @@ class EDSModel(Model):
             The extra keyword arguments for plotting. See
             `utils.plot.plot_signals`
         """
-        xray_lines = self.xray_lines  
-        intensities=[]
+        xray_lines = self.xray_lines
+        intensities = []
         if self.spectrum.metadata.Sample.has_item(
                 'xray_lines') is False and store_in_mp:
-                self.spectrum.metadata.Sample.xray_lines = xray_lines
+            self.spectrum.metadata.Sample.xray_lines = xray_lines
         for i, xray_line in enumerate(xray_lines):
             line_energy = self.spectrum._get_line_energy(xray_line)
             data_res = self[xray_line].A.map['values']
             if self.axes_manager.navigation_dimension == 0:
                 data_res = data_res[0]
             img = self.spectrum._set_result(xray_line, 'intensities',
-                                   data_res, plot_result=False,
-                                   store_in_mp=store_in_mp)
-            intensities.append(img)     
+                                            data_res, plot_result=False,
+                                            store_in_mp=store_in_mp)
+            intensities.append(img)
             if plot_result and img.axes_manager.signal_dimension == 0:
                 print("%s at %s %s : Intensity = %.2f"
                       % (xray_line,
@@ -207,5 +208,3 @@ class EDSModel(Model):
             utils.plot.plot_signals(intensities, **kwargs)
         if store_in_mp is False:
             return intensities
-            
-    
