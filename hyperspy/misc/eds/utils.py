@@ -1452,12 +1452,12 @@ def fft_mirror_center(self):
         imgn = utils.stack([y2, y1], axis=0)
     else:
         print 'dimension not supported'
-        
+
     axes = range(len(self.axes_manager.shape))
     for ax in axes:
         axis = imgn.axes_manager[ax]
         axis.offset = 0
-        axis.offset = -axis.high_value / 2.     
+        axis.offset = -axis.high_value / 2.
 
     return imgn
 
@@ -1677,15 +1677,15 @@ def fft(self, shape_fft=None, axes=None):
     # else:
     #    im_fft = im_fft.as_spectrum(-1)
     # scale, to be verified
-    
-    for ax,dim in zip(axes,shape_fft):
+
+    for ax, dim in zip(axes, shape_fft):
         #im_fft.axes_manager[i].scale = scale[i]
         axis = im_fft.axes_manager[ax]
         axis.scale = 1. / dim / self.axes_manager[ax].scale
         #axis.name= 'Spatial frequency'
         axis.units = str(self.axes_manager[ax].units) + '$^{-1}$'
         axis.offset = 0
-        axis.offset = -axis.high_value / 2.                   
+        axis.offset = -axis.high_value / 2.
 
     return im_fft
 
