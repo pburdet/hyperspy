@@ -1452,6 +1452,12 @@ def fft_mirror_center(self):
         imgn = utils.stack([y2, y1], axis=0)
     else:
         print 'dimension not supported'
+        
+    axes = range(len(self.axes_manager.shape))
+    for ax in axes:
+        axis = imgn.axes_manager[ax]
+        axis.offset = 0
+        axis.offset = -axis.high_value / 2.     
 
     return imgn
 
@@ -1609,7 +1615,7 @@ def fft_ifft(self, s=None, axes=None):
     return im_ifft
 
 
-def fft(self, shape_fft=None, axes=None, scale=None):
+def fft(self, shape_fft=None, axes=None):
     """Compute the discrete Fourier Transform.
 
     This function computes the discrete Fourier Transform over
@@ -1644,7 +1650,7 @@ def fft(self, shape_fft=None, axes=None, scale=None):
 
     from hyperspy.signals import Signal, Spectrum, Image
 
-    dim = len(self.axes_manager.shape)
+    #dim = len(self.axes_manager.shape)
     # if dim == 1:
         # if axes is None:
             #axis = -1
@@ -1661,22 +1667,25 @@ def fft(self, shape_fft=None, axes=None, scale=None):
         im_fft = Image(np.fft.fftn(self.data, s=shape_fft, axes=axes))
     else:
         im_fft = Spectrum(np.fft.fftn(self.data, s=shape_fft, axes=axes))
-
+    if axes is None:
+        axes = range(len(self.axes_manager.shape))
+    if shape_fft is None:
+        shape_fft = self.axes_manager.shape
     # if self.axes_manager.signal_dimension == 2:
         # im_fft.axes_manager.set_signal_dimension(2)
         #im_fft = im_fft.as_image([-2,-1])
     # else:
     #    im_fft = im_fft.as_spectrum(-1)
     # scale, to be verified
-    if scale is not None:
-        for i in range(dim):
-            im_fft.axes_manager[i].scale = scale[i]
-            #im_fft.axes_manager[i].scale = 1 / self.axes_manager[i].scale
-    elif shape_fft is None:
-        for i in range(dim):
-            im_fft.axes_manager[i].scale = 1 / self.axes_manager[i].scale
-    else:
-        print ('scale not given')
+    
+    for ax,dim in zip(axes,shape_fft):
+        #im_fft.axes_manager[i].scale = scale[i]
+        axis = im_fft.axes_manager[ax]
+        axis.scale = 1. / dim / self.axes_manager[ax].scale
+        #axis.name= 'Spatial frequency'
+        axis.units = str(self.axes_manager[ax].units) + '$^{-1}$'
+        axis.offset = 0
+        axis.offset = -axis.high_value / 2.                   
 
     return im_fft
 
