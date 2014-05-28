@@ -96,11 +96,9 @@ class EDSModel(Model):
                 "This attribute can only contain an EDSSpectrum "
                 "but an object of type %s was provided" %
                 str(type(value)))
-                
-    
 
     def add_lines(self, xray_lines=None, only_one=False,
-                   only_lines=("Ka", "La", "Ma")):
+                  only_lines=("Ka", "La", "Ma")):
         """Create the Xray-lines instances and configure them appropiately
 
         Parameters
@@ -150,10 +148,10 @@ class EDSModel(Model):
             init = True
             if init:
                 self[xray_line].A.map[
-                    'values'] = self.spectrum[..., line_energy].data/line_FWHM 
+                    'values'] = self.spectrum[..., line_energy].data / line_FWHM
                 self[xray_line].A.map['is_set'] = (
                     np.ones(self.spectrum[..., line_energy].data.shape) == 1)
-            
+
             # if bounded:
             #    component.A.ext_bounded = True
             #    component.A.ext_force_positive = True
@@ -215,67 +213,67 @@ class EDSModel(Model):
             utils.plot.plot_signals(intensities, **kwargs)
         if store_in_mp is False:
             return intensities
-            
+
     def add_background(self,
-                generation_factors=[1,2],
-                detector_name=4,
-                weight_fraction='auto',
-                gateway='auto'):
+                       generation_factors=[1, 2],
+                       detector_name=4,
+                       weight_fraction='auto',
+                       gateway='auto'):
         """
         Add a backround to the model in the form of several
-        scalable fixed patterns. 
-        
+        scalable fixed patterns.
+
         Each pattern is the muliplication of the detector efficiency,
         the absorption in the sample (PDH equation) and a continuous X-ray
-        generation. 
-        
+        generation.
+
         Parameters
-        ----------    
+        ----------
         generation_factors: list of int
             For each number n, add (E0-E)^n/E
             [1] is equivalent to Kramer equation.
             [1,2] is equivalent to Lisfhisn modification of Kramer equation.
         det_name: int, str, None
             If None, no det_efficiency
-            If {0,1,2,3,4}, INCA efficiency database            
+            If {0,1,2,3,4}, INCA efficiency database
             If str, model from DTSAII
         weight_fraction: list of float
              The sample composition used for the sample absorption.
-             If 'auto', takes value in metadata. If not there, 
+             If 'auto', takes value in metadata. If not there,
              use and equ-composition
         gateway: execnet Gateway
             If 'auto', generate automatically the connection to jython.
-            
+
         See also
         --------
-        database.detector_efficiency_INCA, 
+        database.detector_efficiency_INCA,
         utils_eds.get_detector_properties
         """
         generation = []
-        if gateway=='auto':
-            gateway= utils_eds.get_link_to_jython()
+        if gateway == 'auto':
+            gateway = utils_eds.get_link_to_jython()
         for exp_factor in generation_factors:
             generation.append(self.spectrum.compute_continuous_xray_generation(
-                            exp_factor))
+                exp_factor))
             generation[-1].metadata.General.title = 'generation'\
-                    + str(exp_factor)
-        absorption  = self.spectrum.compute_continuous_xray_absorption(
-                                    gateway=gateway,
-                                    weight_fraction = weight_fraction)
+                + str(exp_factor)
+        absorption = self.spectrum.compute_continuous_xray_absorption(
+            gateway=gateway,
+            weight_fraction=weight_fraction)
         absorption.metadata.General.title = 'absorption'
         if detector_name is None:
             det_efficiency = 1
         else:
             det_efficiency = self.spectrum.get_detector_efficiency(
-                    detector_name,gateway=gateway)
+                detector_name, gateway=gateway)
 
-        for gen, gen_fact in zip(generation,generation_factors):
+        for gen, gen_fact in zip(generation, generation_factors):
             bck = det_efficiency * gen * absorption
-            #bck.plot()            
+            # bck.plot()
             bck = bck[self.axes_manager[-1].scale:]
-            bck.metadata.General.title = 'bck_'+str(gen_fact)
+            bck.metadata.General.title = 'bck_' + str(gen_fact)
             component = create_component.ScalableFixedPattern(bck)
-            component.set_parameters_not_free(['xscale','shift'])
+            component.set_parameters_not_free(['xscale', 'shift'])
             component.name = bck.metadata.General.title
             #component.yscale.ext_bounded = True
             component.yscale.bmin = 0
@@ -283,16 +281,16 @@ class EDSModel(Model):
             component.isbackground = True
             self.append(component)
             self.background_components.append(component)
-    
+
     @property
     def _active_xray_lines(self):
-        return [xray_line for xray_line \
+        return [xray_line for xray_line
                 in self.xray_lines if xray_line.active]
 
     @property
     def _active_background_components(self):
         return [bc for bc in self.background_components if bc.yscale.free]
-            
+
     def enable_background(self):
         """Enable the yscale of the background components.
 
@@ -308,26 +306,26 @@ class EDSModel(Model):
         for component in self._active_background_components:
             component.set_parameters_not_free(['yscale'])
             #component.active = False
-                    
+
     def enable_xray_lines(self):
         """Enable the X-ray lines components.
 
         """
         for component in self.xray_lines:
             component.active = True
-            
+
     def disable_xray_lines(self):
         """Disable the X-ray lines components.
 
         """
         for component in self._active_xray_lines:
             component.active = False
-            
-    def fit_background(self, 
-                start_energy=None,
-                end_energy=None,
-                kind='single', 
-                **kwargs):
+
+    def fit_background(self,
+                       start_energy=None,
+                       end_energy=None,
+                       kind='single',
+                       **kwargs):
         """
         Parameters
         ----------
@@ -344,24 +342,23 @@ class EDSModel(Model):
         if not self._active_background_components:
             return
         if end_energy is None and \
-            self.spectrum._get_beam_energy() < \
-            self.axes_manager.signal_axes[0].high_value:
-                end_energy = self.spectrum._get_beam_energy()
+                self.spectrum._get_beam_energy() < \
+                self.axes_manager.signal_axes[0].high_value:
+            end_energy = self.spectrum._get_beam_energy()
         else:
             end_energy = self.axes_manager.signal_axes[0].high_value
-        
-        #desactivate line
+
+        # desactivate line
         self.enable_background()
         self.disable_xray_lines()
         self.set_signal_range(
-            start_energy,end_energy)
+            start_energy, end_energy)
         for component in self:
             if component.isbackground is False:
                 try:
-                    self.remove_signal_range(component.centre.value-
-                                4*component.sigma.value
-                                , component.centre.value+
-                                3*component.sigma.value)
+                    self.remove_signal_range(component.centre.value -
+                                             4 * component.sigma.value, component.centre.value +
+                                             3 * component.sigma.value)
                 except:
                     pass
 
@@ -371,26 +368,26 @@ class EDSModel(Model):
             self.multifit(**kwargs)
         self.reset_signal_range()
         self.enable_xray_lines()
-        self.disable_background()   
-            
-    def bound_centre(self, bound= 0.001):
+        self.disable_background()
+
+    def bound_centre(self, bound=0.001):
         """
         """
-        for component  in self:
+        for component in self:
             if component.isbackground is False:
-                component.centre.free = True    
-                component.centre.bmin = component.centre.value -bound
-                component.centre.bmax = component.centre.value+bound
-                
+                component.centre.free = True
+                component.centre.bmin = component.centre.value - bound
+                component.centre.bmax = component.centre.value + bound
+
     def fix_centre(self):
         """
         """
-        for component  in self:
+        for component in self:
             if component.isbackground is False:
                 component.centre.free = False
-                
-    def fit_centre(self, bound= 0.001, kind='single', 
-                **kwargs):
+
+    def fit_centre(self, bound=0.001, kind='single',
+                   **kwargs):
         """
         """
         self.bound_centre(bound)
@@ -399,28 +396,28 @@ class EDSModel(Model):
         if kind == 'multi':
             self.multifit(**kwargs)
         self.fix_centre()
-        
-    def bound_A(self, bound= 0.1):
+
+    def bound_A(self, bound=0.1):
         """
         """
-        for component  in self:
+        for component in self:
             if component.isbackground is False:
-                component.A.free = True  
-                del component.A.twin_function  
-                del component.A.twin_inverse_function 
-                del component.A.twin 
-                component.A.bmin = component.A - bound*component.A.value
-                component.A.bmax = component.A - bound*component.A.value
-                
+                component.A.free = True
+                del component.A.twin_function
+                del component.A.twin_inverse_function
+                del component.A.twin
+                component.A.bmin = component.A - bound * component.A.value
+                component.A.bmax = component.A - bound * component.A.value
+
     def free_A(self):
         """
         """
         for component in self:
             if component.isbackground is False:
                 component.centre.free = False
-                
-    def fit_factor(self, bound= 0.001, kind='single', 
-                **kwargs):
+
+    def fit_factor(self, bound=0.001, kind='single',
+                   **kwargs):
         """
         """
         self.bound_A(bound)
@@ -428,7 +425,4 @@ class EDSModel(Model):
             self.fit(**kwargs)
         if kind == 'multi':
             self.multifit(**kwargs)
-        #self.fix_centre()
-            
-    
-    
+        # self.fix_centre()

@@ -1382,60 +1382,60 @@ class EDSSpectrum(Spectrum):
                 if hasattr(mp.Sample, result):
                     mp.Sample[result] = result_store[i]
                     i = i + 1
-                    
-    def compute_continuous_xray_generation(self,generation_factor=1):
+
+    def compute_continuous_xray_generation(self, generation_factor=1):
         """Continous X-ray generation.
-    
+
         Kramer or Lisfshin equation
-        
+
         Parameters
-        ----------  
+        ----------
         generation_factor: int
-            The power law to use. 
+            The power law to use.
             1 si equivalent to Kramer equation.
             2 is equivalent to Lisfhisn modification of Kramer equation.
         beam_energy:  float
             The energy of the electron beam
-            
+
         See also
         --------
         utils.misc.eds.model.continuous_xray_generation
         edsmodel.add_background
-        """  
-        
-        beam_energy = self._get_beam_energy()   
+        """
+
+        beam_energy = self._get_beam_energy()
         spec = self.deepcopy()
         for ax in self.axes_manager.navigation_axes:
-            spec  = spec[0]
+            spec = spec[0]
         eng = mlab.frange(spec.axes_manager.signal_axes[0].low_value,
                           spec.axes_manager.signal_axes[0].high_value,
                           spec.axes_manager.signal_axes[0].scale)
-        spec.data = model_eds.continuous_xray_generation(energy=eng, 
-            generation_factor=generation_factor,
-            beam_energy=beam_energy)
-        return spec 
-        
+        spec.data = model_eds.continuous_xray_generation(energy=eng,
+                                                         generation_factor=generation_factor,
+                                                         beam_energy=beam_energy)
+        return spec
+
     def compute_continuous_xray_absorption(self,
-            weight_fraction= 'auto', 
-            gateway='auto'):
+                                           weight_fraction='auto',
+                                           gateway='auto'):
         """Contninous X-ray Absorption within sample
-        
+
         PDH equation (Philibert-Duncumb-Heinrich)
-        
+
         Parameters
-        ---------- 
+        ----------
         weight_percent: list of float
-            The sample composition. If 'auto', takes value in metadata. 
+            The sample composition. If 'auto', takes value in metadata.
             If not there, use and equ-composition
-            
-            
+
+
         See also
         --------
         utils.misc.eds.model.continuous_xray_absorption
         edsmodel.add_background
         """
-        
-        beam_energy = self._get_beam_energy()  
+
+        beam_energy = self._get_beam_energy()
         elements = self.metadata.Sample.elements
         TOA = self.get_take_off_angle()
         units_name = self.axes_manager.signal_axes[0].units
@@ -1446,70 +1446,71 @@ class EDSSpectrum(Spectrum):
                 weight_fraction = []
                 for elm in elements:
                     weight_fraction.append(1. / len(elements))
-        
-        
+
         spec = self.deepcopy()
         for ax in self.axes_manager.navigation_axes:
-            spec  = spec[0]
+            spec = spec[0]
         eng = mlab.frange(spec.axes_manager.signal_axes[0].low_value,
                           spec.axes_manager.signal_axes[0].high_value,
                           spec.axes_manager.signal_axes[0].scale)
 
         spec.data = model_eds.continuous_xray_absorption(energy=eng,
-            weight_fraction=weight_fraction, 
-            elements=elements,
-            beam_energy = beam_energy,
-            TOA=TOA,
-            units_name=units_name,
-            gateway=gateway)
+                                                         weight_fraction=weight_fraction,
+                                                         elements=elements,
+                                                         beam_energy=beam_energy,
+                                                         TOA=TOA,
+                                                         units_name=units_name,
+                                                         gateway=gateway)
         for i, en in enumerate(eng):
             if en <= 0:
-                spec.data[i]=0.
+                spec.data[i] = 0.
             else:
                 break
 
-        return spec    
-        
-    def get_detector_efficiency(self, 
-                detector_name,
-                gateway='auto'):   
+        return spec
+
+    def get_detector_efficiency(self,
+                                detector_name,
+                                gateway='auto'):
         """
-        Return the detector efficiency. 
-        
+        Return the detector efficiency.
+
         From DTSA II or from a database
-        
+
         Parameters
         ----------
         det_name: int, str
-            If {0,1,2,3,4}, INCA efficiency database            
+            If {0,1,2,3,4}, INCA efficiency database
             If str, model from DTSAII
         gateway: execnet Gateway
             If 'auto', generate automatically the connection to jython.
-            
+
         See also
         --------
         database.detector_efficiency_INCA
-        utils_eds.get_detector_properties    
+        utils_eds.get_detector_properties
         """
         ax_s = self.axes_manager[-1]
-        if isinstance(detector_name,str):
-            if gateway=='auto':
-                gateway= utils_eds.get_link_to_jython()
+        if isinstance(detector_name, str):
+            if gateway == 'auto':
+                gateway = utils_eds.get_link_to_jython()
             det_efficiency = utils_eds.get_detector_properties(
-                    detector_name,gateway=gateway)
+                detector_name, gateway=gateway)
         else:
             det_efficiency = database.detector_efficiency_INCA(detector_name)
-        det_efficiency = det_efficiency[ax_s.low_value:ax_s.high_value+ax_s.scale]
+        det_efficiency = det_efficiency[
+            ax_s.low_value:ax_s.high_value +
+            ax_s.scale]
         ax_det = det_efficiency.axes_manager[-1]
 
         if ax_s.low_value < ax_det.low_value:
-            det_efficiency.data = np.append(np.array([0]*
-                    (ax_s.size - ax_det.size)),det_efficiency.data)
+            det_efficiency.data = np.append(np.array([0] *
+                                                     (ax_s.size - ax_det.size)), det_efficiency.data)
             det_efficiency.get_dimensions_from_data()
             ax_det.offset = ax_s.offset
-        
+
         return det_efficiency
-   
+
 
     # def running_sum(self, shape_convo='square', corner=-1):
         # cross not tested
