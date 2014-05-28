@@ -26,6 +26,7 @@ from hyperspy.misc.elements import elements as elements_db
 from hyperspy.misc.eds import utils as utils_eds
 from hyperspy.misc.eds import model as model_eds
 import hyperspy.components as create_component
+from hyperspy import utils
 
 
 def _get_ratio(element, line):
@@ -67,6 +68,7 @@ class EDSModel(Model):
         #self.low_loss = ll
         #self.GOS = GOS
         self.xray_lines = list()
+        self.background_components = list()
         # if auto_background is True:
         #    interactive_ns = get_interactive_ns()
         #    background = PowerLaw()
@@ -76,9 +78,9 @@ class EDSModel(Model):
 
         # if self.spectrum.xray_lines and auto_add_lines is True:
         if auto_add_lines is True:
-            self._add_lines()
-        # if auto_background is True:
-        #    self._add_background()
+            self.add_lines()
+        if auto_background is True:
+            self.add_background()
 
     @property
     def spectrum(self):
@@ -94,8 +96,10 @@ class EDSModel(Model):
                 "This attribute can only contain an EDSSpectrum "
                 "but an object of type %s was provided" %
                 str(type(value)))
+                
+    
 
-    def _add_lines(self, xray_lines=None, only_one=False,
+    def add_lines(self, xray_lines=None, only_one=False,
                    only_lines=("Ka", "La", "Ma")):
         """Create the Xray-lines instances and configure them appropiately
 
@@ -129,43 +133,46 @@ class EDSModel(Model):
             else:
                 raise ValueError(
                     "Not X-ray line, set them with `add_elements`")
-        self.xray_lines = xray_lines
+        #self.xray_lines = xray_lines
         for i, xray_line in enumerate(xray_lines):
             element, line = utils_eds._get_element_and_line(xray_line)
             line_energy, line_FWHM = self.spectrum._get_line_energy(xray_line,
                                                                     FWHM_MnKa='auto')
-            fp = create_component.Gaussian()
-            fp.centre.value = line_energy
-            fp.sigma.value = line_FWHM / 2.355
-            fp.centre.free = False
-            fp.sigma.free = False
-            fp.name = xray_line
-            self.append(fp)
+            component = create_component.Gaussian()
+            component.centre.value = line_energy
+            component.sigma.value = line_FWHM / 2.355
+            #component.A.value = self.spectrum[..., line_energy].data.flatten().mean()
+            component.centre.free = False
+            component.sigma.free = False
+            component.name = xray_line
+            self.append(component)
+            self.xray_lines.append(component)
             init = True
             if init:
                 self[xray_line].A.map[
-                    'values'] = self.spectrum[..., line_energy].data
+                    'values'] = self.spectrum[..., line_energy].data/line_FWHM 
                 self[xray_line].A.map['is_set'] = (
                     np.ones(self.spectrum[..., line_energy].data.shape) == 1)
+            
             # if bounded:
-            #    fp.A.ext_bounded = True
-            #    fp.A.ext_force_positive = True
+            #    component.A.ext_bounded = True
+            #    component.A.ext_force_positive = True
             for li in elements_db[element]['Atomic_properties']['Xray_lines']:
                 if line[0] in li and line != li:
                     xray_sub = element + '_' + li
                     line_energy, line_FWHM = self.spectrum._get_line_energy(
                         xray_sub, FWHM_MnKa='auto')
-                    fp_sub = create_component.Gaussian()
-                    fp_sub.centre.value = line_energy
-                    fp_sub.name = xray_sub
-                    fp_sub.sigma.value = line_FWHM / 2.355
-                    fp_sub.A.twin = fp.A
-                    fp_sub.centre.free = False
-                    fp_sub.sigma.free = False
-                    fp_sub.A.twin_function = _get_ratio(element, li)
-                    fp_sub.A.twin_inverse_function = _get_iratio(
+                    component_sub = create_component.Gaussian()
+                    component_sub.centre.value = line_energy
+                    component_sub.name = xray_sub
+                    component_sub.sigma.value = line_FWHM / 2.355
+                    component_sub.A.twin = component.A
+                    component_sub.centre.free = False
+                    component_sub.sigma.free = False
+                    component_sub.A.twin_function = _get_ratio(element, li)
+                    component_sub.A.twin_inverse_function = _get_iratio(
                         element, li)
-                    self.append(fp_sub)
+                    self.append(component_sub)
 
     def get_line_intensities(self,
                              plot_result=True,
@@ -208,3 +215,220 @@ class EDSModel(Model):
             utils.plot.plot_signals(intensities, **kwargs)
         if store_in_mp is False:
             return intensities
+            
+    def add_background(self,
+                generation_factors=[1,2],
+                detector_name=4,
+                weight_fraction='auto',
+                gateway='auto'):
+        """
+        Add a backround to the model in the form of several
+        scalable fixed patterns. 
+        
+        Each pattern is the muliplication of the detector efficiency,
+        the absorption in the sample (PDH equation) and a continuous X-ray
+        generation. 
+        
+        Parameters
+        ----------    
+        generation_factors: list of int
+            For each number n, add (E0-E)^n/E
+            [1] is equivalent to Kramer equation.
+            [1,2] is equivalent to Lisfhisn modification of Kramer equation.
+        det_name: int, str, None
+            If None, no det_efficiency
+            If {0,1,2,3,4}, INCA efficiency database            
+            If str, model from DTSAII
+        weight_fraction: list of float
+             The sample composition used for the sample absorption.
+             If 'auto', takes value in metadata. If not there, 
+             use and equ-composition
+        gateway: execnet Gateway
+            If 'auto', generate automatically the connection to jython.
+            
+        See also
+        --------
+        database.detector_efficiency_INCA, 
+        utils_eds.get_detector_properties
+        """
+        generation = []
+        if gateway=='auto':
+            gateway= utils_eds.get_link_to_jython()
+        for exp_factor in generation_factors:
+            generation.append(self.spectrum.compute_continuous_xray_generation(
+                            exp_factor))
+            generation[-1].metadata.General.title = 'generation'\
+                    + str(exp_factor)
+        absorption  = self.spectrum.compute_continuous_xray_absorption(
+                                    gateway=gateway,
+                                    weight_fraction = weight_fraction)
+        absorption.metadata.General.title = 'absorption'
+        if detector_name is None:
+            det_efficiency = 1
+        else:
+            det_efficiency = self.spectrum.get_detector_efficiency(
+                    detector_name,gateway=gateway)
+
+        for gen, gen_fact in zip(generation,generation_factors):
+            bck = det_efficiency * gen * absorption
+            #bck.plot()            
+            bck = bck[self.axes_manager[-1].scale:]
+            bck.metadata.General.title = 'bck_'+str(gen_fact)
+            component = create_component.ScalableFixedPattern(bck)
+            component.set_parameters_not_free(['xscale','shift'])
+            component.name = bck.metadata.General.title
+            #component.yscale.ext_bounded = True
+            component.yscale.bmin = 0
+            component.yscale.ext_force_positive = True
+            component.isbackground = True
+            self.append(component)
+            self.background_components.append(component)
+    
+    @property
+    def _active_xray_lines(self):
+        return [xray_line for xray_line \
+                in self.xray_lines if xray_line.active]
+
+    @property
+    def _active_background_components(self):
+        return [bc for bc in self.background_components if bc.yscale.free]
+            
+    def enable_background(self):
+        """Enable the yscale of the background components.
+
+        """
+        for component in self.background_components:
+            #component.active = True
+            component.set_parameters_free(['yscale'])
+
+    def disable_background(self):
+        """Disable the background components.
+
+        """
+        for component in self._active_background_components:
+            component.set_parameters_not_free(['yscale'])
+            #component.active = False
+                    
+    def enable_xray_lines(self):
+        """Enable the X-ray lines components.
+
+        """
+        for component in self.xray_lines:
+            component.active = True
+            
+    def disable_xray_lines(self):
+        """Disable the X-ray lines components.
+
+        """
+        for component in self._active_xray_lines:
+            component.active = False
+            
+    def fit_background(self, 
+                start_energy=None,
+                end_energy=None,
+                kind='single', 
+                **kwargs):
+        """
+        Parameters
+        ----------
+        start_energy : {float, None}
+            If float, limit the range of energies from the left to the
+            given value.
+        kind : {'single', 'multi'}
+            If 'single' fit only the current location. If 'multi'
+            use multifit.
+        **kwargs : extra key word arguments
+            All extra key word arguments are passed to fit or
+        """
+        # If there is no active background compenent do nothing
+        if not self._active_background_components:
+            return
+        if end_energy is None and \
+            self.spectrum._get_beam_energy() < \
+            self.axes_manager.signal_axes[0].high_value:
+                end_energy = self.spectrum._get_beam_energy()
+        else:
+            end_energy = self.axes_manager.signal_axes[0].high_value
+        
+        #desactivate line
+        self.enable_background()
+        self.disable_xray_lines()
+        self.set_signal_range(
+            start_energy,end_energy)
+        for component in self:
+            if component.isbackground is False:
+                try:
+                    self.remove_signal_range(component.centre.value-
+                                4*component.sigma.value
+                                , component.centre.value+
+                                3*component.sigma.value)
+                except:
+                    pass
+
+        if kind == 'single':
+            self.fit(**kwargs)
+        if kind == 'multi':
+            self.multifit(**kwargs)
+        self.reset_signal_range()
+        self.enable_xray_lines()
+        self.disable_background()   
+            
+    def bound_centre(self, bound= 0.001):
+        """
+        """
+        for component  in self:
+            if component.isbackground is False:
+                component.centre.free = True    
+                component.centre.bmin = component.centre.value -bound
+                component.centre.bmax = component.centre.value+bound
+                
+    def fix_centre(self):
+        """
+        """
+        for component  in self:
+            if component.isbackground is False:
+                component.centre.free = False
+                
+    def fit_centre(self, bound= 0.001, kind='single', 
+                **kwargs):
+        """
+        """
+        self.bound_centre(bound)
+        if kind == 'single':
+            self.fit(**kwargs)
+        if kind == 'multi':
+            self.multifit(**kwargs)
+        self.fix_centre()
+        
+    def bound_A(self, bound= 0.1):
+        """
+        """
+        for component  in self:
+            if component.isbackground is False:
+                component.A.free = True  
+                del component.A.twin_function  
+                del component.A.twin_inverse_function 
+                del component.A.twin 
+                component.A.bmin = component.A - bound*component.A.value
+                component.A.bmax = component.A - bound*component.A.value
+                
+    def free_A(self):
+        """
+        """
+        for component in self:
+            if component.isbackground is False:
+                component.centre.free = False
+                
+    def fit_factor(self, bound= 0.001, kind='single', 
+                **kwargs):
+        """
+        """
+        self.bound_A(bound)
+        if kind == 'single':
+            self.fit(**kwargs)
+        if kind == 'multi':
+            self.multifit(**kwargs)
+        #self.fix_centre()
+            
+    
+    

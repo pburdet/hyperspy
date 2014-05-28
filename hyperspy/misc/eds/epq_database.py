@@ -16,7 +16,7 @@ def get_mass_absorption_coefficient(energy,
 
     Parameters
     ----------
-    energy: float
+    energy: float or list of float
         The energy of the beam in kV.
     elements: list of strings
         The symbol of the elements.
