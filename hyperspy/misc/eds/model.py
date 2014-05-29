@@ -68,7 +68,7 @@ def continuous_xray_absorption(energy,
 
     if isinstance(energy, list):
         energy = np.array(energy)
-    xi=[]
+    xi = []
     for en in energy:
         xi.append(utils_eds.get_mass_absorption_coefficient_sample(
             energy=en, elements=elements,

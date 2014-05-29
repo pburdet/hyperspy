@@ -100,13 +100,13 @@ class EDSSpectrum(Spectrum):
         line_energy = utils_eds._get_energy_xray_line(Xray_line)
         if units_name == 'eV':
             line_energy *= 1000
-            #elements_db[element]['Atomic_properties']['Xray_lines'][
+            # elements_db[element]['Atomic_properties']['Xray_lines'][
             #    line]['energy (keV)'] * 1000
             if FWHM_MnKa is not None:
                 line_FWHM = utils_eds.get_FWHM_at_Energy(FWHM_MnKa,
                                                          line_energy / 1000) * 1000
         elif units_name == 'keV':
-            #line_energy = elements_db[element]['Atomic_properties']['Xray_lines'][
+            # line_energy = elements_db[element]['Atomic_properties']['Xray_lines'][
             #    line]['energy (keV)']
             if FWHM_MnKa is not None:
                 line_FWHM = utils_eds.get_FWHM_at_Energy(FWHM_MnKa,
@@ -1291,7 +1291,7 @@ class EDSSpectrum(Spectrum):
         elements: {list of str | 'auto'}
             The list of element symbol of the absorber, e.g. ['Al','Zn'].
             if 'auto', use the elements of the X-ray lines
-            
+
         Return
         ------
         mass absorption coefficient in cm^2/g
@@ -1456,19 +1456,19 @@ class EDSSpectrum(Spectrum):
         eng = mlab.frange(spec.axes_manager.signal_axes[0].low_value,
                           spec.axes_manager.signal_axes[0].high_value,
                           spec.axes_manager.signal_axes[0].scale)
-        eng = eng[np.searchsorted(eng,1e-10):]
-        spec.data = np.append(np.array([0]*(len(spec.data)-len(eng))),
-                    model_eds.continuous_xray_absorption(energy=eng,
-                                                         weight_fraction=weight_fraction,
-                                                         elements=elements,
-                                                         beam_energy=beam_energy,
-                                                         TOA=TOA,
-                                                         units_name=units_name))
-        #for i, en in enumerate(eng):
-            #if en <= 0:
+        eng = eng[np.searchsorted(eng, 1e-10):]
+        spec.data = np.append(np.array([0] * (len(spec.data) - len(eng))),
+                              model_eds.continuous_xray_absorption(energy=eng,
+                                                                   weight_fraction=weight_fraction,
+                                                                   elements=elements,
+                                                                   beam_energy=beam_energy,
+                                                                   TOA=TOA,
+                                                                   units_name=units_name))
+        # for i, en in enumerate(eng):
+            # if en <= 0:
                 #spec.data[i] = 0.
-            #else:
-                #break
+            # else:
+                # break
 
         return spec
 
