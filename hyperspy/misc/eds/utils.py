@@ -12,13 +12,18 @@ from hyperspy.misc.config_dir import config_path
 import hyperspy.components as components
 from hyperspy.misc.elements import elements as elements_db
 from hyperspy.misc.eds import database
-from hyperspy.misc.eds.MAC import MAC_db as MAC
+#from hyperspy.misc.eds.MAC import MAC_db as MAC
 from functools import reduce
 
 
 def _get_element_and_line(xray_line):
     lim = xray_line.find('_')
     return xray_line[:lim], xray_line[lim + 1:]
+    
+def _get_energy_xray_line(xray_line):
+    energy, line = _get_element_and_line(xray_line)
+    return elements_db[energy]['Atomic_properties']['Xray_lines'][
+                line]['energy (keV)']
 
 
 def get_FWHM_at_Energy(energy_resolution_MnKa, E):
@@ -194,18 +199,22 @@ def get_index_from_names(self, axis_names, index_name, axis_name_in_mp=True):
             return i
 
 
-def get_MAC_sample(xray_lines, weight_percent, elements='auto'):
+def get_MAC_sample(xray_lines, weight_fraction, elements='auto'):
     """Return the mass absorption coefficients of a sample
 
     Parameters
     ----------
     xray_lines: list of str
         The list of X-ray lines, e.g. ['Al_Ka','Zn_Ka','Zn_La']
-    weight_percent: list of float
+    weight_fraction: list of float
         the composition of the sample
     elements: {list of str | 'auto'}
         The list of element symbol of the absorber, e.g. ['Al','Zn'].
         if 'auto', use the elements of the X-ray lines
+    
+    Return
+    ------
+    mass absorption coefficient in cm^2/g
     """
     macs = []
     if elements == 'auto':
@@ -217,11 +226,118 @@ def get_MAC_sample(xray_lines, weight_percent, elements='auto'):
     if len(elements) != len(weight_percent):
         raise ValueError("Add elements first, see 'set_elements'")
     for xray_line in xray_lines:
-        el_emit, line = _get_element_and_line(xray_line)
-        macs.append(0)
-        for i_el, el_abs in enumerate(elements):
-            macs[-1] += weight_percent[i_el] / 100 * MAC[el_emit][line][el_abs]
+        line_energy = _get_energy_xray_line(xray_line)
+        #el_emit, line = _get_element_and_line(xray_line)
+        macs.append(get_mass_absorption_coefficient_sample(
+            energy=line_energy, 
+            elements=elements, 
+            weight_fraction=weight_fraction))
+        #for i_el, el_abs in enumerate(elements):
+        #    macs[-1] += weight_percent[i_el] / 100 * \
+        #        get_mass_absorption_coefficient_xray_line(el_abs,xray_line)
+            #MAC[el_emit][line][el_abs]
     return macs
+            
+def get_mass_absorption_coefficient_sample(energy, 
+        elements, 
+        weight_fraction):
+    """Return the mass absorption coefficients of a sample
+
+    Parameters
+    ----------
+    energy: float
+        The energy
+    weight_fraction: list of float
+        the composition of the sample
+    elements: list of str
+        The list of element symbol of the absorber, e.g. ['Al','Zn'].
+    
+    Return
+    ------
+    mass absorption coefficient in cm^2/g
+    """
+    mac = 0
+    for el,weight in zip(elements,weight_fraction):
+        mac += weight * \
+            get_mass_absorption_coefficient(el,energy)
+    return mac
+    
+#def get_mass_absorption_coefficient_xray_line(element,xray_line):
+    #"""
+    #Get the mass absorption coefficient of an X-ray line
+    
+    #Parameters
+    #----------
+    #element: str
+        #The element symbol of the absorber, e.g. 'Al'.
+    #xray_line: str
+        #The X-ray line, e.g. 'Al_Ka'
+        
+    #Return
+    #------
+    #mass absorption coefficient in cm^2/g
+    #"""
+    #energy, line = _get_element_and_line(xray_line)
+    #line_energy = elements_db[el_emit]['Atomic_properties']['Xray_lines'][
+                #line]['energy (keV)']
+    #return get_mass_absorption_coefficient(element,energy)
+
+def _mac_interpolation(mac, mac1,energy,
+                         energy_db,energy_db1):
+    """
+    Interpolate between the tabulated mass absorption coefficients
+    for an energy
+    
+    Parameters
+    ----------
+    mac, mac1: float
+        The mass absorption coefficients in cm^2/g
+    energy,energy_db,energy_db1:
+        The energy. The given energy and the tabulated energy, 
+        respectively
+        
+    Return
+    ------
+    mass absorption coefficient in cm^2/g
+    """
+    return np.exp(np.log(mac1) + np.log(mac/mac1) \
+            * (np.log(energy / energy_db1) / np.log(
+                energy_db/energy_db1)))
+
+def get_mass_absorption_coefficient(element,energy):
+    """
+    Get the mass absorption coefficient of an Xray
+    
+    Parameters
+    ----------
+    element: str
+        The element symbol of the absorber, e.g. 'Al'.
+    energy: float
+        The energy of the Xray in keV
+        
+    Return
+    ------
+    mass absorption coefficient in cm^2/g
+    """
+    from hyperspy.misc.eds.ffast_mac import ffast_mac_db as ffast_mac
+    energies = ffast_mac[element].energies_keV
+
+    for index, energy_db in enumerate(energies):
+        if energy <= energy_db:
+            break
+    #if index1 == len(energies):
+    #    print 'extrapolation'
+    #    print element
+    #    print energy
+    mac = ffast_mac[element].mass_absorption_coefficient_cm2g[index]
+    mac1 = ffast_mac[element].mass_absorption_coefficient_cm2g[index-1]
+    energy_db = ffast_mac[element].energies_keV[index]
+    energy_db1 = ffast_mac[element].energies_keV[index-1]
+    if energy == energy_db or energy_db1 == 0:
+        return mac
+    else:
+        return _mac_interpolation(mac, mac1,energy,
+                         energy_db,energy_db1)
 
 
 def simulate_one_spectrum(nTraj, dose=100, mp='gui',

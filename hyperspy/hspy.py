@@ -58,7 +58,7 @@ from hyperspy.misc.eds import utils as utils_eds
 from hyperspy.misc.eds import database
 from hyperspy.misc.eds import image_eds
 from hyperspy.misc.eds import epq_database
-from hyperspy.misc.eds.MAC import MAC_db as MAC
+#from hyperspy.misc.eds.MAC import MAC_db as MAC
 
 
 def get_configuration_directory_path():

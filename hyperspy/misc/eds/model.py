@@ -37,8 +37,7 @@ def continuous_xray_absorption(energy,
                                elements,
                                beam_energy,
                                TOA,
-                               units_name,
-                               gateway='auto'):
+                               units_name):
     """Contninous X-ray Absorption within sample
 
     PDH equation (Philibert-Duncumb-Heinrich)
@@ -66,15 +65,15 @@ def continuous_xray_absorption(energy,
         coeff = 4.5 * 1e2
     else:
         coeff = 4.5 * 1e5
-    if gateway == 'auto':
-        gateway = utils_eds.get_link_to_jython()
 
     if isinstance(energy, list):
         energy = np.array(energy)
-    xi = epq_database.get_mass_absorption_coefficient(
-        energy, elements,
-        weight_fraction,
-        gateway=gateway) / np.sin(np.radians(TOA))
+    xi=[]
+    for en in energy:
+        xi.append(utils_eds.get_mass_absorption_coefficient_sample(
+            energy=en, elements=elements,
+            weight_fraction=weight_fraction) / np.sin(np.radians(TOA)))
+    xi = np.array(xi)
     sig = coeff / (np.power(beam_energy, 1.65
                             ) - np.power(energy, 1.65))
     return 1 / ((1 + xi / sig) * (1 + h / (1 + h) * xi / sig))

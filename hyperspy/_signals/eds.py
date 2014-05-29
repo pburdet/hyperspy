@@ -84,7 +84,7 @@ class EDSSpectrum(Spectrum):
         """
 
         units_name = self.axes_manager.signal_axes[0].units
-        element, line = utils_eds._get_element_and_line(Xray_line)
+        #element, line = utils_eds._get_element_and_line(Xray_line)
 
         if FWHM_MnKa == 'auto':
             if self.metadata.Signal.signal_type == 'EDS_SEM':
@@ -97,16 +97,17 @@ class EDSSpectrum(Spectrum):
                     "You can use `set_signal_type(\"EDS_TEM\")` or"
                     "`set_signal_type(\"EDS_SEM\")` to convert to one of these"
                     "signal types.")
-
+        line_energy = utils_eds._get_energy_xray_line(Xray_line)
         if units_name == 'eV':
-            line_energy = elements_db[element]['Atomic_properties']['Xray_lines'][
-                line]['energy (keV)'] * 1000
+            line_energy *= 1000
+            #elements_db[element]['Atomic_properties']['Xray_lines'][
+            #    line]['energy (keV)'] * 1000
             if FWHM_MnKa is not None:
                 line_FWHM = utils_eds.get_FWHM_at_Energy(FWHM_MnKa,
                                                          line_energy / 1000) * 1000
         elif units_name == 'keV':
-            line_energy = elements_db[element]['Atomic_properties']['Xray_lines'][
-                line]['energy (keV)']
+            #line_energy = elements_db[element]['Atomic_properties']['Xray_lines'][
+            #    line]['energy (keV)']
             if FWHM_MnKa is not None:
                 line_FWHM = utils_eds.get_FWHM_at_Energy(FWHM_MnKa,
                                                          line_energy)
@@ -1276,7 +1277,7 @@ class EDSSpectrum(Spectrum):
 
     def get_MAC_sample(self,
                        xray_lines='auto',
-                       weight_percent='auto',
+                       weight_fraction='auto',
                        elements='auto'):
         """Return the mass absorption coefficients of for the different
         xray in a sample
@@ -1285,11 +1286,15 @@ class EDSSpectrum(Spectrum):
         ----------
         xray_lines: list of str
             The list of X-ray lines, e.g. ['Al_Ka','Zn_Ka','Zn_La']
-        weight_percent: list of float
+        weight_fraction: list of float
             the composition of the sample
         elements: {list of str | 'auto'}
             The list of element symbol of the absorber, e.g. ['Al','Zn'].
             if 'auto', use the elements of the X-ray lines
+            
+        Return
+        ------
+        mass absorption coefficient in cm^2/g
         """
 
         if xray_lines == 'auto'and 'Sample.xray_lines' in self.metadata:
@@ -1297,16 +1302,16 @@ class EDSSpectrum(Spectrum):
 
         if elements == 'auto'and 'Sample.elements' in self.metadata:
             elements = self.metadata.Sample.elements
-        if weight_percent == 'auto':
-            if 'Sample.weight_percent' in self.metadata:
-                weight_percent = self.metadata.Sample.weight_percent
+        if weight_fraction == 'auto':
+            if 'Sample.weight_fraction' in self.metadata:
+                weight_fraction = self.metadata.Sample.weight_fraction
             else:
-                weight_percent = []
+                weight_fraction = []
                 for elm in elements:
-                    weight_percent.append(1. / len(elements))
-                print 'Weight percent is ' + str(weight_percent)
+                    weight_fraction.append(1. / len(elements))
+                print 'Weight fraction is ' + str(weight_fraction)
         return utils_eds.get_MAC_sample(xray_lines=xray_lines,
-                                        weight_percent=weight_percent, elements=elements)
+                                        weight_fraction=weight_fraction, elements=elements)
 
     def save(self, filename=None, overwrite=None, extension=None,
              **kwds):
@@ -1416,18 +1421,16 @@ class EDSSpectrum(Spectrum):
         return spec
 
     def compute_continuous_xray_absorption(self,
-                                           weight_fraction='auto',
-                                           gateway='auto'):
+                                           weight_fraction='auto'):
         """Contninous X-ray Absorption within sample
 
         PDH equation (Philibert-Duncumb-Heinrich)
 
         Parameters
         ----------
-        weight_percent: list of float
+        weight_fraction: list of float
             The sample composition. If 'auto', takes value in metadata.
             If not there, use and equ-composition
-
 
         See also
         --------
@@ -1453,19 +1456,19 @@ class EDSSpectrum(Spectrum):
         eng = mlab.frange(spec.axes_manager.signal_axes[0].low_value,
                           spec.axes_manager.signal_axes[0].high_value,
                           spec.axes_manager.signal_axes[0].scale)
-
-        spec.data = model_eds.continuous_xray_absorption(energy=eng,
+        eng = eng[np.searchsorted(eng,1e-10):]
+        spec.data = np.append(np.array([0]*(len(spec.data)-len(eng))),
+                    model_eds.continuous_xray_absorption(energy=eng,
                                                          weight_fraction=weight_fraction,
                                                          elements=elements,
                                                          beam_energy=beam_energy,
                                                          TOA=TOA,
-                                                         units_name=units_name,
-                                                         gateway=gateway)
-        for i, en in enumerate(eng):
-            if en <= 0:
-                spec.data[i] = 0.
-            else:
-                break
+                                                         units_name=units_name))
+        #for i, en in enumerate(eng):
+            #if en <= 0:
+                #spec.data[i] = 0.
+            #else:
+                #break
 
         return spec
 
