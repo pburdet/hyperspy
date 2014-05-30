@@ -199,9 +199,9 @@ class Test_get_lines_intentisity:
 
         sAl = s[0].get_lines_intensity(["Al_Ka"],
                                        plot_result=False,
-                                       lines_deconvolution='model')[0]                                       
+                                       lines_deconvolution='model')[0]
         assert_true(np.allclose(19.22613, sAl.data[0, 0], atol=1e-3))
-        #Why?
+        # Why?
         #assert_true(np.allclose(0.75061671, sAl.data[0, 0], atol=1e-3))
         sAl = s[0, 0].get_lines_intensity(["Al_Ka"],
                                           plot_result=False,

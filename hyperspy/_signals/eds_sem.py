@@ -327,7 +327,7 @@ class EDSSEMSpectrum(EDSSpectrum):
                 mp_std.Acquisition_instrument.SEM.Detector.EDS.live_time
             # Fit with least square
             m = create_model(self.top_hat(line_energy, width_windows),
-                auto_background=False,auto_add_lines=False)
+                             auto_background=False, auto_add_lines=False)
             fp = components.ScalableFixedPattern(std.top_hat(line_energy,
                                                              width_windows))
             fp.set_parameters_not_free(['xscale', 'shift'])
@@ -341,7 +341,7 @@ class EDSSEMSpectrum(EDSSpectrum):
                 self._set_result(xray_line, 'kratios',
                                  fp.yscale.as_signal().data / diff_ltime, plot_result)
 
-    #do it with EDS model
+    # do it with EDS model
     def get_kratio(self, deconvolution=None, plot_result=True):
         """
         Calculate the k-ratios by least-square fitting of the standard
@@ -401,11 +401,11 @@ class EDSSEMSpectrum(EDSSpectrum):
         width_windows = [line_energy - width_energy[0],
                          width_energy[1] - line_energy]
         if top_hat_applied:
-            m = create_model(self.top_hat(line_energy, width_windows),auto_background=False,
-                 auto_add_lines=False)
+            m = create_model(self.top_hat(line_energy, width_windows), auto_background=False,
+                             auto_add_lines=False)
         else:
-            m = create_model(self[..., width_energy[0]:width_energy[1]],auto_background=False,
-                 auto_add_lines=False)
+            m = create_model(self[..., width_energy[0]:width_energy[1]], auto_background=False,
+                             auto_add_lines=False)
         mp = self.metadata
 
         diff_ltime = []
@@ -1006,8 +1006,8 @@ class EDSSEMSpectrum(EDSSpectrum):
         elif elemental_map is None:
             elemental_map = np.ones(elemental_map_shape)
 
-        m = create_model(self,auto_background=False,
-                 auto_add_lines=False)
+        m = create_model(self, auto_background=False,
+                         auto_add_lines=False)
         for i, (element, weight_percent) in enumerate(zip(elements, weight_percents)):
 
             for line in utils.material.elements[element].Atomic_properties.Xray_lines.keys():
