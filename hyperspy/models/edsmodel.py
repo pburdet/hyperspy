@@ -16,6 +16,10 @@
 # You should have received a copy of the GNU General Public License
 # along with  HyperSpy.  If not, see <http://www.gnu.org/licenses/>.
 
+#To do: weight_fraction different for different pixe. (so basckground)
+#Calibrate on standard and transfer dictionnary
+#k-ratios
+
 import copy
 import numpy as np
 #import traits.api as t

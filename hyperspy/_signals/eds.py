@@ -456,7 +456,9 @@ class EDSSpectrum(Spectrum):
             else:
                 lines.extend(element_lines)
         return lines
-
+        
+    #suppress lines_deconvolution="model"
+    #suppress standard? add option in "edsmodel"
     def get_lines_intensity(self,
                             xray_lines=None,
                             plot_result=False,
@@ -581,10 +583,12 @@ class EDSSpectrum(Spectrum):
 
         intensities = [0] * len(xray_lines)
         if lines_deconvolution == 'standard':
-            m = create_model(self)
+            m = create_model(self,auto_background=False,
+                 auto_add_lines=False)
         elif lines_deconvolution == 'model':
             s = self - bck
-            m = create_model(s)
+            m = create_model(s,auto_background=False,
+                 auto_add_lines=False)
 
         for i, xray_line in enumerate(xray_lines):
             line_energy, line_FWHM = self._get_line_energy(xray_line,
@@ -723,63 +727,8 @@ class EDSSpectrum(Spectrum):
                 np.sum(kernel)
 
         return result
-    # can be improved, other fit
-
-    def calibrate_energy_resolution(self, xray_line, bck='auto',
-                                    set_Mn_Ka=True, model_plot=True):
-        """
-        Calibrate the energy resolution from a peak
-
-        Estimate the FHWM of the peak, estimate the energy resolution and
-        extrapolate to FWHM of Mn Ka
-
-        Parameters:
-        xray_line : str
-            the selected X-ray line. It shouldn't have peak around
-
-        bck: float | 'auto'
-            the linear background to substract.
-
-        set_Mn_Ka : bool
-            If true, set the obtain resolution. If false, return the
-            FHWM at Mn Ka.
-
-        model_plot : bool
-            If True, plot the fit
-
-        """
-
-        from hyperspy.hspy import create_model
-        mp = self.metadata
-        element, line = utils_eds._get_element_and_line(xray_line)
-        Xray_energy, FWHM = self._get_line_energy(xray_line,
-                                                  FWHM_MnKa='auto')
-
-        if bck == 'auto':
-            spec_bck = self[Xray_energy + 2.5 * FWHM:Xray_energy + 2.7 * FWHM]
-            bck = spec_bck.sum(0).data / spec_bck.axes_manager.shape[0]
-        sb = self - bck
-        m = create_model(sb)
-
-        fp = create_component.Gaussian()
-        fp.centre.value = Xray_energy
-        fp.sigma.value = FWHM / 2.355
-        m.append(fp)
-        m.set_signal_range(Xray_energy - 1.2 * FWHM, Xray_energy + 1.6 * FWHM)
-        m.multifit()
-        if model_plot:
-            m.plot()
-
-        res_MnKa = utils_eds.get_FWHM_at_Energy(fp.sigma.value * 2.355 * 1000,
-                                                elements_db['Mn'][
-                                                    'Atomic_properties']['Xray_lines'][
-                                                    'Ka']['energy (keV)'], xray_line)
-        if set_Mn_Ka:
-            mp.SEM.Detector.EDS.energy_resolution_MnKa = res_MnKa * 1000
-            print 'Resolution at Mn Ka ', res_MnKa * 1000
-            print 'Shift eng eV ', (Xray_energy - fp.centre.value) * 1000
-        else:
-            return res_MnKa * 1000
+        
+    
 
     def get_result(self, xray_line, result):
         """
@@ -1021,7 +970,7 @@ class EDSSpectrum(Spectrum):
         TOA = utils.eds.take_off_angle(tilt_stage, azimuth_angle,
                                        elevation_angle)
         return TOA
-# if X-ray are set, no way to see all lines (delete Sample.Xray)
+
 # Other color for lines set
 
     def plot_xray_lines(self,
@@ -1184,7 +1133,8 @@ class EDSSpectrum(Spectrum):
         if isinstance(components, int):
             components = range(components)
 
-        m = create_model(self)
+        m = create_model(self,auto_background=False,
+                 auto_add_lines=False)
         factors = binned_signal.get_decomposition_factors()
         if loadings_as_guess:
             loadings = binned_signal.get_decomposition_loadings()
@@ -1513,8 +1463,66 @@ class EDSSpectrum(Spectrum):
             ax_det.offset = ax_s.offset
 
         return det_efficiency
+        
+# to be suppress, can be done with model->fit_energy_resolution
 
+    #def calibrate_energy_resolution(self, xray_line, bck='auto',
+                                    #set_Mn_Ka=True, model_plot=True):
+        #"""
+        #Calibrate the energy resolution from a peak
 
+        #Estimate the FHWM of the peak, estimate the energy resolution and
+        #extrapolate to FWHM of Mn Ka
+
+        #Parameters:
+        #xray_line : str
+            #the selected X-ray line. It shouldn't have peak around
+
+        #bck: float | 'auto'
+            #the linear background to substract.
+
+        #set_Mn_Ka : bool
+            #If true, set the obtain resolution. If false, return the
+            #FHWM at Mn Ka.
+
+        #model_plot : bool
+            #If True, plot the fit
+
+        #"""
+
+        #from hyperspy.hspy import create_model
+        #mp = self.metadata
+        #element, line = utils_eds._get_element_and_line(xray_line)
+        #Xray_energy, FWHM = self._get_line_energy(xray_line,
+                                                  #FWHM_MnKa='auto')
+
+        #if bck == 'auto':
+            #spec_bck = self[Xray_energy + 2.5 * FWHM:Xray_energy + 2.7 * FWHM]
+            #bck = spec_bck.sum(0).data / spec_bck.axes_manager.shape[0]
+        #sb = self - bck
+        #m = create_model(sb,auto_background=False,
+                 #auto_add_lines=False)
+
+        #fp = create_component.Gaussian()
+        #fp.centre.value = Xray_energy
+        #fp.sigma.value = FWHM / 2.355
+        #m.append(fp)
+        #m.set_signal_range(Xray_energy - 1.2 * FWHM, Xray_energy + 1.6 * FWHM)
+        #m.multifit()
+        #if model_plot:
+            #m.plot()
+
+        #res_MnKa = utils_eds.get_FWHM_at_Energy(fp.sigma.value * 2.355 * 1000,
+                                                #elements_db['Mn'][
+                                                    #'Atomic_properties']['Xray_lines'][
+                                                    #'Ka']['energy (keV)'], xray_line)
+        #if set_Mn_Ka:
+            #mp.SEM.Detector.EDS.energy_resolution_MnKa = res_MnKa * 1000
+            #print 'Resolution at Mn Ka ', res_MnKa * 1000
+            #print 'Shift eng eV ', (Xray_energy - fp.centre.value) * 1000
+        #else:
+            #return res_MnKa * 1000            
+############################
     # def running_sum(self, shape_convo='square', corner=-1):
         # cross not tested
         #"""
