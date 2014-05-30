@@ -26,6 +26,7 @@ def _get_energy_xray_line(xray_line):
     return elements_db[energy]['Atomic_properties']['Xray_lines'][
         line]['energy (keV)']
 
+
 def get_FWHM_at_Energy(energy_resolution_MnKa, E):
     """Calculates the FWHM of a peak at energy E.
 

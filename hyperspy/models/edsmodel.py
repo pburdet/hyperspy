@@ -468,7 +468,7 @@ class EDSModel(Model):
                     component_sub = self[xray_sub]
                     weight_line = component_sub.A.value / component.A.value
                     component_sub.A.twin_function = _get_weight(element,
-                                                               li, weight_line)
+                                                                li, weight_line)
                     component_sub.A.twin_inverse_function = _get_iweight(
                         element, li, weight_line)
 
