@@ -27,6 +27,12 @@ def _get_energy_xray_line(xray_line):
         line]['energy (keV)']
 
 
+def _get_energy_xray_line(xray_line):
+    energy, line = _get_element_and_line(xray_line)
+    return elements_db[energy]['Atomic_properties']['Xray_lines'][
+        line]['energy (keV)']
+
+
 def get_FWHM_at_Energy(energy_resolution_MnKa, E):
     """Calculates the FWHM of a peak at energy E.
 
@@ -48,8 +54,7 @@ def get_FWHM_at_Energy(energy_resolution_MnKa, E):
 
     """
     FWHM_ref = energy_resolution_MnKa
-    E_ref = elements_db['Mn']['Atomic_properties']['Xray_lines'][
-        'Ka']['energy (keV)']
+    E_ref = _get_energy_xray_line('Mn_Ka')
 
     FWHM_e = 2.5 * (E - E_ref) * 1000 + FWHM_ref * FWHM_ref
 
@@ -91,8 +96,7 @@ def xray_range(xray_line, beam_energy, density='auto'):
             element][
             'Physical_properties'][
             'density (g/cm^3)']
-    Xray_energy = elements_db[
-        element]['Atomic_properties']['Xray_lines'][line]['energy (keV)']
+    Xray_energy = _get_energy_xray_line(xray_line)
 
     return 0.064 / density * (np.power(beam_energy, 1.68) -
                               np.power(Xray_energy, 1.68))
