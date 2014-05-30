@@ -34,18 +34,18 @@ import hyperspy.components as create_component
 from hyperspy import utils
 
 
-def _get_ratio(element, line, ratio_line=None):
-    if ratio_line is None:
-        ratio_line = elements_db[
-            element]['Atomic_properties']['Xray_lines'][line]['factor']
-    return lambda x: x * ratio_line
+def _get_weight(element, line, weight_line=None):
+    if weight_line is None:
+        weight_line = elements_db[
+            element]['Atomic_properties']['Xray_lines'][line]['weight']
+    return lambda x: x * weight_line
 
 
-def _get_iratio(element, line, ratio_line=None):
-    if ratio_line is None:
-        ratio_line = elements_db[
-            element]['Atomic_properties']['Xray_lines'][line]['factor']
-    return lambda x: x / ratio_line
+def _get_iweight(element, line, weight_line=None):
+    if weight_line is None:
+        weight_line = elements_db[
+            element]['Atomic_properties']['Xray_lines'][line]['weight']
+    return lambda x: x / weight_line
 
 
 def _get_sigma(E, E_ref, is_eV):
@@ -178,8 +178,8 @@ class EDSModel(Model):
                     component.A.ext_force_positive = True
                     component_sub.centre.free = False
                     component_sub.sigma.free = False
-                    component_sub.A.twin_function = _get_ratio(element, li)
-                    component_sub.A.twin_inverse_function = _get_iratio(
+                    component_sub.A.twin_function = _get_weight(element, li)
+                    component_sub.A.twin_inverse_function = _get_iweight(
                         element, li)
                     self.append(component_sub)
 
@@ -466,11 +466,11 @@ class EDSModel(Model):
                 if line[0] in li and line != li:
                     xray_sub = element + '_' + li
                     component_sub = self[xray_sub]
-                    ratio_line = component_sub.A.value / component.A.value
-                    component_sub.A.twin_function = _get_ratio(element,
-                                                               li, ratio_line)
-                    component_sub.A.twin_inverse_function = _get_iratio(
-                        element, li, ratio_line)
+                    weight_line = component_sub.A.value / component.A.value
+                    component_sub.A.twin_function = _get_weight(element,
+                                                               li, weight_line)
+                    component_sub.A.twin_inverse_function = _get_iweight(
+                        element, li, weight_line)
 
     def fit_sub_xray_lines_weight(self, bound=0.01, kind='single',
                                   **kwargs):

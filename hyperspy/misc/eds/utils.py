@@ -26,13 +26,6 @@ def _get_energy_xray_line(xray_line):
     return elements_db[energy]['Atomic_properties']['Xray_lines'][
         line]['energy (keV)']
 
-
-def _get_energy_xray_line(xray_line):
-    energy, line = _get_element_and_line(xray_line)
-    return elements_db[energy]['Atomic_properties']['Xray_lines'][
-        line]['energy (keV)']
-
-
 def get_FWHM_at_Energy(energy_resolution_MnKa, E):
     """Calculates the FWHM of a peak at energy E.
 
@@ -267,26 +260,6 @@ def get_mass_absorption_coefficient_sample(energy,
         mac += weight * \
             get_mass_absorption_coefficient(el, energy)
     return mac
-
-# def get_mass_absorption_coefficient_xray_line(element,xray_line):
-    #"""
-    # Get the mass absorption coefficient of an X-ray line
-
-    # Parameters
-    #----------
-    # element: str
-        # The element symbol of the absorber, e.g. 'Al'.
-    # xray_line: str
-        # The X-ray line, e.g. 'Al_Ka'
-
-    # Return
-    #------
-    # mass absorption coefficient in cm^2/g
-    #"""
-    #energy, line = _get_element_and_line(xray_line)
-    # line_energy = elements_db[el_emit]['Atomic_properties']['Xray_lines'][
-                # line]['energy (keV)']
-    # return get_mass_absorption_coefficient(element,energy)
 
 
 def _mac_interpolation(mac, mac1, energy,

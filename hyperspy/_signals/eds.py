@@ -37,16 +37,16 @@ from hyperspy.drawing.utils import plot_histograms
 from hyperspy.misc.eds import model as model_eds
 
 
-def _get_ratio(element, line):
-    ratio_line = elements_db[
-        element]['Atomic_properties']['Xray_lines'][line]['factor']
-    return lambda x: x * ratio_line
+def _get_weight(element, line):
+    weight_line = elements_db[
+        element]['Atomic_properties']['Xray_lines'][line]['weight']
+    return lambda x: x * weight_line
 
 
-def _get_iratio(element, line):
-    ratio_line = elements_db[
-        element]['Atomic_properties']['Xray_lines'][line]['factor']
-    return lambda x: x / ratio_line
+def _get_iweight(element, line):
+    weight_line = elements_db[
+        element]['Atomic_properties']['Xray_lines'][line]['weight']
+    return lambda x: x / weight_line
 
 
 class EDSSpectrum(Spectrum):
@@ -642,8 +642,8 @@ class EDSSpectrum(Spectrum):
                             fp_sub.A.twin = fp.A
                             fp_sub.centre.free = False
                             fp_sub.sigma.free = False
-                            fp_sub.A.twin_function = _get_ratio(element, li)
-                            fp_sub.A.twin_inverse_function = _get_iratio(
+                            fp_sub.A.twin_function = _get_weight(element, li)
+                            fp_sub.A.twin_inverse_function = _get_iweight(
                                 element, li)
                             m.append(fp_sub)
         if lines_deconvolution == 'model' or lines_deconvolution == 'standard':
@@ -1040,7 +1040,7 @@ class EDSSpectrum(Spectrum):
             element, line = utils_eds._get_element_and_line(xray_line)
             line_energy.append(self._get_line_energy(xray_line))
             relative_factor = elements_db[element][
-                'Atomic_properties']['Xray_lines'][line]['factor']
+                'Atomic_properties']['Xray_lines'][line]['weight']
             a_eng = self._get_line_energy(element + '_' + line[0] + 'a')
             # if fixed_height:
                 # intensity.append(self[..., a_eng].data.flatten().mean()
