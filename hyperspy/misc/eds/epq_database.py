@@ -155,9 +155,9 @@ def get_xray_transition_properties(xray_line, beam_energy, gateway='auto'):
     for i, item in enumerate(channel):
         datas.append(item)
     element, line = utils_eds._get_element_and_line(xray_line)
-    fact = elements_db[element]['Atomic_properties']\
-        ['Xray_lines'][line]['factor']
-    return datas + [fact]
+    weight = elements_db[element]['Atomic_properties']\
+        ['Xray_lines'][line]['weight']
+    return datas + [weight]
 
 
 def get_energy_and_weight(line, gateway='auto'):

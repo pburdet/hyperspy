@@ -246,7 +246,7 @@ class EDSTEMSpectrum(EDSSpectrum):
             mp.Acquisition_instrument.TEM.Detector.EDS.live_time = \
                 mp_ref.Detector.EDS.live_time / nb_pix
 
-    def simulate_binary_standard(self,
+    def simulate_two_elements_standard(self,
                                  common_xray='Si_Ka',
                                  nTraj=10000,
                                  dose=100,
@@ -284,6 +284,14 @@ class EDSTEMSpectrum(EDSSpectrum):
 
         gateway: execnet Gateway
             If 'auto', generate automatically the connection to jython.
+            
+        Examples
+        ---------
+        >>> s = database.spec3D('TEM')
+        >>> s.set_elements(["Ni", "Cr",'Al'])
+        >>> s.set_lines(["Ni_Ka", "Cr_Ka", "Al_Ka"])
+        >>> s.set_microscope_parameters(live_time=30)
+        >>> s.simulate_two_elements_standard(nTraj=100)
         """
         std_met = self.deepcopy()
         std_met.metadata.Sample.thickness = thickness
@@ -304,7 +312,7 @@ class EDSTEMSpectrum(EDSSpectrum):
                                                            detector=detector, compo_at=atomic_percent,
                                                            gateway=gateway))
             std[-1].metadata.General.title = el + '_'\
-                + common_element + '_binary'
+                + common_element + '_comon'
             std[-1].metadata.Sample.weight_percent = [0.5, 0.5]
         self.metadata.Sample.standard_spec = std
 
@@ -312,30 +320,38 @@ class EDSTEMSpectrum(EDSSpectrum):
                                    common_line='Ka',
                                    **kwargs):
         """
-        Exctract the kfactor from binary standard
+        Exctract the kfactor from two elements standard
 
         Store the kfactor in metadata.sample.kfactors
 
         Parameters
         ----------
-
         common_line: str
             The line for the common element to use.
-
         kwargs
         The extra keyword arguments for get_lines_intensity
+        
+        Examples
+        ---------
+        >>> s = database.spec3D('TEM')
+        >>> s.set_elements(["Ni", "Cr",'Al'])
+        >>> s.set_lines(["Ni_Ka", "Cr_Ka", "Al_Ka"])
+        >>> s.set_microscope_parameters(live_time=30)
+        >>> s.simulate_two_elements_standard(nTraj=100)
+        >>> s.get_kfactors_from_standard()
 
         See also
         -------
-
-        simulate_binary_standard, get_lines_intensity
+        simulate_two_elements_standard, get_lines_intensity
+        
 
         """
         std_title = self.metadata.Sample.standard_spec[0
                                                        ].metadata.General.title
-        if 'binary' not in std_title:
+        if 'comon' not in std_title:
             raise ValueError(
-                "Binary standard are needed.")
+                "Two elements standard are needed. See " + 
+                "simulate_two_elements_standard")
         else:
             common_element = std_title[std_title.find('_') + 1:]
             common_element = common_element[:common_element.find('_')]
@@ -349,53 +365,71 @@ class EDSTEMSpectrum(EDSSpectrum):
             intens = std.get_lines_intensity([xray] + [common_xray], **kwargs)
             kfactor = intens[1].data / intens[0].data
             if i == 0:
-                kfactor0 = kfactor
+                kfactor0 = kfactor[0]
                 kfactor0_name = xray
             else:
-                kfactors.append(kfactor0 / kfactor)
-                kfactors_name.append(kfactor0_name + '/' + xray)
+                kfactors.append(kfactor[0] / kfactor0)
+                kfactors_name.append(xray + '/' + kfactor0_name)
         self.metadata.Sample.kfactors = kfactors
         self.metadata.Sample.kfactors_name = kfactors_name
 
     def quant_cliff_lorimer(self,
+                            intensities='integrate',
                             kfactors='auto',
                             plot_result=True,
+                            store_in_mp=True,
                             **kwargs):
         """
 
         Parameters
         ----------
-
+        intensities: {'integrate','model',list of signal}
+            If 'integrate', integrate unde the peak using get_lines_intensity
+            if 'model', generate a model and fit it
+            Else a list of intensities (singal or image or spectrum)            
         kfactors: {list of float | 'auto'}
             the list of kfactor, compared to the first
             elements. eg. kfactors = [1.2, 2.5]
             for kfactors_name = ['Al_Ka/Cu_Ka', 'Al_Ka/Nb_Ka']
             if 'auto', take the kfactors stored in metadata
-
         plot_result: bool
           If true (default option), plot the result.
-
         kwargs
             The extra keyword arguments for get_lines_intensity
+            
+        Examples
+        ---------
+        >>> s = database.spec3D('TEM')
+        >>> s.set_elements(["Ni", "Cr",'Al'])
+        >>> s.set_lines(["Ni_Ka", "Cr_Ka", "Al_Ka"])
+        >>> kfactors = [s.metadata.Sample.kfactors[2],
+        >>>         s.metadata.Sample.kfactors[6]]
+        >>> s.quant_cliff_lorimer(kfactors=kfactors)
+
 
         See also
         --------
-
-        get_kfactors_from_standard, simulate_binary_standard,
+        get_kfactors_from_standard, simulate_two_elements_standard,
             get_lines_intensity
 
         """
 
         xrays = self.metadata.Sample.xray_lines
         beam_energy = self._get_beam_energy()
-        intensities = self.get_lines_intensity(**kwargs)
-
+        if intensities=='integrate':
+            intensities = self.get_lines_intensity(**kwargs)
+        elif intensities=='model':
+            from hyperspy.hspy import create_model
+            m = create_model(self)
+            m.multifit()
+            intensities = m.get_line_intensities(plot_result=False,
+                store_in_mp=False)
         if kfactors == 'auto':
             kfactors = self.metadata.Sample.kfactors
         ab = []
-        for i, kab in enumerate(kfactors):
-            # ab = Ia/Ib * kab
-            ab.append(intensities[0].data / intensities[i + 1].data * kab)
+        for i, kba in enumerate(kfactors):
+            # ab = Ia/Ib / kab
+            ab.append(intensities[0].data / intensities[i + 1].data / kba)
         # Ca = ab /(1 + ab + ab/ac + ab/ad + ...)
         composition = np.ones(ab[0].shape)
         for i, ab1 in enumerate(ab):
@@ -405,16 +439,21 @@ class EDSTEMSpectrum(EDSSpectrum):
                 composition += (ab[0] / ab1)
         composition = ab[0] / composition
         # Cb = Ca / ab
+        res = []
         for i, xray in enumerate(xrays):
             if i == 0:
-                self._set_result(xray_line=xray, result='quant',
+                res.append(self._set_result(xray_line=xray, result='quant',
                                  data_res=np.nan_to_num(composition),
-                                 plot_result=plot_result, store_in_mp=True)
+                                 plot_result=plot_result, 
+                                 store_in_mp=store_in_mp))
             else:
-                self._set_result(xray_line=xray, result='quant',
+                res.append(self._set_result(xray_line=xray, result='quant',
                                  data_res=np.nan_to_num(
                                      composition / ab[i - 1]),
-                                 plot_result=plot_result, store_in_mp=True)
+                                 plot_result=plot_result,
+                                 store_in_mp=store_in_mp))
+        if store_in_mp is False:
+            return res
 
     def get_kfactors_from_first_principles(self,
                                            detector_efficiency=None,
@@ -422,16 +461,25 @@ class EDSTEMSpectrum(EDSSpectrum):
         """
         Get the kfactors from first principles
 
+        Save them in metadata.Sample.kfactors
+        
         Parameters
         ----------
         detector_efficiency: signals.Spectrum
 
         gateway: execnet Gateway
             If 'auto', generate automatically the connection to jython.
+            
+            
+        Examples
+        --------       
+        >>> s = database.spec3D('TEM')
+        >>> s.get_kfactors_from_first_principles()
+        >>> s.metadata.Sample
 
         See also
         --------
-        utils_eds.get_detector_properties, simulate_binary_standard,
+        utils_eds.get_detector_properties, simulate_two_elements_standard,
         get_link_to_jython
 
         """
@@ -443,14 +491,64 @@ class EDSTEMSpectrum(EDSSpectrum):
             gateway = utils_eds.get_link_to_jython()
         for i, xray in enumerate(xrays):
             if i != 0:
-                kfactors.append(utils_eds.get_kfactors([xrays[0], xray],
+                kfactors.append(utils_eds.get_kfactors([xray,xrays[0]],
                                                        beam_energy=beam_energy,
                                                        detector_efficiency=detector_efficiency,
                                                        gateway=gateway))
-                kfactors_name.append(xrays[0] + '/' + xray)
+                kfactors_name.append(xray + '/' + xrays[0])
         self.metadata.Sample.kfactors = kfactors
-        self.metadata.Sample.kfactors_name = kfactors_name
+        self.metadata.Sample.kfactors_name = kfactors_name   
+    
 
+    def get_two_windows_intensities(self, bck_position):
+        """
+        Quantified for giorgio, 21.05.2014
+
+        Parameters
+        ----------
+        bck_position: list
+            The position of the bck to substract eg [[1.2,1.4],[2.5,2.6]]
+            
+        Examples
+        --------    
+        >>> s = database.spec3D('TEM')
+        >>> s.set_elements(["Ni", "Cr",'Al'])
+        >>> s.set_lines(["Ni_Ka", "Cr_Ka", "Al_Ka"])
+        >>> intensities = s.get_two_windows_intensities(
+        >>>      bck_position=[[1.2,3.0],[5.0,5.7],[5.0,9.5]])
+        """
+        if 'Sample.xray_lines' in self.metadata:
+            xray_lines = self.metadata.Sample.xray_lines
+        else:
+            print('Set the Xray lines with set_lines')
+        intensities = []
+        t = self.deepcopy()
+        for i, Xray_line in enumerate(xray_lines):
+            line_energy, line_FWHM = self._get_line_energy(Xray_line,
+                                                           FWHM_MnKa='auto')
+            det = line_FWHM
+            img = self[..., line_energy - det:line_energy + det
+                       ].integrate1D(-1)
+            img1 = self[..., bck_position[i][0] - det:bck_position[i][0] + det
+                        ].integrate1D(-1)
+            img2 = self[..., bck_position[i][1] - det:bck_position[i][1] + det
+                        ].integrate1D(-1)
+            img = img - (img1 + img2) / 2
+            img.metadata.General.title = (
+                'Intensity of %s at %.2f %s from %s' %
+                (Xray_line,
+                 line_energy,
+                 self.axes_manager.signal_axes[0].units,
+                 self.metadata.General.title))
+            intensities.append(img.as_image([0,1]))
+
+            t[..., line_energy - det:line_energy + det] = 10
+            t[..., bck_position[i][0] - det:bck_position[i][0] + det] = 10
+            t[..., bck_position[i][1] - det:bck_position[i][1] + det] = 10
+        t.plot()
+        return intensities
+        
+        
     def quant_cliff_lorimer_simple(self,
                                    intensities,
                                    kfactors):
@@ -482,9 +580,9 @@ class EDSTEMSpectrum(EDSSpectrum):
         #intensities = self.get_lines_intensity(**kwargs)
 
         ab = []
-        for i, kab in enumerate(kfactors):
-                # ab = Ia/Ib * kab
-            ab.append(intensities[0].data / intensities[i + 1].data * kab)
+        for i, kba in enumerate(kfactors):
+                # ab = Ia/Ib / kab
+            ab.append(intensities[0].data / intensities[i + 1].data / kba)
             # signals.Image(ab[-1]).plot()
         # Ca = ab /(1 + ab + ab/ac + ab/ad + ...)
         composition = np.ones(ab[0].shape)
@@ -506,44 +604,3 @@ class EDSTEMSpectrum(EDSSpectrum):
             res_compo[-1].data = data_res
             res_compo[-1].metadata.General.title = 'Composition ' + xray
         return res_compo
-
-    def get_two_windows_intensities(self, bck_position):
-        """
-        Quantified for giorgio, 21.05.2014
-
-        Parameters
-        ----------
-        bck_position: list
-            The position of the bck to substract eg [[1.2,1.4],[2.5,2.6]]
-        """
-        if 'Sample.xray_lines' in self.metadata:
-            xray_lines = self.metadata.Sample.xray_lines
-            print xray_lines
-        else:
-            print('Set the Xray lines with set_lines')
-        intensities = []
-        t = self.deepcopy()
-        for i, Xray_line in enumerate(xray_lines):
-            line_energy, line_FWHM = self._get_line_energy(Xray_line,
-                                                           FWHM_MnKa='auto')
-            det = line_FWHM
-            img = self[..., line_energy - det:line_energy + det
-                       ].integrate1D(-1)
-            img1 = self[..., bck_position[i][0] - det:bck_position[i][0] + det
-                        ].integrate1D(-1)
-            img2 = self[..., bck_position[i][1] - det:bck_position[i][1] + det
-                        ].integrate1D(-1)
-            img = img - (img1 + img2) / 2
-            img.metadata.General.title = (
-                'Intensity of %s at %.2f %s from %s' %
-                (Xray_line,
-                 line_energy,
-                 self.axes_manager.signal_axes[0].units,
-                 self.metadata.General.title))
-            intensities.append(img)
-
-            t[..., line_energy - det:line_energy + det] = 10
-            t[..., bck_position[i][0] - det:bck_position[i][0] + det] = 10
-            t[..., bck_position[i][1] - det:bck_position[i][1] + det] = 10
-        t.plot()
-        return intensities
