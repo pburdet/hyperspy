@@ -99,7 +99,7 @@ class EDSModel(Model):
     def spectrum(self, value):
         if isinstance(value, EDSSpectrum):
             self._spectrum = value
-            #self.spectrum._are_microscope_parameters_missing()
+            # self.spectrum._are_microscope_parameters_missing()
         else:
             raise ValueError(
                 "This attribute can only contain an EDSSpectrum "
