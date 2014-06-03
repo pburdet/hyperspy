@@ -256,13 +256,13 @@ def get_mass_absorption_coefficient_sample(energy,
     ------
     mass absorption coefficient in cm^2/g
     """
-    if isinstance(weight_fraction[0],float):
+    if isinstance(weight_fraction[0], float):
         mac = 0
     else:
         mac = weight_fraction[0].deepcopy()
         mac.data = np.zeros_like(mac.data)
     for el, weight in zip(elements, weight_fraction):
-        mac += weight * get_mass_absorption_coefficient(el, energy) 
+        mac += weight * get_mass_absorption_coefficient(el, energy)
     return mac
 
 

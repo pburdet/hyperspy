@@ -1217,8 +1217,8 @@ class EDSSpectrum(Spectrum):
         spec_th = Spectrum(np.rollaxis(data_s, 0, dim))
 
         return spec_th
-        
-    def get_sample_density(self,weight_fraction='auto'):
+
+    def get_sample_density(self, weight_fraction='auto'):
         """Return the density of the sample
 
         Parameters
@@ -1233,25 +1233,25 @@ class EDSSpectrum(Spectrum):
         density in g/cm^3
         """
         from hyperspy import signals
-        elements=self.metadata.Sample.elements
-        if weight_fraction=='auto':
+        elements = self.metadata.Sample.elements
+        if weight_fraction == 'auto':
             if 'weight_fraction' in self.metadata.Sample:
-                weight_fraction = self.metadata.Sample.weight_fraction    
+                weight_fraction = self.metadata.Sample.weight_fraction
             else:
                 weight_fraction = []
                 for elm in elements:
                     weight_fraction.append(1. / len(elements))
                 print 'Weight fraction is automatically set to ' + str(
-                    weight_fraction)          
-        if isinstance(weight_fraction[0],signals.Signal):
+                    weight_fraction)
+        if isinstance(weight_fraction[0], signals.Signal):
             weight_frac = []
             for weight in weight_fraction:
                 weight_frac.append(weight.data)
             density = utils.material.density_of_mixture_of_pure_elements(
-                elements,weight_frac)
-        else : 
-            density = utils.material.density_of_mixture_of_pure_elements(                
-                    elements,weight_fraction)
+                elements, weight_frac)
+        else:
+            density = utils.material.density_of_mixture_of_pure_elements(
+                elements, weight_fraction)
         self.metadata.Sample.density = density
         return density
 
@@ -1451,7 +1451,8 @@ class EDSSpectrum(Spectrum):
                 # break
 
         return spec
-    #doesn't work if scale too small
+    # doesn't work if scale too small
+
     def get_detector_efficiency(self,
                                 detector_name,
                                 gateway='auto'):

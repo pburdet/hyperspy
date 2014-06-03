@@ -414,7 +414,7 @@ class EDSTEMSpectrum(EDSSpectrum):
 
         """
         from hyperspy import signals
-        
+
         xrays = self.metadata.Sample.xray_lines
         beam_energy = self._get_beam_energy()
         if intensities == 'integrate':
@@ -431,11 +431,11 @@ class EDSTEMSpectrum(EDSSpectrum):
         for i, kba in enumerate(kfactors):
             # ab = Ia/Ib / kab
             if isinstance(kba, signals.Signal):
-                ab.append(intensities[0].data / 
-                    intensities[i + 1].data / kba.data)
+                ab.append(intensities[0].data /
+                          intensities[i + 1].data / kba.data)
             else:
-                ab.append(intensities[0].data / 
-                    intensities[i + 1].data / kba)
+                ab.append(intensities[0].data /
+                          intensities[i + 1].data / kba)
         # Ca = ab /(1 + ab + ab/ac + ab/ad + ...)
         composition = np.ones(ab[0].shape)
         for i, ab1 in enumerate(ab):

@@ -282,7 +282,7 @@ class EDSModel(Model):
                 bck = gen * absorption
             else:
                 bck = det_efficiency * gen * absorption
-            #bck.plot()
+            # bck.plot()
             bck = bck[self.axes_manager[-1].scale:]
             bck.metadata.General.title = 'bck_' + str(gen_fact)
             component = create_component.ScalableFixedPattern(bck)
