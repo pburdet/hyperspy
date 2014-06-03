@@ -1217,6 +1217,43 @@ class EDSSpectrum(Spectrum):
         spec_th = Spectrum(np.rollaxis(data_s, 0, dim))
 
         return spec_th
+        
+    def get_sample_density(self,weight_fraction='auto'):
+        """Return the density of the sample
+
+        Parameters
+        ----------
+        weight_fraction: {list of float| 'auto'}
+            the composition of the sample
+            if 'auto'. looks for the weight fraction in metadata
+            if not there take the iso concentration
+
+        Return
+        ------
+        density in g/cm^3
+        """
+        from hyperspy import signals
+        elements=self.metadata.Sample.elements
+        if weight_fraction=='auto':
+            if 'weight_fraction' in self.metadata.Sample:
+                weight_fraction = self.metadata.Sample.weight_fraction    
+            else:
+                weight_fraction = []
+                for elm in elements:
+                    weight_fraction.append(1. / len(elements))
+                print 'Weight fraction is automatically set to ' + str(
+                    weight_fraction)          
+        if isinstance(weight_fraction[0],signals.Signal):
+            weight_frac = []
+            for weight in weight_fraction:
+                weight_frac.append(weight.data)
+            density = utils.material.density_of_mixture_of_pure_elements(
+                elements,weight_frac)
+        else : 
+            density = utils.material.density_of_mixture_of_pure_elements(                
+                    elements,weight_fraction)
+        self.metadata.Sample.density = density
+        return density
 
     def get_MAC_sample(self,
                        xray_lines='auto',
@@ -1252,7 +1289,7 @@ class EDSSpectrum(Spectrum):
                 weight_fraction = []
                 for elm in elements:
                     weight_fraction.append(1. / len(elements))
-                print 'Weight fraction is ' + str(weight_fraction)
+                print 'Weight fraction is automatically set to ' + str(weight_fraction)
         return utils_eds.get_MAC_sample(xray_lines=xray_lines,
                                         weight_fraction=weight_fraction, elements=elements)
 
@@ -1414,7 +1451,7 @@ class EDSSpectrum(Spectrum):
                 # break
 
         return spec
-
+    #doesn't work if scale too small
     def get_detector_efficiency(self,
                                 detector_name,
                                 gateway='auto'):

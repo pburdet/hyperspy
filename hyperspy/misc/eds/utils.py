@@ -222,7 +222,7 @@ def get_MAC_sample(xray_lines, weight_fraction, elements='auto'):
             element, line = _get_element_and_line(xray_line)
             elements.append(element)
         elements = set(elements)
-    if len(elements) != len(weight_percent):
+    if len(elements) != len(weight_fraction):
         raise ValueError("Add elements first, see 'set_elements'")
     for xray_line in xray_lines:
         line_energy = _get_energy_xray_line(xray_line)
@@ -256,10 +256,13 @@ def get_mass_absorption_coefficient_sample(energy,
     ------
     mass absorption coefficient in cm^2/g
     """
-    mac = 0
+    if isinstance(weight_fraction[0],float):
+        mac = 0
+    else:
+        mac = weight_fraction[0].deepcopy()
+        mac.data = np.zeros_like(mac.data)
     for el, weight in zip(elements, weight_fraction):
-        mac += weight * \
-            get_mass_absorption_coefficient(el, energy)
+        mac += weight * get_mass_absorption_coefficient(el, energy) 
     return mac
 
 

@@ -273,15 +273,16 @@ class EDSModel(Model):
         absorption = self.spectrum.compute_continuous_xray_absorption(
             weight_fraction=weight_fraction)
         absorption.metadata.General.title = 'absorption'
-        if detector_name is None:
-            det_efficiency = 1
-        else:
+        if detector_name is not None:
             det_efficiency = self.spectrum.get_detector_efficiency(
                 detector_name, gateway=gateway)
 
         for gen, gen_fact in zip(generation, generation_factors):
-            bck = det_efficiency * gen * absorption
-            # bck.plot()
+            if detector_name is None:
+                bck = gen * absorption
+            else:
+                bck = det_efficiency * gen * absorption
+            #bck.plot()
             bck = bck[self.axes_manager[-1].scale:]
             bck.metadata.General.title = 'bck_' + str(gen_fact)
             component = create_component.ScalableFixedPattern(bck)
