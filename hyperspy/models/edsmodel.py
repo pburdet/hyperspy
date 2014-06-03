@@ -111,26 +111,38 @@ class EDSModel(Model):
         """Create the Xray-lines instances and configure them appropiately
 
         Parameters
-        -----------
-        xray_lines: {None, "best", list of string}
+        -----------   
+        xray_lines: {None, 'from_elements', list of string}
             If None,
             if `mapped.parameters.Sample.elements.xray_lines` contains a
             list of lines use those.
             If `mapped.parameters.Sample.elements.xray_lines` is undefined
-            or empty but `mapped.parameters.Sample.elements` is defined,
+            or empty or if xray_lines equals 'from_elements' and
+            `mapped.parameters.Sample.elements` is defined,
             use the same syntax as `add_line` to select a subset of lines
             for the operation.
             Alternatively, provide an iterable containing
             a list of valid X-ray lines symbols.
+        only_lines : None or list of strings
+            If not None, use only the given lines (eg. ('a','Kb')).
+            If None, use all lines.
         only_one : bool
             If False, use all the lines of each element in the data spectral
             range. If True use only the line at the highest energy
             above an overvoltage of 2 (< beam energy / 2).
-        only_lines : {None, list of strings}
-            If not None, use only the given lines.
         """
-        if xray_lines is None:
-            if 'Sample.xray_lines' in self.spectrum.metadata:
+        
+        if only_lines is not None:
+            only_lines = list(only_lines)
+            for only_line in only_lines:
+                if only_line == 'a':
+                    only_lines.extend(['Ka', 'La', 'Ma'])
+                elif only_line == 'b':
+                    only_lines.extend(['Kb', 'Lb1', 'Mb'])
+
+        if xray_lines is None or xray_lines == 'from_elements':
+            if 'Sample.xray_lines' in self.spectrum.metadata \
+                    and xray_lines != 'from_elements':
                 xray_lines = self.spectrum.metadata.Sample.xray_lines
             elif 'Sample.elements' in self.spectrum.metadata:
                 xray_lines = self.spectrum._get_lines_from_elements(
@@ -139,7 +151,18 @@ class EDSModel(Model):
                     only_lines=only_lines)
             else:
                 raise ValueError(
-                    "Not X-ray line, set them with `add_elements`")
+                    "No elements defined, set them with `add_elements`")
+        #if xray_lines is None:
+            #if 'Sample.xray_lines' in self.spectrum.metadata:
+                #xray_lines = self.spectrum.metadata.Sample.xray_lines
+            #elif 'Sample.elements' in self.spectrum.metadata:
+                #xray_lines = self.spectrum._get_lines_from_elements(
+                    #self.spectrum.metadata.Sample.elements,
+                    #only_one=only_one,
+                    #only_lines=only_lines)
+            #else:
+                #raise ValueError(
+                    #"Not X-ray line, set them with `add_elements`")
         #self.xray_lines = xray_lines
         for i, xray_line in enumerate(xray_lines):
             element, line = utils_eds._get_element_and_line(xray_line)
