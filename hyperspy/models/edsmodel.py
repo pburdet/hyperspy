@@ -111,7 +111,7 @@ class EDSModel(Model):
         """Create the Xray-lines instances and configure them appropiately
 
         Parameters
-        -----------   
+        -----------
         xray_lines: {None, 'from_elements', list of string}
             If None,
             if `mapped.parameters.Sample.elements.xray_lines` contains a
@@ -131,7 +131,7 @@ class EDSModel(Model):
             range. If True use only the line at the highest energy
             above an overvoltage of 2 (< beam energy / 2).
         """
-        
+
         if only_lines is not None:
             only_lines = list(only_lines)
             for only_line in only_lines:
@@ -152,16 +152,16 @@ class EDSModel(Model):
             else:
                 raise ValueError(
                     "No elements defined, set them with `add_elements`")
-        #if xray_lines is None:
-            #if 'Sample.xray_lines' in self.spectrum.metadata:
+        # if xray_lines is None:
+            # if 'Sample.xray_lines' in self.spectrum.metadata:
                 #xray_lines = self.spectrum.metadata.Sample.xray_lines
-            #elif 'Sample.elements' in self.spectrum.metadata:
-                #xray_lines = self.spectrum._get_lines_from_elements(
-                    #self.spectrum.metadata.Sample.elements,
-                    #only_one=only_one,
-                    #only_lines=only_lines)
-            #else:
-                #raise ValueError(
+            # elif 'Sample.elements' in self.spectrum.metadata:
+                # xray_lines = self.spectrum._get_lines_from_elements(
+                    # self.spectrum.metadata.Sample.elements,
+                    # only_one=only_one,
+                    # only_lines=only_lines)
+            # else:
+                # raise ValueError(
                     #"Not X-ray line, set them with `add_elements`")
         #self.xray_lines = xray_lines
         for i, xray_line in enumerate(xray_lines):
