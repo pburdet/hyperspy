@@ -326,8 +326,7 @@ class EDSSEMSpectrum(EDSSpectrum):
             diff_ltime = mp.Acquisition_instrument.SEM.Detector.EDS.live_time / \
                 mp_std.Acquisition_instrument.SEM.Detector.EDS.live_time
             # Fit with least square
-            m = create_model(self.top_hat(line_energy, width_windows),
-                             auto_background=False, auto_add_lines=False)
+            m = create_model(self.top_hat(line_energy, width_windows))
             fp = components.ScalableFixedPattern(std.top_hat(line_energy,
                                                              width_windows))
             fp.set_parameters_not_free(['xscale', 'shift'])
@@ -1014,7 +1013,7 @@ class EDSSEMSpectrum(EDSSpectrum):
                 line_energy = utils.material.elements[element
                                                       ].Atomic_properties.Xray_lines[line].energy_keV
                 ratio_line = utils.material.elements[element
-                                                     ].Atomic_properties.Xray_lines[line].factor
+                                                     ].Atomic_properties.Xray_lines[line].weight
                 if line_energy < beam_energy:
                     g = components.Gaussian()
                     g.centre.value = line_energy

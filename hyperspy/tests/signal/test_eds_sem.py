@@ -384,10 +384,23 @@ class Test_simulation:
     def test_simu_1_spec(self):
         s = self.signal
         gateway = utils_eds.get_link_to_jython()
+        s.simulate_model()
         utils_eds.simulate_one_spectrum(nTraj=10,
                                         mp=s.metadata, gateway=gateway)
         utils_eds.simulate_Xray_depth_distribution(10,
-                                                   mp=s.metadata, gateway=gateway)
+                                        mp=s.metadata, gateway=gateway)
+        #test to save time, test TEM here
+        s.set_signal_type('EDS_TEM')
+        utils_eds.simulate_one_spectrum_TEM(nTraj=10,
+                                        mp=s.metadata, gateway=gateway)   
+        s.get_kfactors_from_first_principles(gateway=gateway)
+        assert_equal(s.metadata.Sample.kfactors[0]
+                 ,1.9798201626244532)
+        s.simulate_two_elements_standard(nTraj=10,gateway=gateway)
+        s.get_kfactors_from_standard()
+        s.quant_cliff_lorimer()
+        s.set_signal_type('EDS_SEM')         
+                 
 
 
 class Test_electron_distribution:
@@ -603,3 +616,21 @@ class Test_energy_units:
                      (1.4865, 0.07661266213883969))
         assert_equal(s._get_line_energy('Al_Ka', FWHM_MnKa=128),
                      (1.4865, 0.073167615787314))
+                     
+class Test_MAC:
+
+    def setUp(self):
+        s = EDSSEMSpectrum(np.ones(1024))
+        s.metadata.Acquisition_instrument.SEM.beam_energy = 5.0
+        energy_axis = s.axes_manager.signal_axes[0]
+        energy_axis.scale = 0.01
+        energy_axis.units = 'keV'
+        s.set_elements(['Al', 'Zn'])
+        s.add_lines()
+        self.signal = s
+
+    def test_MAC_sample(self):
+        s = self.signal
+        #assert_true(np.allclose(xr_range, 0.1900207, atol=1e-3))
+        assert_equal(s.get_MAC_sample(weight_fraction=[0.5,0.5]),
+            [2587.4161643905127, 1239.4598146508552])
