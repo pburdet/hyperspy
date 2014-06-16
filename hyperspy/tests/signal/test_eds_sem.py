@@ -515,6 +515,7 @@ class Test_tools_bulk:
             mp.Acquisition_instrument.SEM.beam_energy,
             density=4.37499648818)
         assert_true(np.allclose(xr_range, 0.1900207, atol=1e-3))
+        #assert_equal(xr_range, 0.1900368800933955)
         #assert_equal(xr_range, 0.1900207, atol=1e-3)
 
 
