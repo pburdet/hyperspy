@@ -97,7 +97,7 @@ def create_model(signal, *args, **kwargs):
     A Model class
 
     """
-   
+
     from hyperspy._signals.eels import EELSSpectrum
     from hyperspy._signals.eds import EDSSpectrum
     from hyperspy.models.eelsmodel import EELSModel
