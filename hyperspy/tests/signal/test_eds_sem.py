@@ -574,3 +574,32 @@ class Test_add_standards_to_signal:
         dim = np.array(s.axes_manager.navigation_shape)
         dim_res = np.array(res.axes_manager.navigation_shape)
         assert_true(np.all(dim_res == dim + [len(elements), 0]))
+
+class Test_energy_units:
+
+    def setUp(self):
+        s = EDSSEMSpectrum(np.ones(1024))
+        s.metadata.Acquisition_instrument.SEM.beam_energy = 5.0
+        s.axes_manager.signal_axes[0].units = 'keV'
+        s.set_microscope_parameters(energy_resolution_MnKa=130)
+        self.signal = s
+
+    def test_beam_energy(self):
+        s = self.signal
+        assert_equal(s._get_beam_energy(), 5.0)
+        s.axes_manager.signal_axes[0].units = 'eV'
+        assert_equal(s._get_beam_energy(), 5000.0)
+        s.axes_manager.signal_axes[0].units = 'keV'
+
+    def test_line_energy(self):
+        s = self.signal
+        assert_equal(s._get_line_energy('Al_Ka'), 1.4865)
+        s.axes_manager.signal_axes[0].units = 'eV'
+        assert_equal(s._get_line_energy('Al_Ka'), 1486.5)
+        s.axes_manager.signal_axes[0].units = 'keV'
+
+        assert_equal(s._get_line_energy('Al_Ka', FWHM_MnKa='auto'),
+                     (1.4865, 0.07661266213883969))
+        assert_equal(s._get_line_energy('Al_Ka', FWHM_MnKa=128),
+                     (1.4865, 0.073167615787314))
+
