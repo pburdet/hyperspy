@@ -575,6 +575,7 @@ class Test_add_standards_to_signal:
         dim_res = np.array(res.axes_manager.navigation_shape)
         assert_true(np.all(dim_res == dim + [len(elements), 0]))
 
+
 class Test_energy_units:
 
     def setUp(self):
@@ -602,4 +603,3 @@ class Test_energy_units:
                      (1.4865, 0.07661266213883969))
         assert_equal(s._get_line_energy('Al_Ka', FWHM_MnKa=128),
                      (1.4865, 0.073167615787314))
-
