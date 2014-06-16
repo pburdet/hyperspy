@@ -93,18 +93,19 @@ class Test_metadata:
         s.get_calibration_from(scalib)
         assert_equal(s.axes_manager.signal_axes[0].scale,
                      energy_axis.scale)
-                     
+
+
 class Test_quantification:
-    
-    #def setUp(self):
-        ## Create an empty spectrum
+
+    # def setUp(self):
+        # Create an empty spectrum
         #s = EDSTEMSpectrum(np.ones((4, 2, 1024)))
         #s.metadata.Acquisition_instrument.TEM.Detector.EDS.live_time = 3.1
         #s.metadata.Acquisition_instrument.TEM.beam_energy = 15.0
         #self.signal = s
-    
+
     def test_quant_lorimer_simple(self):
-        s = database.spec3D('TEM')[:2,:2]
+        s = database.spec3D('TEM')[:2, :2]
         s.set_elements(["Ni", "Cr", 'Al'])
         s.set_lines(["Ni_Ka", "Cr_Ka", "Al_Ka"])
         kfactors = [s.metadata.Sample.kfactors[2],
@@ -112,10 +113,10 @@ class Test_quantification:
         intensities = s.get_two_windows_intensities(
             bck_position=[[1.2, 3.0], [5.0, 5.7], [5.0, 9.5]])
         res = s.quant_cliff_lorimer_simple(intensities, kfactors)
-        assert_true(np.allclose(res[0].data, np.array([[ 0.02010206,  0.01137962],
-            [ 0.01147099, -0.00531973]]), atol=1e-3))
+        assert_true(np.allclose(res[0].data, np.array([[0.02010206, 0.01137962],
+                                                       [0.01147099, -0.00531973]]), atol=1e-3))
 
-        
+
 
 
 # class Test_get_lines_intentisity:
