@@ -97,11 +97,15 @@ def create_model(signal, *args, **kwargs):
     A Model class
 
     """
-
+   
     from hyperspy._signals.eels import EELSSpectrum
+    from hyperspy._signals.eds import EDSSpectrum
     from hyperspy.models.eelsmodel import EELSModel
+    from hyperspy.models.edsmodel import EDSModel
     from hyperspy.model import Model
     if isinstance(signal, EELSSpectrum):
         return EELSModel(signal, *args, **kwargs)
+    elif isinstance(signal, EDSSpectrum):
+        return EDSModel(signal, *args, **kwargs)
     else:
         return Model(signal, *args, **kwargs)
