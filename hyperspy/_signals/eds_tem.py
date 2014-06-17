@@ -246,6 +246,7 @@ class EDSTEMSpectrum(EDSSpectrum):
             mp.Acquisition_instrument.TEM.Detector.EDS.live_time = \
                 mp_ref.Detector.EDS.live_time / nb_pix
 
+
     def simulate_two_elements_standard(self,
                                        common_xray='Si_Ka',
                                        nTraj=10000,
@@ -553,42 +554,53 @@ class EDSTEMSpectrum(EDSSpectrum):
             t[..., bck_position[i][1] - det:bck_position[i][1] + det] = 10
         t.plot()
         return intensities
+        
+        #Examples
+        #---------
+        #>>> s = database.spec3D('TEM')
+        #>>> s.set_elements(["Ni", "Cr",'Al'])
+        #>>> s.set_lines(["Ni_Ka", "Cr_Ka", "Al_Ka"])
+        #>>> kfactors = [s.metadata.Sample.kfactors[2],
+        #>>>         s.metadata.Sample.kfactors[6]]
+        #>>> intensities = s.get_two_windows_intensities(
+        #>>>      bck_position=[[1.2,3.0],[5.0,5.7],[5.0,9.5]])
+        #>>> res = s.quant_cliff_lorimer_simple(intensities,kfactors)
+        #>>> utils.plot.plot_signals(res)
 
-    def quant_cliff_lorimer_simple(self,
-                                   intensities,
-                                   kfactors):
+
+    def quantification_cliff_lorimer(self,
+                                     intensities,
+                                     kfactors):
         """
-        Quantified for giorgio, 21.05.2014
+        Quantification using Cliff-Lorimer
 
         Parameters
         ----------
         kfactors: list of float
             the list of kfactor, compared to the first
             elements. eg. kfactors = [1.2, 2.5]
-            for kfactors_name = ['Al_Ka/Cu_Ka', 'Al_Ka/Nb_Ka']
+            for kfactors_name = ['Cu_Ka/Al_Ka', 'Nb_Ka/Al_Ka']
+        intensities: list of signal.Signals
+            the intensities for each X-ray lines.
 
         Examples
         ---------
-        >>> s = database.spec3D('TEM')
+        >>> #s is a signals.EDSTEMSpectrum
         >>> s.set_elements(["Ni", "Cr",'Al'])
         >>> s.set_lines(["Ni_Ka", "Cr_Ka", "Al_Ka"])
-        >>> kfactors = [s.metadata.Sample.kfactors[2],
-        >>>         s.metadata.Sample.kfactors[6]]
-        >>> intensities = s.get_two_windows_intensities(
-        >>>      bck_position=[[1.2,3.0],[5.0,5.7],[5.0,9.5]])
+        >>> kfactors = [1.47,1.72]
+        >>> intensities = s.get_lines_intensity()
         >>> res = s.quant_cliff_lorimer_simple(intensities,kfactors)
         >>> utils.plot.plot_signals(res)
         """
 
         xrays = self.metadata.Sample.xray_lines
         beam_energy = self._get_beam_energy()
-        #intensities = self.get_lines_intensity(**kwargs)
 
         ab = []
         for i, kba in enumerate(kfactors):
-                # ab = Ia/Ib / kab
+            # ab = Ia/Ib / kab
             ab.append(intensities[0].data / intensities[i + 1].data / kba)
-            # signals.Image(ab[-1]).plot()
         # Ca = ab /(1 + ab + ab/ac + ab/ad + ...)
         composition = np.ones(ab[0].shape)
         for i, ab1 in enumerate(ab):

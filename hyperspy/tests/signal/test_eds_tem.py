@@ -22,6 +22,7 @@ from nose.tools import assert_true, assert_equal
 from hyperspy.signals import EDSTEMSpectrum
 from hyperspy.defaults_parser import preferences
 from hyperspy.misc.eds import database
+from hyperspy.components import Gaussian
 
 
 class Test_metadata:
@@ -97,27 +98,38 @@ class Test_metadata:
 
 class Test_quantification:
 
-    # def setUp(self):
-        # Create an empty spectrum
-        #s = EDSTEMSpectrum(np.ones((4, 2, 1024)))
-        #s.metadata.Acquisition_instrument.TEM.Detector.EDS.live_time = 3.1
-        #s.metadata.Acquisition_instrument.TEM.beam_energy = 15.0
-        #self.signal = s
+    def setUp(self):
+        s = EDSTEMSpectrum(np.ones([2, 1024]))
+        energy_axis = s.axes_manager.signal_axes[0]
+        energy_axis.scale = 1e-2
+        energy_axis.units = 'keV'
+        energy_axis.name = "Energy"
+        s.set_microscope_parameters(beam_energy=200,
+                                    live_time=3.1, tilt_stage=0.0,
+                                    azimuth_angle=None, elevation_angle=35,
+                                    energy_resolution_MnKa=130)
+        elements = ['Al', 'Zn']
+        xray_lines = ['Al_Ka', 'Zn_Ka']
+        intensities = [300, 500]
+        for i, xray_line in enumerate(xray_lines):
+            gauss = Gaussian()
+            line_energy, FWHM = s._get_line_energy(xray_line, FWHM_MnKa='auto')
+            gauss.centre.value = line_energy
+            gauss.A.value = intensities[i]
+            gauss.sigma.value = FWHM
+            s.data[:] += gauss.function(energy_axis.axis)
+
+        s.set_elements(elements)
+        s.add_lines(xray_lines)
+        self.signal = s
 
     def test_quant_lorimer_simple(self):
-        s = database.spec3D('TEM')[:2, :2]
-        s.set_elements(["Ni", "Cr", 'Al'])
-        s.set_lines(["Ni_Ka", "Cr_Ka", "Al_Ka"])
-        kfactors = [s.metadata.Sample.kfactors[2],
-                    s.metadata.Sample.kfactors[6]]
-        intensities = s.get_two_windows_intensities(
-            bck_position=[[1.2, 3.0], [5.0, 5.7], [5.0, 9.5]])
-        res = s.quant_cliff_lorimer_simple(intensities, kfactors)
-        assert_true(np.allclose(res[0].data, np.array([[0.02010206, 0.01137962],
-                                                       [0.01147099, -0.00531973]]), atol=1e-3))
-
-
-
+        s = self.signal
+        kfactors = [2.0009344042484134]
+        intensities = s.get_lines_intensity()
+        res = s.quantification_cliff_lorimer(intensities, kfactors)
+        assert_true(np.allclose(res[0].data, np.array(
+                    [0.2270779, 0.2270779]), atol=1e-3))
 
 # class Test_get_lines_intentisity:
 #    def setUp(self):
