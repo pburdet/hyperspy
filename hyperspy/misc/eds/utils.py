@@ -174,6 +174,7 @@ def take_off_angle(tilt_stage,
                                   + math.sin(a) * math.sin(c)))
 
 
+
 def get_index_from_names(self, axis_names, index_name, axis_name_in_mp=True):
     """Get the index of an axis that is link to a list of names.
 
@@ -198,9 +199,9 @@ def get_index_from_names(self, axis_names, index_name, axis_name_in_mp=True):
             return i
 
 
-def get_mass_absorption_coefficient_sample(energies,
-                                           weight_fraction,
-                                           elements):
+def get_sample_mass_absorption_coefficients(energies,
+                                            weight_fraction,
+                                            elements):
     """Return the mass absorption coefficients of a sample
 
     Parameters
@@ -237,7 +238,6 @@ def get_mass_absorption_coefficient_sample(energies,
         mac += weight * np.array(utils.material.mass_absorption_coefficient(
             el, energies))
     return mac
-
 
 def simulate_one_spectrum(nTraj, dose=100, mp='gui',
                           elements='auto',

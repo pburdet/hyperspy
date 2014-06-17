@@ -34,7 +34,7 @@ from hyperspy.misc.utils import isiterable
 import hyperspy.components as create_component
 from hyperspy.drawing import marker
 from hyperspy.drawing.utils import plot_histograms
-from hyperspy.misc.eds import model as model_eds
+from hyperspy.misc.eds import physical_model
 
 
 def _get_weight(element, line):
@@ -47,6 +47,7 @@ def _get_iweight(element, line):
     weight_line = elements_db[
         element]['Atomic_properties']['Xray_lines'][line]['weight']
     return lambda x: x / weight_line
+
 
 
 class EDSSpectrum(Spectrum):
@@ -1255,47 +1256,6 @@ class EDSSpectrum(Spectrum):
         self.metadata.Sample.density = density
         return density
 
-    def get_mass_absorption_coefficient_sample(self,
-                                               xray_lines='auto',
-                                               weight_fraction='auto',
-                                               elements='auto'):
-        """Return the mass absorption coefficients of for the different
-        xray in a sample
-
-        Parameters
-        ----------
-        xray_lines: list of str
-            The list of X-ray lines, e.g. ['Al_Ka','Zn_Ka','Zn_La']
-        weight_fraction: list of float
-            the composition of the sample
-        elements: {list of str | 'auto'}
-            The list of element symbol of the absorber, e.g. ['Al','Zn'].
-            if 'auto', use the elements of the X-ray lines
-
-        Return
-        ------
-        mass absorption coefficient in cm^2/g
-        """
-
-        if xray_lines == 'auto':
-            if 'Sample.xray_lines' in self.metadata:
-                xray_lines = copy.copy(self.metadata.Sample.xray_lines)
-            else:
-                raise ValueError("Add lines first, see 'add_lines'")
-
-        if elements == 'auto'and 'Sample.elements' in self.metadata:
-            elements = self.metadata.Sample.elements
-        if weight_fraction == 'auto':
-            if 'Sample.weight_fraction' in self.metadata:
-                weight_fraction = self.metadata.Sample.weight_fraction
-            else:
-                weight_fraction = []
-                for elm in elements:
-                    weight_fraction.append(1. / len(elements))
-                print 'Weight fraction is automatically set to ' + str(weight_fraction)
-        return utils_eds.get_mass_absorption_coefficient_sample(energies=xray_lines,
-                                                                weight_fraction=weight_fraction, elements=elements)
-
     def save(self, filename=None, overwrite=None, extension=None,
              **kwds):
         """Saves the signal in the specified format.
@@ -1395,12 +1355,13 @@ class EDSSpectrum(Spectrum):
         spec = self.deepcopy()
         for ax in self.axes_manager.navigation_axes:
             spec = spec[0]
-        eng = mlab.frange(spec.axes_manager.signal_axes[0].low_value,
-                          spec.axes_manager.signal_axes[0].high_value,
-                          spec.axes_manager.signal_axes[0].scale)
-        spec.data = model_eds.continuous_xray_generation(energy=eng,
-                                                         generation_factor=generation_factor,
-                                                         beam_energy=beam_energy)
+        energy_axis = spec.axes_manager.signal_axes[0]
+        eng = np.linspace(energy_axis.low_value,
+                          energy_axis.high_value,
+                          energy_axis.size)
+        spec.data = physical_model.continuous_xray_generation(energy=eng,
+                                                              generation_factor=generation_factor,
+                                                              beam_energy=beam_energy)
         return spec
 
     def compute_continuous_xray_absorption(self,
@@ -1432,14 +1393,14 @@ class EDSSpectrum(Spectrum):
                 weight_fraction = []
                 for elm in elements:
                     weight_fraction.append(1. / len(elements))
-
         spec = self.deepcopy()
         for ax in self.axes_manager.navigation_axes:
             spec = spec[0]
-        eng = mlab.frange(spec.axes_manager.signal_axes[0].low_value,
-                          spec.axes_manager.signal_axes[0].high_value,
-                          spec.axes_manager.signal_axes[0].scale)
-        eng = eng[np.searchsorted(eng, 1e-10):]
+        energy_axis = spec.axes_manager.signal_axes[0]
+        eng = np.linspace(energy_axis.low_value,
+                          energy_axis.high_value,
+                          energy_axis.size)
+        eng = eng[np.searchsorted(eng, 0.0):]
         spec.data = np.append(np.array([0] * (len(spec.data) - len(eng))),
                               model_eds.continuous_xray_absorption(energy=eng,
                                                                    weight_fraction=weight_fraction,
@@ -1447,14 +1408,48 @@ class EDSSpectrum(Spectrum):
                                                                    beam_energy=beam_energy,
                                                                    TOA=TOA,
                                                                    units_name=units_name))
-        # for i, en in enumerate(eng):
-            # if en <= 0:
-                #spec.data[i] = 0.
-            # else:
-                # break
-
         return spec
-    # doesn't work if scale too small
+
+    def get_sample_mass_absorption_coefficient(self,
+                                               xray_lines='auto',
+                                               weight_fraction='auto',
+                                               elements='auto'):
+        """Return the mass absorption coefficients of for the different
+        xray in a sample
+
+        Parameters
+        ----------
+        xray_lines: list of str
+            The list of X-ray lines, e.g. ['Al_Ka','Zn_Ka','Zn_La']
+        weight_fraction: list of float
+            the composition of the sample
+        elements: {list of str | 'auto'}
+            The list of element symbol of the absorber, e.g. ['Al','Zn'].
+            if 'auto', use the elements of the X-ray lines
+
+        Return
+        ------
+        mass absorption coefficient in cm^2/g
+        """
+
+        if xray_lines == 'auto':
+            if 'Sample.xray_lines' in self.metadata:
+                xray_lines = copy.copy(self.metadata.Sample.xray_lines)
+            else:
+                raise ValueError("Add lines first, see 'add_lines'")
+
+        if elements == 'auto'and 'Sample.elements' in self.metadata:
+            elements = self.metadata.Sample.elements
+        if weight_fraction == 'auto':
+            if 'Sample.weight_fraction' in self.metadata:
+                weight_fraction = self.metadata.Sample.weight_fraction
+            else:
+                weight_fraction = []
+                for elm in elements:
+                    weight_fraction.append(1. / len(elements))
+                print 'Weight fraction is automatically set to ' + str(weight_fraction)
+        return utils_eds.get_sample_mass_absorption_coefficients(energies=xray_lines,
+                                                                 weight_fraction=weight_fraction, elements=elements)
 
     def get_detector_efficiency(self,
                                 detector_name,
@@ -1706,3 +1701,4 @@ class EDSSpectrum(Spectrum):
             # plt.text(line_energy[i], intensity[i] * 1.1, xray_lines[i],
                      # rotation=90)
             #plt.vlines(line_energy[i], 0, intensity[i] * 0.8, color='black')
+
