@@ -574,9 +574,9 @@ class EDSSpectrum(Spectrum):
                                                elements='auto',
                                                weight_fraction='auto',
                                                xray_lines='auto'):
-        """Return the mass absorption coefficients of the sample for the 
+        """Return the mass absorption coefficients of the sample for the
         different X-rays
-        
+
         The sample is the defined as a mixture (compound) of pure elements
 
         Parameters
@@ -614,4 +614,4 @@ class EDSSpectrum(Spectrum):
                     weight_fraction.append(1. / len(elements))
                 print 'Weight fraction is automatically set to ' + str(weight_fraction)
         return utils.material.compound_mass_absorption_coefficient(energies=xray_lines,
-                                                                 weight_fraction=weight_fraction, elements=elements)
+                                                                   weight_fraction=weight_fraction, elements=elements)
