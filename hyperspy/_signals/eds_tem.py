@@ -246,7 +246,6 @@ class EDSTEMSpectrum(EDSSpectrum):
             mp.Acquisition_instrument.TEM.Detector.EDS.live_time = \
                 mp_ref.Detector.EDS.live_time / nb_pix
 
-
     def simulate_two_elements_standard(self,
                                        common_xray='Si_Ka',
                                        nTraj=10000,
@@ -554,8 +553,8 @@ class EDSTEMSpectrum(EDSSpectrum):
             t[..., bck_position[i][1] - det:bck_position[i][1] + det] = 10
         t.plot()
         return intensities
-        
-        #Examples
+
+        # Examples
         #---------
         #>>> s = database.spec3D('TEM')
         #>>> s.set_elements(["Ni", "Cr",'Al'])
@@ -566,7 +565,6 @@ class EDSTEMSpectrum(EDSSpectrum):
         #>>>      bck_position=[[1.2,3.0],[5.0,5.7],[5.0,9.5]])
         #>>> res = s.quant_cliff_lorimer_simple(intensities,kfactors)
         #>>> utils.plot.plot_signals(res)
-
 
     def quantification_cliff_lorimer(self,
                                      intensities,
