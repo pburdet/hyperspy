@@ -569,7 +569,7 @@ class EDSSpectrum(Spectrum):
                                        elevation_angle)
 
         return TOA
-        
+
     def compute_continuous_xray_generation(self, generation_factor=1):
         """Continous X-ray generation.
 
@@ -599,8 +599,8 @@ class EDSSpectrum(Spectrum):
                           energy_axis.high_value,
                           energy_axis.size)
         spec.data = physical_model.continuous_xray_generation(energy=eng,
-                                                         generation_factor=generation_factor,
-                                                         beam_energy=beam_energy)
+                                                              generation_factor=generation_factor,
+                                                              beam_energy=beam_energy)
         return spec
 
     def compute_continuous_xray_absorption(self,
@@ -642,9 +642,9 @@ class EDSSpectrum(Spectrum):
         eng = eng[np.searchsorted(eng, 1e-10):]
         spec.data = np.append(np.array([0] * (len(spec.data) - len(eng))),
                               physical_model.continuous_xray_absorption(energy=eng,
-                                                                   weight_fraction=weight_fraction,
-                                                                   elements=elements,
-                                                                   beam_energy=beam_energy,
-                                                                   TOA=TOA,
-                                                                   units_name=units_name))
+                                                                        weight_fraction=weight_fraction,
+                                                                        elements=elements,
+                                                                        beam_energy=beam_energy,
+                                                                        TOA=TOA,
+                                                                        units_name=units_name))
         return spec
