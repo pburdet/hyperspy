@@ -2063,7 +2063,7 @@ def get_kfactors(xray_lines,
         # utils.get_mass_absorption_coefficient_xray_line(el_abs,xray_line)
             # MAC[el_emit][line][el_abs]
     # return macs
-    
+
 # def _mac_interpolation(mac, mac1, energy,
                        # energy_db, energy_db1):
     #"""
