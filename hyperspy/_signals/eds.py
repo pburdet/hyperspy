@@ -571,7 +571,6 @@ class EDSSpectrum(Spectrum):
 
         return TOA
 
-
     def compute_continuous_xray_generation(self, generation_factor=1):
         """Continous X-ray generation.
 
