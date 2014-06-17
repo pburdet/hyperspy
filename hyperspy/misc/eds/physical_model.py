@@ -2,10 +2,7 @@ import numpy as np
 import math
 import matplotlib.mlab as mlab
 
-from hyperspy.misc.eds import epq_database
-from hyperspy.misc.elements import elements as elements_db
-from hyperspy.misc.eds import utils as utils_eds
-
+from hyperspy import utils
 
 def continuous_xray_generation(energy,
                                generation_factor,
@@ -57,8 +54,8 @@ def continuous_xray_absorption(energy,
     """
     h = 0
     for el, wt in zip(elements, weight_fraction):
-        A = elements_db[el]['General_properties']['atomic_weight']
-        Z = elements_db[el]['General_properties']['Z']
+        A = utils.material.elements[el]['General_properties']['atomic_weight']
+        Z = utils.material.elements[el]['General_properties']['Z']
         h += wt * A / (Z * Z)
 
     if units_name == 'eV':
@@ -66,7 +63,7 @@ def continuous_xray_absorption(energy,
     else:
         coeff = 4.5 * 1e5
 
-    xi = np.array(utils_eds.get_sample_mass_absorption_coefficients(
+    xi = np.array(utils.material.compound_mass_absorption_coefficient(
         energies=energy, elements=elements,
         weight_fraction=weight_fraction)) / np.sin(np.radians(TOA))
     sig = coeff / (np.power(beam_energy, 1.65
