@@ -1,6 +1,7 @@
 import numpy as np
 
 from hyperspy.misc.elements import elements as elements_db
+from hyperspy.misc.eds import utils as utils_eds
 
 
 def weight_to_atomic(elements, weight_percent):
@@ -109,20 +110,22 @@ def _mac_interpolation(mac, mac1, energy,
                       energy_db / energy_db1)))
 
 
-def get_mass_absorption_coefficient(element, energies):
+def mass_absorption_coefficient(element, energies):
     """
-    Get the mass absorption coefficient of a given energy (energies)
+    Get the mass absorption coefficient of a X-ray(s)
+    
+    In a pure material for a Xray(s) of given energy(ies) or given name(s)    
 
     Parameters
     ----------
     element: str
         The element symbol of the absorber, e.g. 'Al'.
-    energies: float or list of float
-        The energy or energies of the Xray in keV
+    energies: {float or list of float or str or list of str}
+        The energy or energies of the Xray in keV, or the name eg 'Al_Ka'
 
     Return
     ------
-    mass absorption coefficient in cm^2/g
+    mass absorption coefficient(s) in cm^2/g
     """
     from hyperspy.misc.eds.ffast_mac import ffast_mac_db as ffast_mac
     energies_db = ffast_mac[element].energies_keV
@@ -130,7 +133,10 @@ def get_mass_absorption_coefficient(element, energies):
         is_iter = True
     else:
         is_iter = False
-        energies = [energies]
+        energies = [energies]        
+    if isinstance(energies[0],str):
+        for i, energy in enumerate(energies):
+            energies[i] = utils_eds._get_energy_xray_line(energy)
     mac_res = []
     for energy in energies:
         for index, energy_db in enumerate(energies_db):
