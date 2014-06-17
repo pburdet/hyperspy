@@ -111,11 +111,12 @@ def density_of_mixture_of_pure_elements(elements, weight_percent):
 # elif isinstance(densities[0],signals.Signal):
     # densities=utils.stack(densities)
 # weight_fraction.sum(0)/densities.sum(0)
-#old version
-#densities = np.array(
+# old version
+# densities = np.array(
     #[elements_db[element]['Physical_properties']['density (g/cm^3)'] for element in elements])
 #density = (weight_percent / densities / sum(weight_percent)).sum() ** -1
-#return density
+# return density
+
 
 def _mac_interpolation(mac, mac1, energy,
                        energy_db, energy_db1):
@@ -185,4 +186,3 @@ def mass_absorption_coefficient(element, energies):
         return mac_res
     else:
         return mac_res[0]
-
