@@ -254,7 +254,7 @@ class EDSModel(Model):
 
     def add_background(self,
                        generation_factors=[1, 2],
-                       detector_name=4,
+                       detector_name=None,
                        weight_fraction='auto',
                        gateway='auto'):
         """
