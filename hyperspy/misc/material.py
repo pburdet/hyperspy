@@ -113,8 +113,8 @@ def _mac_interpolation(mac, mac1, energy,
 def mass_absorption_coefficient(element, energies):
     """
     Get the mass absorption coefficient of a X-ray(s)
-    
-    In a pure material for a Xray(s) of given energy(ies) or given name(s)    
+
+    In a pure material for a Xray(s) of given energy(ies) or given name(s)
 
     Parameters
     ----------
@@ -133,8 +133,8 @@ def mass_absorption_coefficient(element, energies):
         is_iter = True
     else:
         is_iter = False
-        energies = [energies]        
-    if isinstance(energies[0],str):
+        energies = [energies]
+    if isinstance(energies[0], str):
         for i, energy in enumerate(energies):
             energies[i] = utils_eds._get_energy_xray_line(energy)
     mac_res = []
