@@ -1256,9 +1256,9 @@ class EDSSpectrum(Spectrum):
         return density
 
     def get_mass_absorption_coefficient_sample(self,
-                       xray_lines='auto',
-                       weight_fraction='auto',
-                       elements='auto'):
+                                               xray_lines='auto',
+                                               weight_fraction='auto',
+                                               elements='auto'):
         """Return the mass absorption coefficients of for the different
         xray in a sample
 
@@ -1280,7 +1280,7 @@ class EDSSpectrum(Spectrum):
         if xray_lines == 'auto':
             if 'Sample.xray_lines' in self.metadata:
                 xray_lines = copy.copy(self.metadata.Sample.xray_lines)
-            else : 
+            else:
                 raise ValueError("Add lines first, see 'add_lines'")
 
         if elements == 'auto'and 'Sample.elements' in self.metadata:
@@ -1294,7 +1294,7 @@ class EDSSpectrum(Spectrum):
                     weight_fraction.append(1. / len(elements))
                 print 'Weight fraction is automatically set to ' + str(weight_fraction)
         return utils_eds.get_mass_absorption_coefficient_sample(energies=xray_lines,
-                                        weight_fraction=weight_fraction, elements=elements)
+                                                                weight_fraction=weight_fraction, elements=elements)
 
     def save(self, filename=None, overwrite=None, extension=None,
              **kwds):
