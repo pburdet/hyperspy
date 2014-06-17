@@ -160,10 +160,11 @@ def take_off_angle(tilt_stage,
 
     return math.degrees(np.arcsin(-math.cos(a) * math.cos(b) * math.cos(c)
                                   + math.sin(a) * math.sin(c)))
-                                  
+
+
 def get_sample_mass_absorption_coefficients(energies,
-                                           weight_fraction,
-                                           elements):
+                                            weight_fraction,
+                                            elements):
     """Return the mass absorption coefficients of a sample
 
     Parameters
