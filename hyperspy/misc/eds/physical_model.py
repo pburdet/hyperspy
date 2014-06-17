@@ -4,6 +4,7 @@ import matplotlib.mlab as mlab
 
 from hyperspy import utils
 
+
 def continuous_xray_generation(energy,
                                generation_factor,
                                beam_energy):
