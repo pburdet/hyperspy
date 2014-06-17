@@ -18,6 +18,7 @@
 from __future__ import division
 
 import numpy as np
+import copy
 
 from hyperspy import utils
 from hyperspy._signals.spectrum import Spectrum
@@ -568,3 +569,44 @@ class EDSSpectrum(Spectrum):
                                        elevation_angle)
 
         return TOA
+        
+    def get_sample_mass_absorption_coefficient(self,
+                                               xray_lines='auto',
+                                               weight_fraction='auto',
+                                               elements='auto'):
+        """Return the mass absorption coefficients of for the different
+        xray in a sample
+
+        Parameters
+        ----------
+        xray_lines: list of str
+            The list of X-ray lines, e.g. ['Al_Ka','Zn_Ka','Zn_La']
+        weight_fraction: list of float
+            the composition of the sample
+        elements: {list of str | 'auto'}
+            The list of element symbol of the absorber, e.g. ['Al','Zn'].
+            if 'auto', use the elements of the X-ray lines
+
+        Return
+        ------
+        mass absorption coefficient in cm^2/g
+        """
+
+        if xray_lines == 'auto':
+            if 'Sample.xray_lines' in self.metadata:
+                xray_lines = copy.copy(self.metadata.Sample.xray_lines)
+            else:
+                raise ValueError("Add lines first, see 'add_lines'")
+
+        if elements == 'auto'and 'Sample.elements' in self.metadata:
+            elements = self.metadata.Sample.elements
+        if weight_fraction == 'auto':
+            if 'Sample.weight_fraction' in self.metadata:
+                weight_fraction = self.metadata.Sample.weight_fraction
+            else:
+                weight_fraction = []
+                for elm in elements:
+                    weight_fraction.append(1. / len(elements))
+                print 'Weight fraction is automatically set to ' + str(weight_fraction)
+        return utils_eds.get_sample_mass_absorption_coefficients(energies=xray_lines,
+                        weight_fraction=weight_fraction, elements=elements)
