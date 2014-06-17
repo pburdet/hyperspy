@@ -24,6 +24,7 @@ from hyperspy._signals.spectrum import Spectrum
 from hyperspy.misc.elements import elements as elements_db
 from hyperspy.misc.eds import utils as utils_eds
 from hyperspy.misc.utils import isiterable
+from hyperspy.misc.eds import physical_model
 
 
 class EDSSpectrum(Spectrum):
@@ -568,3 +569,82 @@ class EDSSpectrum(Spectrum):
                                        elevation_angle)
 
         return TOA
+        
+    def compute_continuous_xray_generation(self, generation_factor=1):
+        """Continous X-ray generation.
+
+        Kramer or Lisfshin equation
+
+        Parameters
+        ----------
+        generation_factor: int
+            The power law to use.
+            1 si equivalent to Kramer equation.
+            2 is equivalent to Lisfhisn modification of Kramer equation.
+        beam_energy:  float
+            The energy of the electron beam
+
+        See also
+        --------
+        utils.misc.eds.model.continuous_xray_generation
+        edsmodel.add_background
+        """
+
+        beam_energy = self._get_beam_energy()
+        spec = self.deepcopy()
+        for ax in self.axes_manager.navigation_axes:
+            spec = spec[0]
+        energy_axis = spec.axes_manager.signal_axes[0]
+        eng = np.linspace(energy_axis.low_value,
+                          energy_axis.high_value,
+                          energy_axis.size)
+        spec.data = physical_model.continuous_xray_generation(energy=eng,
+                                                         generation_factor=generation_factor,
+                                                         beam_energy=beam_energy)
+        return spec
+
+    def compute_continuous_xray_absorption(self,
+                                           weight_fraction='auto'):
+        """Contninous X-ray Absorption within sample
+
+        PDH equation (Philibert-Duncumb-Heinrich)
+
+        Parameters
+        ----------
+        weight_fraction: list of float
+            The sample composition. If 'auto', takes value in metadata.
+            If not there, use and equ-composition
+
+        See also
+        --------
+        utils.misc.eds.model.continuous_xray_absorption
+        edsmodel.add_background
+        """
+
+        beam_energy = self._get_beam_energy()
+        elements = self.metadata.Sample.elements
+        TOA = self.get_take_off_angle()
+        units_name = self.axes_manager.signal_axes[0].units
+        if weight_fraction == 'auto':
+            if 'weight_fraction' in self.metadata.Sample:
+                weight_fraction = self.metadata.Sample.weight_fraction
+            else:
+                weight_fraction = []
+                for elm in elements:
+                    weight_fraction.append(1. / len(elements))
+        spec = self.deepcopy()
+        for ax in self.axes_manager.navigation_axes:
+            spec = spec[0]
+        energy_axis = spec.axes_manager.signal_axes[0]
+        eng = np.linspace(energy_axis.low_value,
+                          energy_axis.high_value,
+                          energy_axis.size)
+        eng = eng[np.searchsorted(eng, 1e-10):]
+        spec.data = np.append(np.array([0] * (len(spec.data) - len(eng))),
+                              physical_model.continuous_xray_absorption(energy=eng,
+                                                                   weight_fraction=weight_fraction,
+                                                                   elements=elements,
+                                                                   beam_energy=beam_energy,
+                                                                   TOA=TOA,
+                                                                   units_name=units_name))
+        return spec
