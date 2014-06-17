@@ -72,5 +72,3 @@ def continuous_xray_absorption(energy,
     sig = coeff / (np.power(beam_energy, 1.65
                             ) - np.power(energy, 1.65))
     return 1 / ((1 + xi / sig) * (1 + h / (1 + h) * xi / sig))
-
-
