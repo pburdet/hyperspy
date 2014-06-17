@@ -49,7 +49,6 @@ def _get_iweight(element, line):
     return lambda x: x / weight_line
 
 
-
 class EDSSpectrum(Spectrum):
     _signal_type = "EDS"
 
@@ -1701,4 +1700,3 @@ class EDSSpectrum(Spectrum):
             # plt.text(line_energy[i], intensity[i] * 1.1, xray_lines[i],
                      # rotation=90)
             #plt.vlines(line_energy[i], 0, intensity[i] * 0.8, color='black')
-
