@@ -66,14 +66,9 @@ def continuous_xray_absorption(energy,
     else:
         coeff = 4.5 * 1e5
 
-    if isinstance(energy, list):
-        energy = np.array(energy)
-    xi = []
-    for en in energy:
-        xi.append(utils_eds.get_mass_absorption_coefficient_sample(
-            energy=en, elements=elements,
-            weight_fraction=weight_fraction) / np.sin(np.radians(TOA)))
-    xi = np.array(xi)
+    xi = np.array(utils_eds.get_mass_absorption_coefficient_sample(
+            energies=energy, elements=elements,
+            weight_fraction=weight_fraction)) / np.sin(np.radians(TOA))
     sig = coeff / (np.power(beam_energy, 1.65
                             ) - np.power(energy, 1.65))
     return 1 / ((1 + xi / sig) * (1 + h / (1 + h) * xi / sig))
