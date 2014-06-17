@@ -569,7 +569,7 @@ class EDSSpectrum(Spectrum):
                                        elevation_angle)
 
         return TOA
-        
+
     def get_sample_mass_absorption_coefficient(self,
                                                xray_lines='auto',
                                                weight_fraction='auto',
@@ -609,4 +609,4 @@ class EDSSpectrum(Spectrum):
                     weight_fraction.append(1. / len(elements))
                 print 'Weight fraction is automatically set to ' + str(weight_fraction)
         return utils_eds.get_sample_mass_absorption_coefficients(energies=xray_lines,
-                        weight_fraction=weight_fraction, elements=elements)
+                                                                 weight_fraction=weight_fraction, elements=elements)
