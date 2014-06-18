@@ -1410,21 +1410,26 @@ class EDSSpectrum(Spectrum):
         return spec
 
     def get_sample_mass_absorption_coefficient(self,
-                                               xray_lines='auto',
+                                               elements='auto',
                                                weight_fraction='auto',
-                                               elements='auto'):
-        """Return the mass absorption coefficients of for the different
-        xray in a sample
+                                               xray_lines='auto'):
+        """Return the mass absorption coefficients of the sample for the
+        different X-rays
+
+        The sample is the defined as a mixture (compound) of pure elements
 
         Parameters
         ----------
-        xray_lines: list of str
-            The list of X-ray lines, e.g. ['Al_Ka','Zn_Ka','Zn_La']
-        weight_fraction: list of float
-            the composition of the sample
         elements: {list of str | 'auto'}
             The list of element symbol of the absorber, e.g. ['Al','Zn'].
-            if 'auto', use the elements of the X-ray lines
+            if 'auto', use the elements in metadata.Sample
+        xray_lines: {list of str | 'auto'}
+            The list of X-ray lines, e.g. ['Al_Ka','Zn_Ka','Zn_La']
+            if 'auto', use the Xray lines in metadata.Sample
+        weight_fraction: {list of float | 'auto'}
+            The fraction of elements in the sample by weight
+            if 'auto', use the weight_fraction in metadata.Sample
+            or use an equi-fraction e.g. [0.5,0.5]
 
         Return
         ------
@@ -1447,8 +1452,8 @@ class EDSSpectrum(Spectrum):
                 for elm in elements:
                     weight_fraction.append(1. / len(elements))
                 print 'Weight fraction is automatically set to ' + str(weight_fraction)
-        return utils_eds.get_sample_mass_absorption_coefficients(energies=xray_lines,
-                                                                 weight_fraction=weight_fraction, elements=elements)
+        return utils.material.compound_mass_absorption_coefficient(energies=xray_lines,
+                                                                   weight_fraction=weight_fraction, elements=elements)
 
     def get_detector_efficiency(self,
                                 detector_name,
