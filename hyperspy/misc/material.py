@@ -187,6 +187,7 @@ def compound_mass_absorption_coefficient(elements,
     --------
     utils.material.mass_absorption_coefficient
     """
+    from hyperspy.signal import Signal
 
     # if hasattr(elements, '__iter__') is False and elements == 'auto':
         # if isinstance(energies[0], str) is False:
