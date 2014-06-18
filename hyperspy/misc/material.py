@@ -2,6 +2,7 @@ import numpy as np
 
 from hyperspy.misc.elements import elements as elements_db
 from hyperspy.misc.eds import utils as utils_eds
+from hyperspy.signal import Signal
 
 
 def weight_to_atomic(elements, weight_percent):
@@ -168,7 +169,7 @@ def compound_mass_absorption_coefficient(elements,
     ----------
     elements: list of str
         The list of element symbol of the absorber, e.g. ['Al','Zn'].
-    weight_fraction: list of float
+    weight_fraction: {list of float or list of list or list of signals.Signal}
         the fraction of elements in the sample by weight
     energies: {float or list of float or str or list of str}
         The energy or energies of the Xray in keV, or the name eg 'Al_Ka'
@@ -199,12 +200,13 @@ def compound_mass_absorption_coefficient(elements,
         raise ValueError(
             "Elements and weight_fraction should have the same lenght")
     # works for weight_fraction as a signal
-    # if isinstance(weight_fraction[0], float):
-        #mac = 0
-    # else:
-        #mac = weight_fraction[0].deepcopy()
-        #mac.data = np.zeros_like(mac.data)
-    mac = 0
+    if isinstance(weight_fraction[0], float):
+        mac = 0
+    elif isinstance(weight_fraction[0],Signal):
+        mac = weight_fraction[0].deepcopy()
+        mac.data = np.zeros_like(mac.data)
+    else:
+        mac = np.zeros_like(weight_fraction)
     for el, weight in zip(elements, weight_fraction):
         mac += weight * np.array(mass_absorption_coefficient(
             el, energies))
