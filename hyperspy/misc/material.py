@@ -2,8 +2,6 @@ import numpy as np
 
 from hyperspy.misc.elements import elements as elements_db
 from hyperspy.misc.eds import utils as utils_eds
-from hyperspy.signal import Signal
-
 
 def weight_to_atomic(elements, weight_percent):
     """Convert weight percent (wt%) to atomic percent (at.%).
@@ -218,6 +216,7 @@ def compound_mass_absorption_coefficient(elements,
     --------
     utils.material.mass_absorption_coefficient
     """
+    from hyperspy.signal import Signal
 
     # if hasattr(elements, '__iter__') is False and elements == 'auto':
         # if isinstance(energies[0], str) is False:

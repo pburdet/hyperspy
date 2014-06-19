@@ -29,7 +29,7 @@ from hyperspy.model import Model
 from hyperspy._signals.eds import EDSSpectrum
 from hyperspy.misc.elements import elements as elements_db
 from hyperspy.misc.eds import utils as utils_eds
-from hyperspy.misc.eds import model as model_eds
+from hyperspy.misc.eds import physical_model as model_eds
 import hyperspy.components as create_component
 from hyperspy import utils
 
