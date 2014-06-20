@@ -160,3 +160,42 @@ def take_off_angle(tilt_stage,
 
     return math.degrees(np.arcsin(-math.cos(a) * math.cos(b) * math.cos(c)
                                   + math.sin(a) * math.sin(c)))
+                                  
+def quantification_cliff_lorimer(kfactors,intensities):
+    """
+    Quantification using Cliff-Lorimer
+
+    Parameters
+    ----------
+    kfactors: list of float
+        the list of kfactor, compared to the first
+        elements. eg. kfactors = [1.2, 2.5]
+        for kfactors_name = ['Cu_Ka/Al_Ka', 'Nb_Ka/Al_Ka']
+    intensities: list of signal.Signals
+        the intensities for each X-ray lines.
+    """
+    ab = []
+    for i, kba in enumerate(kfactors):
+        # ab = Ia/Ib / kab
+        if isinstance(kba, signals.Signal):
+            ab.append(intensities[0].data /
+                      intensities[i + 1].data / kba.data)
+        else:
+            ab.append(intensities[0].data /
+                      intensities[i + 1].data / kba)        
+    composition = []
+    for i, kba in enumerate(kfactors):
+        if i == 0:
+            # Ca = ab /(1 + ab + ab/ac + ab/ad + ...)
+            composition.append(np.ones(ab[0].shape))
+            for i, ab1 in enumerate(ab):
+                if i == 0:
+                    composition[0] += ab[0]
+                else:
+                    composition[0] += (ab[0] / ab1)
+            composition[0] = ab[0] / composition[0]
+        else:
+            # Cb = Ca / ab
+            composition[i] = composition[0] / ab[i - 1]
+     composition = np.nan_to_num(composition)
+    return composition
