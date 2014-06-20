@@ -1091,7 +1091,7 @@ def simulate_linescan(nTraj,
 
 def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
                               elements='auto',
-                              compo_at='auto',
+                              weight_fraction='auto',
                               density='auto',
                               thickness='auto',
                               detector='Si(Li)',
@@ -1101,32 +1101,23 @@ def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
 
     Parameters
     ----------
-
     nTraj: int
         number of electron trajectories
-
     dose: float
         Electron current time the live time in nA*sec
-
     mp: dict
         Microscope parameters. If 'gui' raise a general interface.
-
     elements: list of str
         Set the elements. If auto, look in mp.Sample if elements are defined.
         auto cannot be used with 'gui' option.
-
-    compo_at: list of string
-        Give the composition (atomic). If auto, equally parted
-
+    weight_fraction: list of string
+        Give the composition (weight). If auto, equally parted
     density: list of float
         Set the density. If 'auto', obtain from the compo_at.
-
     thickness: float
         Set the thickness. If 'auto', look in mp.Sample or set to 100nm
-
     detector: str
         Give the detector name defined in DTSA-II
-
     gateway: execnet Gateway
         If 'auto', generate automatically the connection to jython.
 
@@ -1175,16 +1166,20 @@ def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
             return 0
     else:
         mp.Sample.elements = elements
-    if compo_at == 'auto':
-        compo_at = []
-        for elm in elements:
-            compo_at.append(1. / len(elements))
-    mp.Sample.compo_at = compo_at
-    compo_wt = np.array(
-        utils.material.atomic_to_weight(
-            elements,
-            compo_at)) / 100
-    compo_wt = list(compo_wt)
+    if weight_fraction == 'auto':
+        if 'Sample.weight_fraction' in mp:
+            weight_fraction = mp.Sample.weight_fraction
+        else:
+            weight_fraction = []
+            for elm in elements:
+                weight_fraction.append(1. / len(elements))
+            print 'Weight fraction is automatically set to ' + str(weight_fraction)
+    #mp.Sample.compo_at = compo_at
+    #compo_wt = np.array(
+        #utils.material.atomic_to_weight(
+            #elements,
+            #compo_at)) / 100
+    compo_wt = list(weight_fraction)
     if density == 'auto':
         density = utils.material.density_of_mixture_of_pure_elements(
             elements,

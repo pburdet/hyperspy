@@ -266,22 +266,16 @@ class EDSTEMSpectrum(EDSSpectrum):
 
         common_xray: str
             The Xray line use as the common element for each standard.
-
         nTraj: int
             number of electron trajectories
-
         dose: float
             Electron current time the live time in nA*sec
-
         density: list of float
             Set the density. If 'auto', obtain from the compo_at.
-
         thickness: float
             Set the thickness.
-
         detector: str
             Give the detector name defined in DTSA-II
-
         gateway: execnet Gateway
             If 'auto', generate automatically the connection to jython.
 
@@ -371,7 +365,7 @@ class EDSTEMSpectrum(EDSSpectrum):
                 kfactors.append(kfactor[0] / kfactor0)
                 kfactors_name.append(xray + '/' + kfactor0_name)
         self.metadata.Sample.kfactors = kfactors
-        self.metadata.Sample.kfactors_name = kfactors_name
+        self.metadata.Sample.kfactors_name = kfactors_name   
 
     def quant_cliff_lorimer(self,
                             intensities='integrate',
@@ -379,14 +373,17 @@ class EDSTEMSpectrum(EDSSpectrum):
                             plot_result=True,
                             store_in_mp=True,
                             **kwargs):
-        """
+        """        
+        Quantification using Cliff-Lorimer
+        
+        Store the result in metadata.Sample.quant
 
         Parameters
         ----------
         intensities: {'integrate','model',list of signal}
             If 'integrate', integrate unde the peak using get_lines_intensity
             if 'model', generate a model and fit it
-            Else a list of intensities (singal or image or spectrum)
+            Else a list of intensities (signal or image or spectrum)
         kfactors: {list of float | 'auto'}
             the list of kfactor, compared to the first
             elements. eg. kfactors = [1.2, 2.5]
@@ -619,3 +616,43 @@ class EDSTEMSpectrum(EDSSpectrum):
             res_compo[-1].data = data_res
             res_compo[-1].metadata.General.title = 'Composition ' + xray
         return res_compo
+        
+    def get_absorption_corrections(self,weight_fraction='auto', 
+                 thickness='auto',density='auto'):
+        """
+        Compute the absoprtion corrections for each X-ray-lines
+        
+        Parameters
+        ---------- 
+        weight_fraction: {list of float or signals.Signal or 'auto'}
+            Set the weight fraction
+            If 'auto', take the weight fraction stored in metadata.Sample.quant
+        thickness: {float or 'auto'}
+            Set the thickness in nm
+            If 'auto', take the thickness stored in metadata.Sample
+        density: {float or signals.Signal or 'auto'}
+            Set the density. If 'auto', obtain from the compo_at.
+            If 'auto', calculate the density with the weight fraction. see
+            get_sample_density        
+        """
+        if weight_fraction =='auto' and 'weight_fraction' in self.metadata.Sample:
+            weight_fraction = self.metadata.Sample.quant
+        else:
+            raise ValueError("Weight fraction needed")
+        if thickness=='auto'and 'thickness' in self.metadata.Sample:
+            thickness = self.metadata.Sample.thickness
+        else :
+            raise ValueError("thickness needed")
+        mac_sample = self.get_sample_mass_absorption_coefficient(
+            weight_fraction=weight_fraction)
+        TOA = self.get_take_off_angle()
+        if density =='auto':
+            density = self.get_sample_density(weight_fraction=weight_fraction)
+        #thickness in cm
+        rt =  density * thickness * 1e-7 / np.sin(np.radians(TOA))
+        abs_corr=[]
+        for mac in mac_sample:
+            fact = mac.data*rt
+            abs_corr.append(mac)  
+            abs_corr[-1].data = np.nan_to_num((1-np.exp(-(fact)))/fact)
+        return abs_corr
