@@ -576,6 +576,7 @@ class EDSTEMSpectrum(EDSSpectrum):
             spec_res[-1].data = data
             spec_res[-1].metadata.General.title = 'Weight fraction of ' + element
         return spec_res
+
         
     def get_absorption_corrections(self,weight_fraction='auto', 
                  thickness='auto',density='auto'):
@@ -616,3 +617,4 @@ class EDSTEMSpectrum(EDSSpectrum):
             abs_corr.append(mac)  
             abs_corr[-1].data = np.nan_to_num((1-np.exp(-(fact)))/fact)
         return abs_corr
+

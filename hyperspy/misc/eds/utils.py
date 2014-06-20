@@ -175,7 +175,6 @@ def take_off_angle(tilt_stage,
     return math.degrees(np.arcsin(-math.cos(a) * math.cos(b) * math.cos(c)
                                   + math.sin(a) * math.sin(c)))
 
-
 def get_index_from_names(self, axis_names, index_name, axis_name_in_mp=True):
     """Get the index of an axis that is link to a list of names.
 
@@ -2118,7 +2117,7 @@ def get_kfactors(xray_lines,
     # else:
         # return _mac_interpolation(mac, mac1, energy,
                                   # energy_db, energy_db1)
-                                  
+
 def quantification_cliff_lorimer(kfactors,intensities):
     """
     Quantification using Cliff-Lorimer
@@ -2153,4 +2152,3 @@ def quantification_cliff_lorimer(kfactors,intensities):
         composition.append(composition[0] / ab1)
     composition = np.nan_to_num(composition)
     return composition
-
