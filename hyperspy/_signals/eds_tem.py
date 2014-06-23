@@ -412,7 +412,7 @@ class EDSTEMSpectrum(EDSSpectrum):
         """
         from hyperspy import signals
 
-        xrays = self.metadata.Sample.xray_lines
+        xray_lines = self.metadata.Sample.xray_lines
         beam_energy = self._get_beam_energy()
         if intensities == 'integrate':
             intensities = self.get_lines_intensity(**kwargs)
@@ -427,8 +427,8 @@ class EDSTEMSpectrum(EDSSpectrum):
         data_res = utils_eds.quantification_cliff_lorimer(
                         kfactors,intensities)
         res=[]
-        for xray, data in zip(xrays,data_res): 
-            res.append(self._set_result(xray_line=xray, result='quant',
+        for xray_line, data in zip(xray_lines,data_res): 
+            res.append(self._set_result(xray_line=xray_lines, result='quant',
                                         data_res=data,
                                         plot_result=plot_result,
                                         store_in_mp=store_in_mp))
@@ -608,13 +608,8 @@ class EDSTEMSpectrum(EDSSpectrum):
             weight_fraction=weight_fraction)
         TOA = self.get_take_off_angle()
         if density =='auto':
-            density = self.get_sample_density(weight_fraction=weight_fraction)
-        #thickness in cm
-        rt =  density * thickness * 1e-7 / np.sin(np.radians(TOA))
-        abs_corr=[]
-        for mac in mac_sample:
-            fact = mac.data*rt
-            abs_corr.append(mac)  
-            abs_corr[-1].data = np.nan_to_num((1-np.exp(-(fact)))/fact)
+            density = self.get_sample_density(weight_fraction=weight_fraction)            
+        abs_corr = utils_eds.absorption_correction(mac_sample,density,thickness,TOA)
         return abs_corr
+
 

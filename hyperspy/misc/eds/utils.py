@@ -9,7 +9,7 @@ import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
 
 
-import hyperspy.utils
+#import hyperspy.utils
 from hyperspy.misc.config_dir import config_path
 import hyperspy.components as components
 from hyperspy.misc.elements import elements as elements_db
@@ -218,7 +218,7 @@ def get_sample_mass_absorption_coefficients(energies,
     ------
     mass absorption coefficient in cm^2/g
     """
-    from hyperspy import utils
+    from hyperspy.misc import material
     if hasattr(elements, '__iter__') is False and elements == 'auto':
         if isinstance(energies[0], str) is False:
             raise ValueError("need X-ray lines name for elements='auto'")
@@ -235,7 +235,7 @@ def get_sample_mass_absorption_coefficients(energies,
         mac = weight_fraction[0].deepcopy()
         mac.data = np.zeros_like(mac.data)
     for el, weight in zip(elements, weight_fraction):
-        mac += weight * np.array(utils.material.mass_absorption_coefficient(
+        mac += weight * np.array(material.mass_absorption_coefficient(
             el, energies))
     return mac
 
@@ -286,7 +286,7 @@ def simulate_one_spectrum(nTraj, dose=100, mp='gui',
 
     """
     from hyperspy import signals
-    from hyperspy import utils
+    from hyperspy.misc import material
 
     if mp == 'gui':
         if elements == 'auto':
@@ -322,12 +322,12 @@ def simulate_one_spectrum(nTraj, dose=100, mp='gui',
     mp.Sample.compo_at = compo_at
 
     compo_wt = np.array(
-        utils.material.atomic_to_weight(
+        material.atomic_to_weight(
             elements,
             compo_at)) / 100
     compo_wt = list(compo_wt)
     if density == 'auto':
-        density = utils.material.density_of_mixture_of_pure_elements(
+        density = material.density_of_mixture_of_pure_elements(
             elements,
             compo_wt)
     mp.Sample.density = density
@@ -528,7 +528,8 @@ def simulate_Xray_depth_distribution(nTraj, bins=120, mp='gui',
 
     """
     from hyperspy import signals
-    from hyperspy import utils
+    from hyperspy.misc import material
+    
     spec = signals.EDSSEMSpectrum(np.zeros(1024))
     if mp == 'gui':
         spec.set_microscope_parameters()
@@ -566,12 +567,12 @@ def simulate_Xray_depth_distribution(nTraj, bins=120, mp='gui',
             compo_at.append(1. / len(elements))
 
     compo_wt = np.array(
-        utils.material.atomic_to_weight(
+        material.atomic_to_weight(
             elements,
             compo_at)) / 100
     compo_wt = list(compo_wt)
     if density == 'auto':
-        density = utils.material.density_of_mixture_of_pure_elements(
+        density = material.density_of_mixture_of_pure_elements(
             elements,
             compo_wt)
 
@@ -862,7 +863,7 @@ def simulate_linescan(nTraj,
     http://www.cstl.nist.gov/div837/837.02/epq/dtsa2/index.html
     """
     from hyperspy import signals
-    from hyperspy import utils
+    from hyperspy.misc import material
     spec = signals.EDSSEMSpectrum(np.zeros(1024))
     if mp == 'gui':
         spec.set_microscope_parameters()
@@ -890,7 +891,7 @@ def simulate_linescan(nTraj,
     compos_wt = []
     for compo_at in compos_at:
         compos_wt.append(list(
-            utils.material.atomic_to_weight(
+            material.atomic_to_weight(
                 elements,
                 compo_at) /
             100))
@@ -899,7 +900,7 @@ def simulate_linescan(nTraj,
         density = []
         for compo_wt in compos_wt:
             density.append(
-                utils.material.density_of_mixture_of_pure_elements(
+                material.density_of_mixture_of_pure_elements(
                     elements,
                     compo_wt))
 
@@ -1130,7 +1131,7 @@ def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
 
     """
     from hyperspy import signals
-    from hyperspy import utils
+    from hyperspy.misc import material
 
     if mp == 'gui':
         spec = signals.EDSTEMSpectrum(np.zeros(2048))
@@ -1177,12 +1178,12 @@ def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
             print 'Weight fraction is automatically set to ' + str(weight_fraction)
     #mp.Sample.compo_at = compo_at
     #compo_wt = np.array(
-        #utils.material.atomic_to_weight(
+        #material.atomic_to_weight(
             #elements,
             #compo_at)) / 100
     compo_wt = list(weight_fraction)
     if density == 'auto':
-        density = utils.material.density_of_mixture_of_pure_elements(
+        density = material.density_of_mixture_of_pure_elements(
             elements,
             compo_wt)
     mp.Sample.density = density
@@ -1199,7 +1200,7 @@ def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
     ltime = mp.Acquisition_instrument.TEM.Detector.EDS.live_time
     elevation = mp.Acquisition_instrument.TEM.Detector.EDS.elevation_angle
     #TOangle = np.radians(spec.get_take_off_angle())
-    TOangle = [utils.eds.take_off_angle(tilt, az,
+    TOangle = [take_off_angle(tilt, az,
                                         elevation) for az in azimDeg]
     # print TOangle
     #TOangle = [np.radians(TO) for TO in TOangle]
@@ -1741,7 +1742,6 @@ def simulate_model(elements=None,
         model = s.simulate_model(elemental_map=elemental_map)
         return model
 
-
 def get_kfactors(xray_lines,
                  beam_energy,
                  detector_efficiency=None,
@@ -1751,7 +1751,7 @@ def get_kfactors(xray_lines,
 
     Parameters
     ----------
-    xray_lines: list of strin
+    xray_lines: list of string
         The X-ray lines, e.g. ['Al_Ka', 'Zn_Ka']
     beam_energy: float
         The energy of the beam in kV.
@@ -1782,6 +1782,103 @@ def get_kfactors(xray_lines,
     #kab = kab[0] / kab[1]
     kab = kab[1] / kab[0]
     return kab
+    
+def absorption_correction_factor_for_thin_film(mac_sample,
+                                        density,
+                                        thickness,
+                                        TOA):
+    """
+    Compute the absorption corrections factor (ACF) for a thin film
+    
+    Return the ACF for each X-ray-lines
+    
+    Parameters
+    ---------- 
+    mac_sample: 
+        The mass absorption cofficients, in cm^2/g
+    density: float
+        Set the density. in g/cm^3
+    thickness: float
+        Set the thickness in nm
+    TOA: float
+        the take of angle
+    """
+    rt =  density * thickness * 1e-7 / np.sin(np.radians(TOA))
+    abs_corr=[]
+    for mac in mac_sample:
+        fact = mac*rt
+        abs_corr.append(np.nan_to_num((1-np.exp(-(fact)))/fact))  
+    return abs_corr
+    
+
+def quantification_absorption_corrections_thin_film(elements,
+                                          xray_lines,
+                                          intensities,
+                                          kfactors,
+                                          TOA,
+                                          thickness,
+                                          max_iter=100,
+                                          atol=1e-3,):
+    """        
+    Quantification with absorption correction
+    
+    Based on Cliff-Lorimer
+
+    Parameters
+    ----------
+    xray_lines: list of string
+        The X-ray lines, e.g. ['Al_Ka', 'Zn_Ka']
+    intensities: list of signal
+            List of intensities
+    kfactors: list of float
+        The list of kfactor, compared to the first
+        elements. eg. kfactors = [1.2, 2.5]
+        for kfactors_name = ['Al_Ka/Cu_Ka', 'Al_Ka/Nb_Ka']
+    thickness: {float or 'auto'}
+        Set the thickness in nm
+    TOA: float
+        the take of angle
+    thickness: float
+        Set the thickness in nm
+    max_iter: int
+        The maximum of iteration
+    atol:
+        The tolerance factor for the conve
+    """
+    from hyperspy.misc import material
+    
+    weight_fractions = [quantification_cliff_lorimer(
+                        intensities=intensities, kfactors=kfactors)]
+    kfactors_abs=[]
+    for j in range(max_iter):
+        density = material.density_of_mixture_of_pure_elements(
+                elements, weight_fractions[-1])
+        mac_sample = material.compound_mass_absorption_coefficient(
+                        energies=xray_lines,
+                        weight_fraction=weight_fractions[-1], 
+                        elements=elements)
+        abs_corr = absorption_correction_factor_for_thin_film(
+                                                mac_sample=mac_sample,
+                                                   density=density,
+                                                   thickness=thickness,
+                                                   TOA=TOA)
+
+        kfactors_abs= [abs_corr[0]/abs_corr[i+1]*kab 
+                       for i,kab in enumerate(kfactors)]
+
+        weight_fractions.append(quantification_cliff_lorimer(
+                            intensities=intensities,
+                              kfactors=kfactors_abs)) 
+        if j > 0:
+            dif = sum(np.abs(weight_fractions[-1]-
+                        weight_fractions[-2]))
+            if dif < atol:
+                break
+    if j==max_iter-1:
+        print "No convergence in the limit of iteration"
+    else:
+        print 'Convergence after %s iterations' % j
+    return weight_fractions
 
 ############################
 # def animate_legend(figure='last'):
