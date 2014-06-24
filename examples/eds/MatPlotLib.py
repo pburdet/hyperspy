@@ -31,6 +31,8 @@ xticks(frange(0, 1001, 200. / n), frange(0, 11, 2. / n))
 ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
 xlabel('')
 ylabel('')
+xlabel(r'tilt [$^\circ$]')
+xlabel(r'tilt [$\alpha$]')
 
 ax.get_xaxis().tick_bottom()
 ax.get_yaxis().tick_left()

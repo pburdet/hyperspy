@@ -387,8 +387,9 @@ class EDSTEMSpectrum(EDSSpectrum):
             Else a list of intensities (signal or image or spectrum)
         kfactors: {list of float | 'auto'}
             the list of kfactor, compared to the first
-            elements. eg. kfactors = [1.2, 2.5]
-            for kfactors_name = ['Al_Ka/Cu_Ka', 'Al_Ka/Nb_Ka']
+            elements. eg. kfactors = [1.47,1.72]
+            for kfactors_name = ['Cr_Ka/Al_Ka', 'Ni_Ka/Al_Ka'] 
+            with kfactors_name in alphabetical order
             if 'auto', take the kfactors stored in metadata
         plot_result: bool
           If true (default option), plot the result.
@@ -398,8 +399,8 @@ class EDSTEMSpectrum(EDSSpectrum):
         Examples
         ---------
         >>> s = database.spec3D('TEM')
-        >>> s.set_elements(["Ni", "Cr",'Al'])
-        >>> s.set_lines(["Ni_Ka", "Cr_Ka", "Al_Ka"])
+        >>> s.set_elements(["Al", "Cr", "Ni"])
+        >>> s.set_lines(["Al_Ka","Cr_Ka", "Ni_Ka"])
         >>> kfactors = [s.metadata.Sample.kfactors[2],
         >>>         s.metadata.Sample.kfactors[6]]
         >>> s.quant_cliff_lorimer(kfactors=kfactors)

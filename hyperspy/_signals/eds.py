@@ -1401,7 +1401,7 @@ class EDSSpectrum(Spectrum):
                           energy_axis.size)
         eng = eng[np.searchsorted(eng, 0.0):]
         spec.data = np.append(np.array([0] * (len(spec.data) - len(eng))),
-                              model_eds.continuous_xray_absorption(energy=eng,
+                              physical_model.continuous_xray_absorption(energy=eng,
                                                                    weight_fraction=weight_fraction,
                                                                    elements=elements,
                                                                    beam_energy=beam_energy,
