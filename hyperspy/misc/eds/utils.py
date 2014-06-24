@@ -1811,14 +1811,15 @@ def absorption_correction_factor_for_thin_film(mac_sample,
     return abs_corr
     
 
-def quantification_absorption_corrections_thin_film(elements,
-                                          xray_lines,
-                                          intensities,
+def quantification_absorption_corrections_thin_film(intensities,
+                                          elements,
+                                          xray_lines,                                          
                                           kfactors,
                                           TOA,
                                           thickness,
-                                          max_iter=100,
-                                          atol=1e-3,):
+                                          max_iter=50,
+                                          atol=1e-3,
+                                          all_data=False):
     """        
     Quantification with absorption correction
     
@@ -1829,12 +1830,12 @@ def quantification_absorption_corrections_thin_film(elements,
     xray_lines: list of string
         The X-ray lines, e.g. ['Al_Ka', 'Zn_Ka']
     intensities: list of signal
-            List of intensities
+        List of intensities
     kfactors: list of float
         The list of kfactor, compared to the first
         elements. eg. kfactors = [1.2, 2.5]
         for kfactors_name = ['Al_Ka/Cu_Ka', 'Al_Ka/Nb_Ka']
-    thickness: {float or 'auto'}
+    thickness: float
         Set the thickness in nm
     TOA: float
         the take of angle
@@ -1844,6 +1845,10 @@ def quantification_absorption_corrections_thin_film(elements,
         The maximum of iteration
     atol:
         The tolerance factor for the conve
+        
+    Return
+    ------    
+    The weight fractions for each step of the iteration
     """
     from hyperspy.misc import material
     
@@ -1874,11 +1879,14 @@ def quantification_absorption_corrections_thin_film(elements,
                         weight_fractions[-2]))
             if dif < atol:
                 break
-    if j==max_iter-1:
-        print "No convergence in the limit of iteration"
+    #if j==max_iter-1:
+        #print "No convergence in the limit of iteration"
+    #else:
+        #print 'Convergence after %s iterations' % j
+    if all_data:
+        return weight_fractions
     else:
-        print 'Convergence after %s iterations' % j
-    return weight_fractions
+        return weight_fractions[-1]
 
 ############################
 # def animate_legend(figure='last'):
@@ -2215,26 +2223,25 @@ def quantification_absorption_corrections_thin_film(elements,
         # return _mac_interpolation(mac, mac1, energy,
                                   # energy_db, energy_db1)
 
-def quantification_cliff_lorimer(kfactors,intensities):
+def quantification_cliff_lorimer(intensities,kfactors):
     """
     Quantification using Cliff-Lorimer
 
     Parameters
     ----------
+    intensities: list of np.arrays of float
+        the intensities for each X-ray lines.
     kfactors: list of float
         the list of kfactor, compared to the first
         elements. eg. kfactors = [1.47,1.72]
         for kfactors_name = ['Cr_Ka/Al_Ka', 'Ni_Ka/Al_Ka']
-    intensities: list of signal.Signals
-        the intensities for each X-ray lines.
     """
     ab = []
     composition = []
     
     # ab = Ia/Ib / kab
     for i, kba in enumerate(kfactors):        
-        ab.append(intensities[0].data / intensities[i + 1].data / kba)  
-    #ab = np.nan_to_num(ab)              
+        ab.append(intensities[0] / intensities[i + 1] / kba)            
     # Ca = ab /(1 + ab + ab/ac + ab/ad + ...)
     composition.append(np.ones_like(ab[0]))
     for i, ab1 in enumerate(ab):

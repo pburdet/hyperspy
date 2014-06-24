@@ -425,10 +425,11 @@ class EDSTEMSpectrum(EDSSpectrum):
         if kfactors == 'auto':
             kfactors = self.metadata.Sample.kfactors
         data_res = utils_eds.quantification_cliff_lorimer(
-                        kfactors,intensities)
+                        kfactors=kfactors,
+                        intensities=[intensity.data for intensity in intensities])
         res=[]
         for xray_line, data in zip(xray_lines,data_res): 
-            res.append(self._set_result(xray_line=xray_lines, result='quant',
+            res.append(self._set_result(xray_line=xray_line, result='quant',
                                         data_res=data,
                                         plot_result=plot_result,
                                         store_in_mp=store_in_mp))
@@ -567,7 +568,7 @@ class EDSTEMSpectrum(EDSSpectrum):
 
         xray_lines = self.metadata.Sample.xray_lines        
         data_res = utils_eds.quantification_cliff_lorimer(
-                        kfactors=kfactors,intensities=intensities)
+                        kfactors=kfactors,intensities=[intensity.data for intensity in intensities])
         spec_res=[]
         for xray_line, data, intensity in zip(
                     xray_lines,data_res,intensities):
@@ -611,5 +612,103 @@ class EDSTEMSpectrum(EDSSpectrum):
             density = self.get_sample_density(weight_fraction=weight_fraction)            
         abs_corr = utils_eds.absorption_correction(mac_sample,density,thickness,TOA)
         return abs_corr
+        
+        
+    def quantification_absorption_corrections(self, 
+                                          intensities='integrate',
+                                          kfactors='auto',
+                                          thickness='auto',
+                                          max_iter=50,
+                                          atol=1e-3,
+                                          plot_result=True,
+                                          store_in_mp=True,
+                                          all_data=False,
+                                          **kwargs):
+        """        
+        Quantification with absorption correction
+
+        using Cliff-Lorimer 
+        Store the result in metadata.Sample.quant
+
+        Parameters
+        ----------
+        intensities: {'integrate','model',list of signal}
+            If 'integrate', integrate unde the peak using get_lines_intensity
+            if 'model', generate a model and fit it
+            Else a list of intensities (signal or image or spectrum)
+        kfactors: {list of float | 'auto'}
+            the list of kfactor, compared to the first
+            elements. eg. kfactors = [1.2, 2.5]
+            for kfactors_name = ['Al_Ka/Cu_Ka', 'Al_Ka/Nb_Ka']
+            if 'auto', take the kfactors stored in metadata
+        thickness: {float or 'auto'}
+            Set the thickness in nm
+            If 'auto', take the thickness stored in metadata.Sample
+        plot_result: bool
+            If true (default option), plot the result.
+        kwargs
+            The extra keyword arguments for get_lines_intensity
+        """
+        xray_lines = self.metadata.Sample.xray_lines
+        elements = self.metadata.Sample.elements
+        if thickness=='auto'and 'thickness' in self.metadata.Sample:
+            thickness = self.metadata.Sample.thickness
+        else :
+            raise ValueError("thickness needed")
+        #beam_energy = self._get_beam_energy()
+        if intensities == 'integrate':
+            intensities = self.get_lines_intensity(**kwargs)
+        elif intensities == 'model':
+            print 'not checked'
+            from hyperspy.hspy import create_model
+            m = create_model(self)
+            m.multifit()
+            intensities = m.get_line_intensities(plot_result=False,
+                                                 store_in_mp=False)
+        if kfactors == 'auto':
+            kfactors = self.metadata.Sample.kfactors
+        TOA = self.get_take_off_angle()
+        if all_data is False:
+            weight_fractions = utils.stack(intensities).as_spectrum(0)
+            weight_fractions.map(utils_eds.quantification_absorption_corrections_thin_film,
+                elements=elements,
+                  xray_lines=xray_lines,
+                  kfactors=kfactors,
+                  TOA=TOA,
+                  thickness=thickness,
+                  max_iter=max_iter,
+                  atol=atol,)
+            weight_fractions.metadata._HyperSpy.Stacking_history.axis = -1
+            weight_fractions = weight_fractions.split()
+            for xray_line, weight_fraction in zip(xray_lines,weight_fractions): 
+                weight_fraction.metadata.General.title = (
+                    'Weight fraction of %s from %s' %
+                    (xray_line, 
+                     self.metadata.General.title))
+            if store_in_mp:
+                self.metadata.Sample.quant = weight_fractions
+            return weight_fractions
+        else:
+            from hyperspy import signals
+            data_res = utils_eds.quantification_absorption_corrections_thin_film(
+                                                  elements=elements,
+                                                  xray_lines=xray_lines,
+                                                  intensities=[intensity.data for intensity in intensities],
+                                                  kfactors=kfactors,
+                                                  TOA=TOA,
+                                                  thickness=thickness,
+                                                  max_iter=max_iter,
+                                                  atol=atol,all_data=True)
+            data_res = signals.Spectrum(data_res).as_spectrum(0)
+            return data_res
+        #res=[]
+        #for xray_line, data in zip(xray_lines,data_res[-1]): 
+            #res.append(self._set_result(xray_line=xray_line, result='quant',
+                                        #data_res=data,
+                                        #plot_result=plot_result,
+                                        #store_in_mp=store_in_mp))
+        #if store_in_mp is False:
+            #return res
+        #return data_res
 
 

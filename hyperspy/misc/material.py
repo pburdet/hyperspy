@@ -241,9 +241,9 @@ def compound_mass_absorption_coefficient(elements,
     for i, energy in enumerate(energies):
         if isinstance(weight_fraction[0], float):
             mac_res.append(0)
-        elif isinstance(weight_fraction[0],Signal):
-            mac_res.append(weight_fraction[0].deepcopy())
-            mac_res[i].data = np.zeros_like(mac_res[i].data)
+        #elif isinstance(weight_fraction[0],Signal):
+        #    mac_res.append(weight_fraction[0].deepcopy())
+        #    mac_res[i].data = np.zeros_like(mac_res[i].data)
         else:
             mac_res.append(np.zeros_like(weight_fraction))
         for el, weight in zip(elements, weight_fraction):
