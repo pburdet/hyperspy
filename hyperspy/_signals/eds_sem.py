@@ -529,50 +529,7 @@ class EDSSEMSpectrum(EDSSpectrum):
 
     # shouldn't be needed
     # In fact, why not
-    def save_result(self, result, filename, xray_lines='all',
-                    extension='hdf5'):
-        """
-        Save the result in a file (results stored in
-        'metadata.Sample')
-
-        Parameters
-        ----------
-        result : string {'kratios'|'quant'|'intensities'}
-            The result to save
-
-        filename:
-            the file path + the file name. The result and the Xray-lines
-            is added at the end.
-
-        xray_lines: list of string
-            the X-ray lines to save. If 'all' (default), save all X-ray lines
-
-        Extension:
-            the extension in which the result is saved.
-
-        See also
-        -------
-        get_kratio, deconvolove_intensity, quant
-
-        """
-        # print 'This is obsolete, it will desapear'
-        mp = self.metadata
-        if xray_lines is 'all':
-            if result == 'intensities':
-                xray_lines = mp.Sample.xray_lines
-            else:
-                xray_lines = mp.Sample.xray_lines
-        for xray_line in xray_lines:
-            if result == 'intensitiesS':
-                res = self.intensity_map([xray_line], plot_result=False)[0]
-            else:
-                res = self.get_result(xray_line, result)
-            if res.data.dtype == 'float64':
-                a = 1
-                res.change_dtype('float32')
-                # res.change_dtype('uint32')
-            res.save(filename=filename + "_" + result + "_" + xray_line,
-                     extension=extension, overwrite=True)
+   
 
     def quant(
             self, plot_result=True, enh=False, enh_param=[
