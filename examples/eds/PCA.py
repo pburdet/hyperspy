@@ -22,6 +22,27 @@ sr = s.get_decomposition_model(5)
 s.blind_source_separation(5)
 s.plot_bss_results()
 
+#PCA for TEM (masking vacum)
+
+s = database.spec3D('TEM')
+dim = s.axes_manager.shape
+s = s.rebin([dim[0],dim[1],2000])
+
+mask = (s.sum(-1) < 28) 
+mask.plot()
+s.change_dtype('float')
+s.decomposition(True,navigation_mask=mask.data)
+sr = s.get_decomposition_model(3)
+sr.data = np.nan_to_num(sr.data)
+
+s.plot_explained_variance_ratio()
+s.plot_decomposition_results()
+s.blind_source_separation(3)
+
+loa = s.get_bss_loadings()
+loa.data = np.nan_to_num(loa.data)
+loa.plot()
+
 # PCA saving memory
 
 s.change_dtype('float32')
