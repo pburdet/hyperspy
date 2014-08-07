@@ -22,3 +22,10 @@ s.quant_cliff_lorimer()
 # kfactors from first principles
 s.get_kfactors_from_first_principles()
 s.quant_cliff_lorimer()
+
+# Quant of PCA
+
+mask = (s.sum(-1) > 25) 
+intensities = s.get_lines_intensity()
+intensities = [intens * mask for intens in intensities]
+s.quant_cliff_lorimer(intensities=intensities)

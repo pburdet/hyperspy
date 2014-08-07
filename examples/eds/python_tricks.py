@@ -1,3 +1,9 @@
+import time
+a = time.time()
+1+2
+b = time.time()
+print b-a
+
 # useful Function
 
 >> > np.repeat([1, 2], 2, axis=0)
@@ -64,6 +70,10 @@ get_backend()
 Usefull magic function
 ----------------
 
+%matplotlib inline
+
+%matplotlib qt
+
 %doctest_mode .... to write example
 
 %edit misc.utils
@@ -77,3 +87,10 @@ all variable
 
 copy paste part of code
 %paste
+
+%load "C:\Users\pb565\Documents\Python\hyperspy\examples\eds\basic.py"
+%load "C:\Users\pb565\Documents\Python\hyperspy\examples\eds\PCA.py"
+%load "C:\Users\pb565\Documents\Python\hyperspy\examples\eds\quantification.py"
+%load "C:\Users\pb565\Documents\Python\hyperspy\examples\eds\simulation.py"
+%load "C:\Users\pb565\Documents\Python\hyperspy\examples\eds\visualisation.py"
+%load "C:\Users\pb565\Documents\Python\hyperspy\examples\eds\quantification_tem.py"

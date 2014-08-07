@@ -38,3 +38,10 @@ iso2.contour.contours = [0.73, ]
 
 # orthoview
 image_eds.plot_orthoview_animated(img2)
+
+#Modify param signal
+img.plot()
+img._plot.signal_plot.auto_contrast = False
+img._plot.signal_plot.vmax = 0.45
+img._plot.signal_plot.vmin = 0.0
+img._plot.signal_plot.update()
