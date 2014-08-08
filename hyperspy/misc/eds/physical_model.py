@@ -34,8 +34,7 @@ def continuous_xray_absorption(energy,
                                weight_fraction,
                                elements,
                                beam_energy,
-                               TOA,
-                               units_name):
+                               TOA):
     """Contninous X-ray Absorption within sample
 
     PDH equation (Philibert-Duncumb-Heinrich)
@@ -43,7 +42,7 @@ def continuous_xray_absorption(energy,
     Parameters
     ----------
     energy: float or list of float
-        The energy of the generated X-ray.
+        The energy of the generated X-ray in keV.
     weight_percent: list of float
         The sample composition
     elements: list of str
@@ -51,7 +50,7 @@ def continuous_xray_absorption(energy,
     TOA:
         the take off angle
     beam_energy:  float
-        The energy of the electron beam
+        The energy of the electron beam in keV.
     """
     h = 0
     for el, wt in zip(elements, weight_fraction):
@@ -59,10 +58,7 @@ def continuous_xray_absorption(energy,
         Z = utils.material.elements[el]['General_properties']['Z']
         h += wt * A / (Z * Z)
 
-    if units_name == 'eV':
-        coeff = 4.5 * 1e2
-    else:
-        coeff = 4.5 * 1e5
+    coeff = 4.5 * 1e5
 
     xi = np.array(utils.material.compound_mass_absorption_coefficient(
         energies=energy, elements=elements,
