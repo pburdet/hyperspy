@@ -1380,6 +1380,7 @@ class EDSSpectrum(Spectrum):
         utils.misc.eds.model.continuous_xray_absorption
         edsmodel.add_background
         """
+
         if self.axes_manager.signal_axes[0].units == 'eV' : 
             units_factor = 1000.
         else :
@@ -1388,7 +1389,6 @@ class EDSSpectrum(Spectrum):
         elements = self.metadata.Sample.elements
         TOA = self.get_take_off_angle()
 
-        #units_name = self.axes_manager.signal_axes[0].units
         if weight_fraction == 'auto':
             if 'weight_fraction' in self.metadata.Sample:
                 weight_fraction = self.metadata.Sample.weight_fraction
@@ -1406,10 +1406,10 @@ class EDSSpectrum(Spectrum):
         eng = eng[np.searchsorted(eng, 0.0):]
         spec.data = np.append(np.array([0] * (len(spec.data) - len(eng))),
                               physical_model.continuous_xray_absorption(energy=eng,
-                                                                   weight_fraction=weight_fraction,
-                                                                   elements=elements,
-                                                                   beam_energy=beam_energy,
-                                                                   TOA=TOA))
+                                                                        weight_fraction=weight_fraction,
+                                                                        elements=elements,
+                                                                        beam_energy=beam_energy,
+                                                                        TOA=TOA))
         return spec
 
     def get_sample_mass_absorption_coefficient(self,
