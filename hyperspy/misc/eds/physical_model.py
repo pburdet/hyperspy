@@ -56,7 +56,7 @@ def continuous_xray_absorption(energy,
     for el, wt in zip(elements, weight_fraction):
         A = utils.material.elements[el]['General_properties']['atomic_weight']
         Z = utils.material.elements[el]['General_properties']['Z']
-        h += wt * 1.2 * A / (Z * Z)
+        h += wt * 1.2 * A / np.power(Z, 2)
 
     coeff = 4.5e5 # keV^1.65
 
@@ -65,7 +65,7 @@ def continuous_xray_absorption(energy,
         weight_fraction=weight_fraction)) / np.sin(np.radians(TOA))
     sig = coeff / (np.power(beam_energy, 1.65
                             ) - np.power(energy, 1.65))
-    return 1 / ((1 + xi / sig) * (1 + h / (1 + h) * xi / sig))
+    return 1. / ((1. + xi / sig) * (1. + h / (1. + h) * ( xi / sig) ))
 
 # def absorption_Yakowitz(self, E):
     #"""Absorption within sample

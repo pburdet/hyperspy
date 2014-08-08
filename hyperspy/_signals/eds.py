@@ -1487,6 +1487,8 @@ class EDSSpectrum(Spectrum):
                 detector_name, gateway=gateway)
         else:
             det_efficiency = database.detector_efficiency_INCA(detector_name)
+        if det_efficiency.axes_manager[-1].units != ax_s.units:
+            det_efficiency._eV_to_keV()
         det_efficiency = det_efficiency[
             ax_s.low_value:ax_s.high_value +
             ax_s.scale]

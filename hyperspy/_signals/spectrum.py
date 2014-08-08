@@ -175,3 +175,20 @@ class Spectrum(Signal):
                            signal_mask=signal_mask)
         sr.configure_traits()
         return sr
+        
+    def _eV_to_keV(self):
+        """
+        Change the energy from eV to keV and the vice-versa
+        """
+        axis = self.axes_manager[-1]
+        factor = 1000.
+        if axis.units == 'keV':
+            axis.scale = axis.scale*factor
+            axis.units = 'eV'
+            axis.offset = axis.offset*factor
+        elif axis.units == 'eV':
+            axis.scale = axis.scale/factor
+            axis.units = 'keV'
+            axis.offset = axis.offset/factor
+        else:
+            print 'unkown axis units'
