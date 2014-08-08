@@ -152,18 +152,10 @@ class EDSModel(Model):
             else:
                 raise ValueError(
                     "No elements defined, set them with `add_elements`")
-        # if xray_lines is None:
-            # if 'Sample.xray_lines' in self.spectrum.metadata:
-                #xray_lines = self.spectrum.metadata.Sample.xray_lines
-            # elif 'Sample.elements' in self.spectrum.metadata:
-                # xray_lines = self.spectrum._get_lines_from_elements(
-                    # self.spectrum.metadata.Sample.elements,
-                    # only_one=only_one,
-                    # only_lines=only_lines)
-            # else:
-                # raise ValueError(
-                    #"Not X-ray line, set them with `add_elements`")
-        #self.xray_lines = xray_lines
+
+        already_lines = [xr.name for xr in self.xray_lines]
+        xray_lines = filter(lambda x: x not in already_lines, xray_lines)
+
         for i, xray_line in enumerate(xray_lines):
             element, line = utils_eds._get_element_and_line(xray_line)
             line_energy, line_FWHM = self.spectrum._get_line_energy(xray_line,
