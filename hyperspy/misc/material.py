@@ -215,11 +215,10 @@ def compound_mass_absorption_coefficient(elements,
     --------
     utils.material.mass_absorption_coefficient
     """
-    
     if len(elements) != len(weight_fraction):
         raise ValueError(
             "Elements and weight_fraction should have the same lenght")
-    # works for weight_fraction as a signal    
+  
     if hasattr(energies, '__iter__'):
         is_iter = True
     else:
@@ -239,4 +238,3 @@ def compound_mass_absorption_coefficient(elements,
         return mac_res
     else:
         return mac_res[0]
-
