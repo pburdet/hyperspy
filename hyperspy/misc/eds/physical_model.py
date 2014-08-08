@@ -58,7 +58,7 @@ def continuous_xray_absorption(energy,
         Z = utils.material.elements[el]['General_properties']['Z']
         h += wt * A / (Z * Z)
 
-    coeff = 4.5 * 1e5
+    coeff = 4.5e5 # keV^1.65
 
     xi = np.array(utils.material.compound_mass_absorption_coefficient(
         energies=energy, elements=elements,
