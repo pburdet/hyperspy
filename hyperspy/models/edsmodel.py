@@ -153,8 +153,8 @@ class EDSModel(Model):
                 raise ValueError(
                     "No elements defined, set them with `add_elements`")
 
-        already_lines = [xr.name for xr in self.xray_lines]
-        xray_lines = filter(lambda x: x not in already_lines, xray_lines)
+        components_names = [xr.name for xr in self.xray_lines]
+        xray_lines = filter(lambda x: x not in components_names, xray_lines)
 
         for i, xray_line in enumerate(xray_lines):
             element, line = utils_eds._get_element_and_line(xray_line)
@@ -198,7 +198,8 @@ class EDSModel(Model):
                         element, li)
                     self.append(component_sub)
 
-    def get_line_intensities(self,
+    def get_lines_intensity(self,
+                             xray_lines='auto',
                              plot_result=True,
                              store_in_mp=True,
                              **kwargs):
@@ -206,6 +207,10 @@ class EDSModel(Model):
 
         Parameters
         ----------
+        xray_lines: {list of str | 'auto' | 'from_metadata'}
+            The Xray lines. If 'auto' all the fitted alpha lines.
+            If 'from_metadata', take the Xray_lines stored in the metadata
+            of the spectrum.
         plot_result : bool
             If True, plot the calculated line intensities. If the current
             object is a single spectrum it prints the result instead.
@@ -215,11 +220,18 @@ class EDSModel(Model):
             The extra keyword arguments for plotting. See
             `utils.plot.plot_signals`
         """
-        xray_lines = []
-        intensities = []
-        components = self.xray_lines
-        for component in components:
-            xray_lines.append(component.name)
+        intensities = []       
+        
+        if xray_lines == 'auto':        
+            xray_lines = [] 
+            components = self.xray_lines
+            for component in components:
+                xray_lines.append(component.name)
+        else:
+            if xray_lines == 'from_metadata' : 
+                xray_lines = self.spectrum.metadata.Sample.xray_lines
+            components = filter(lambda x: x.name in xray_lines,
+                                self.xray_lines)
 
         if self.spectrum.metadata.Sample.has_item(
                 'xray_lines') is False and store_in_mp:
