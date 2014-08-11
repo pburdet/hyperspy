@@ -258,15 +258,18 @@ class EDSModel(Model):
 
     def add_background(self,
                        generation_factors=[1, 2],
-                       detector_name=None,
+                       detector_name=4,
                        weight_fraction='auto',
+                       thickness=100,
+                       density='auto'
                        gateway='auto'):
         """
         Add a backround to the model in the form of several
         scalable fixed patterns.
 
         Each pattern is the muliplication of the detector efficiency,
-        the absorption in the sample (PDH equation) and a continuous X-ray
+        the absorption in the sample (PDH equation for SEM, constant
+        X-ray pdouction for TEM) and a continuous X-ray
         generation.
 
         Parameters
@@ -283,6 +286,8 @@ class EDSModel(Model):
              The sample composition used for the sample absorption.
              If 'auto', takes value in metadata. If not there,
              use and equ-composition
+        thickness : float
+            Thickness of thin film. Option only relevant for EDSTEMSpectrum. 
         gateway: execnet Gateway
             If 'auto', generate automatically the connection to jython.
 
@@ -297,18 +302,29 @@ class EDSModel(Model):
                 exp_factor))
             generation[-1].metadata.General.title = 'generation'\
                 + str(exp_factor)
-        absorption = self.spectrum.compute_continuous_xray_absorption(
-            weight_fraction=weight_fraction)
+                
+        if 'SEM' in s.metadata.Signal.signal_type:
+            absorption = self.spectrum.compute_continuous_xray_absorption(
+                weight_fraction=weight_fraction)
+        elif thickness == 0.:
+            absorption = generation[0].deepcopy()
+            absorption.data = np.ones_like(generation[0].data)
+        else :
+            absorption = self.spectrum.compute_continuous_xray_absorption(
+                thickness=thickness, density=density,
+                weight_fraction=weight_fraction)
+        #else : 
         absorption.metadata.General.title = 'absorption'
-        if detector_name is not None:
+        
+        if detector_name is None:
+            det_efficiency = generation[0].deepcopy()
+            det_efficiency.data = np.ones_like(generation[0].data)
+        else : 
             det_efficiency = self.spectrum.get_detector_efficiency(
                 detector_name, gateway=gateway)
 
         for gen, gen_fact in zip(generation, generation_factors):
-            if detector_name is None:
-                bck = gen * absorption
-            else:
-                bck = det_efficiency * gen * absorption
+            bck = det_efficiency * gen * absorption
             # bck.plot()
             bck = bck[self.axes_manager[-1].scale:]
             bck.metadata.General.title = 'bck_' + str(gen_fact)
