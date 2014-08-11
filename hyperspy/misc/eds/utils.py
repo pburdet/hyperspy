@@ -7,6 +7,7 @@ import os
 import copy
 import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
+from functools import reduce
 
 
 #import hyperspy.utils
@@ -15,7 +16,7 @@ import hyperspy.components as components
 from hyperspy.misc.elements import elements as elements_db
 from hyperspy.misc.eds import database
 #from hyperspy.misc.eds.MAC import MAC_db as MAC
-from functools import reduce
+from hyperspy.misc.eds import physical_model
 
 
 def _get_element_and_line(xray_line):
@@ -1827,10 +1828,12 @@ def quantification_absorption_corrections_thin_film(intensities,
 
     Parameters
     ----------
-    xray_lines: list of string
-        The X-ray lines, e.g. ['Al_Ka', 'Zn_Ka']
     intensities: list of signal
         List of intensities
+    elements: list of str
+        List of elements, e.g. ['Al', 'Zn']
+    xray_lines: list of string
+        The X-ray lines, e.g. ['Al_Ka', 'Zn_Ka']
     kfactors: list of float
         The list of kfactor, compared to the first
         elements. eg. kfactors = [1.2, 2.5]
@@ -1852,6 +1855,8 @@ def quantification_absorption_corrections_thin_film(intensities,
     """
     from hyperspy.misc import material
     
+
+    xray_energy =  [_get_energy_xray_line(xray_line) for xray_line in xray_lines]
     weight_fractions = [quantification_cliff_lorimer(
                         intensities=intensities, kfactors=kfactors)]
     kfactors_abs=[]
@@ -1862,12 +1867,12 @@ def quantification_absorption_corrections_thin_film(intensities,
                         energies=xray_lines,
                         weight_fraction=weight_fractions[-1], 
                         elements=elements)
-        abs_corr = absorption_correction_factor_for_thin_film(
-                                                mac_sample=mac_sample,
-                                                   density=density,
+        abs_corr =  physical_model.xray_absorption_thin_film(energy=xray_energy,
+                                                   weight_fraction=weight_fractions[-1],
+                                                   elements=elements,
+                                                    density=density,
                                                    thickness=thickness,
                                                    TOA=TOA)
-
         kfactors_abs= [abs_corr[0]/abs_corr[i+1]*kab 
                        for i,kab in enumerate(kfactors)]
 

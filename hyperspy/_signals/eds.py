@@ -1356,57 +1356,46 @@ class EDSSpectrum(Spectrum):
         eng = np.linspace(energy_axis.low_value,
                           energy_axis.high_value,
                           energy_axis.size)
-        spec.data = physical_model.continuous_xray_generation(energy=eng,
+        spec.data = physical_model.xray_generation(energy=eng,
                                                               generation_factor=generation_factor,
                                                               beam_energy=beam_energy)
         return spec
 
-    def compute_continuous_xray_absorption(self,
-                                           weight_fraction='auto'):
-        """Contninous X-ray Absorption within sample
-
-        PDH equation (Philibert-Duncumb-Heinrich)
+    def get_sample_density(self, weight_fraction='auto'):
+        """Return the density of the sample
 
         Parameters
         ----------
-        weight_fraction: list of float
-            The sample composition. If 'auto', takes value in metadata.
-            If not there, use and equ-composition
+        weight_fraction: {list of float| 'auto'}
+            the composition of the sample
+            if 'auto'. looks for the weight fraction in metadata
+            if not there take the iso concentration
 
-        See also
-        --------
-        utils.misc.eds.model.continuous_xray_absorption
-        edsmodel.add_background
+        Return
+        ------
+        density in g/cm^3
         """
-
-        if self.axes_manager.signal_axes[0].units == 'eV' : 
-            units_factor = 1000.
-        else :
-            units_factor = 1.
-        beam_energy = self._get_beam_energy() / units_factor
+        from hyperspy import signals
         elements = self.metadata.Sample.elements
-        TOA = self.get_take_off_angle()
 
         if weight_fraction == 'auto':
             if 'weight_fraction' in self.metadata.Sample:
                 weight_fraction = self.metadata.Sample.weight_fraction
             else:
                 weight_fraction = [1. / len(elements) for elm in elements] 
-        spec = self.deepcopy()
-        for ax in self.axes_manager.navigation_axes:
-            spec = spec[0]
-        energy_axis = spec.axes_manager.signal_axes[0]
-        eng = np.linspace(energy_axis.low_value,
-                          energy_axis.high_value,
-                          energy_axis.size) / units_factor
-        eng = eng[np.searchsorted(eng, 0.0):]
-        spec.data = np.append(np.array([0] * (len(spec.data) - len(eng))),
-                              physical_model.continuous_xray_absorption(energy=eng,
-                                                                        weight_fraction=weight_fraction,
-                                                                        elements=elements,
-                                                                        beam_energy=beam_energy,
-                                                                        TOA=TOA))
-        return spec
+                print 'Weight fraction is automatically set to ' + str(
+                    weight_fraction)
+        if isinstance(weight_fraction[0], signals.Signal):
+            weight_frac = []
+            for weight in weight_fraction:
+                weight_frac.append(weight.data)
+            density = utils.material.density_of_mixture_of_pure_elements(
+                elements, weight_frac)
+        else:
+            density = utils.material.density_of_mixture_of_pure_elements(
+                elements, weight_fraction)
+        self.metadata.Sample.density = density
+        return density
 
     def get_sample_mass_absorption_coefficient(self,
                                                elements='auto',

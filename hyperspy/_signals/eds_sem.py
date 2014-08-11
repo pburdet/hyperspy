@@ -1760,6 +1760,54 @@ class EDSSEMSpectrum(EDSSpectrum):
         del spec_result.original_metadata.stack_elements
 
         return spec_result
+        
+    def compute_continuous_xray_absorption(self,
+                                           weight_fraction='auto'):
+        """Contninous X-ray Absorption within sample
+
+        PDH equation (Philibert-Duncumb-Heinrich)
+
+        Parameters
+        ----------
+        weight_fraction: list of float
+            The sample composition. If 'auto', takes value in metadata.
+            If not there, use and equ-composition
+
+        See also
+        --------
+        utils.misc.eds.model.continuous_xray_absorption
+        edsmodel.add_background
+        """
+        
+        if self.axes_manager.signal_axes[0].units == 'eV' : 
+            units_factor = 1000.
+        else :
+            units_factor = 1.
+        beam_energy = self._get_beam_energy() / units_factor
+        elements = self.metadata.Sample.elements
+        TOA = self.get_take_off_angle()
+        if weight_fraction == 'auto':
+            if 'weight_fraction' in self.metadata.Sample:
+                weight_fraction = self.metadata.Sample.weight_fraction
+            else:
+                weight_fraction = []
+                for elm in elements:
+                    weight_fraction.append(1. / len(elements))
+                spec = self.deepcopy()
+        for ax in self.axes_manager.navigation_axes:
+            spec = spec[0]
+        energy_axis = spec.axes_manager.signal_axes[0]
+        eng = np.linspace(energy_axis.low_value,
+                          energy_axis.high_value,
+                          energy_axis.size) / units_factor
+        eng = eng[np.searchsorted(eng, 0.0):]
+        spec.data = np.append(np.array([0] * (len(spec.data) - len(eng))),
+                              physical_model.xray_absorption_bulk(energy=eng,
+                                                                        weight_fraction=weight_fraction,
+                                                                        elements=elements,
+                                                                        beam_energy=beam_energy,
+                                                                        TOA=TOA))
+        return spec
 
     # def check_total(self):
         #img_0 = self.get_result(xray_lines[0],'kratios')
@@ -1830,3 +1878,6 @@ class EDSSEMSpectrum(EDSSpectrum):
                 # self._set_result(element, 'intensities',
                                  # fps[i].yscale.as_signal().data, plot_result)
             #i += 1
+
+
+

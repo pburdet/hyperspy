@@ -27,6 +27,7 @@ from hyperspy.defaults_parser import preferences
 import hyperspy.gui.messages as messagesui
 from hyperspy.misc.eds import utils as utils_eds
 from hyperspy import utils
+from hyperspy.misc.eds import physical_model
 
 
 # TEM spectrum is just a copy of the basic function of SEM spectrum.
@@ -713,5 +714,61 @@ class EDSTEMSpectrum(EDSSpectrum):
         #if store_in_mp is False:
             #return res
         #return data_res
+                
+    def compute_continuous_xray_absorption(self,
+                                            thickness=100,
+                                           weight_fraction='auto',
+                                           density='auto'):
+        """Contninous X-ray Absorption within thin film sample
 
+        Depth distribution of X-ray production is assumed constant
+
+        Parameters
+        ----------
+        thickness: float
+            The thickness in nm
+        weight_fraction: list of float
+            The sample composition. If 'auto', takes value in metadata.
+            If not there, use and equ-composition.
+        density: float
+            Set the density. in g/cm^3
+            if 'auto', calculated from weight_fraction
+
+        See also
+        --------
+        utils.misc.eds.model.continuous_xray_absorption
+        edsmodel.add_background
+        """
+        
+        if self.axes_manager.signal_axes[0].units == 'eV' : 
+            units_factor = 1000.
+        else :
+            units_factor = 1.
+        elements = self.metadata.Sample.elements
+        TOA = self.get_take_off_angle()
+        if weight_fraction == 'auto':
+            if 'weight_fraction' in self.metadata.Sample:
+                weight_fraction = self.metadata.Sample.weight_fraction
+            else:
+                weight_fraction = []
+                for elm in elements:
+                    weight_fraction.append(1. / len(elements))
+                spec = self.deepcopy()
+        if density == 'auto':
+            density= self.get_sample_density()
+        for ax in self.axes_manager.navigation_axes:
+            spec = spec[0]
+        energy_axis = spec.axes_manager.signal_axes[0]
+        eng = np.linspace(energy_axis.low_value,
+                          energy_axis.high_value,
+                          energy_axis.size) / units_factor
+        eng = eng[np.searchsorted(eng, 0.0):]
+        spec.data = np.append(np.array([0] * (len(spec.data) - len(eng))),
+                              physical_model.xray_absorption_thin_film(energy=eng,
+                                                                        weight_fraction=weight_fraction,
+                                                                        elements=elements,
+                                                                        density=density,
+                                                                        thickness=thickness,
+                                                                        TOA=TOA))
+        return spec
 
