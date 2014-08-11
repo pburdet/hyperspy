@@ -5,10 +5,10 @@ import matplotlib.mlab as mlab
 from hyperspy import utils
 
 
-def continuous_xray_generation(energy,
+def xray_generation(energy,
                                generation_factor,
                                beam_energy):
-    """Continous X-ray generation.
+    """X-ray generation.
 
     Kramer or Lisfshin equation
 
@@ -30,12 +30,12 @@ def continuous_xray_generation(energy,
         beam_energy - energy), generation_factor)
 
 
-def continuous_xray_absorption(energy,
+def xray_absorption_bulk(energy,
                                weight_fraction,
                                elements,
                                beam_energy,
                                TOA):
-    """Contninous X-ray Absorption within sample
+    """X-ray Absorption within bulk sample
 
     PDH equation (Philibert-Duncumb-Heinrich)
 
@@ -43,12 +43,12 @@ def continuous_xray_absorption(energy,
     ----------
     energy: float or list of float
         The energy of the generated X-ray in keV.
-    weight_percent: list of float
+    weight_fraction: list of float
         The sample composition
     elements: list of str
         The elements of the sample
     TOA:
-        the take off angle
+        the take off angle  in degree
     beam_energy:  float
         The energy of the electron beam in keV.
     """
@@ -66,3 +66,36 @@ def continuous_xray_absorption(energy,
     sig = coeff / (np.power(beam_energy, 1.65
                             ) - np.power(energy, 1.65))
     return 1 / ((1 + xi / sig) * (1 + h / (1 + h) * xi / sig))
+    
+def xray_absorption_thin_film(energy,
+                                   weight_fraction,
+                                   elements,
+                                    density,
+                                    thickness,
+                                    TOA):
+    """X-ray absorption in thin film sample
+    
+    Depth distribution of X-ray production is assumed constant
+    
+    Parameters
+    ---------- 
+    energy: float or list of float
+        The energy of the generated X-ray in keV.
+    weight_fraction: list of float
+        The sample composition
+    elements: list of str
+        The elements of the sample
+    density: float
+        Set the density. in g/cm^3
+    thickness: float
+        Set the thickness in nm
+    TOA: float
+        the take of angle in degree
+    """
+    mac_sample = np.array(utils.material.compound_mass_absorption_coefficient(
+        energies=energy, elements=elements,
+        weight_fraction=weight_fraction))
+    rt =  density * thickness * 1e-7 / np.sin(np.radians(TOA))
+    fact = mac_sample*rt
+    abs_corr= np.nan_to_num((1-np.exp(-(fact)))/fact)
+    return abs_corr
