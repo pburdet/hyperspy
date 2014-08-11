@@ -1238,9 +1238,7 @@ class EDSSpectrum(Spectrum):
             if 'weight_fraction' in self.metadata.Sample:
                 weight_fraction = self.metadata.Sample.weight_fraction
             else:
-                weight_fraction = []
-                for elm in elements:
-                    weight_fraction.append(1. / len(elements))
+                weight_fraction = [1. / len(elements) for elm in elements] 
                 print 'Weight fraction is automatically set to ' + str(
                     weight_fraction)
         if isinstance(weight_fraction[0], signals.Signal):
@@ -1393,9 +1391,7 @@ class EDSSpectrum(Spectrum):
             if 'weight_fraction' in self.metadata.Sample:
                 weight_fraction = self.metadata.Sample.weight_fraction
             else:
-                weight_fraction = []
-                for elm in elements:
-                    weight_fraction.append(1. / len(elements))
+                weight_fraction = [1. / len(elements) for elm in elements] 
         spec = self.deepcopy()
         for ax in self.axes_manager.navigation_axes:
             spec = spec[0]
@@ -1451,12 +1447,11 @@ class EDSSpectrum(Spectrum):
             if 'Sample.weight_fraction' in self.metadata:
                 weight_fraction = self.metadata.Sample.weight_fraction
             else:
-                weight_fraction = []
-                for elm in elements:
-                    weight_fraction.append(1. / len(elements))
+                weight_fraction = [1. / len(elements) for elm in elements] 
                 print 'Weight fraction is automatically set to ' + str(weight_fraction)
         return utils.material.compound_mass_absorption_coefficient(energies=xray_lines,
-                                                                   weight_fraction=weight_fraction, elements=elements)
+                                                                   weight_fraction=weight_fraction, 
+                                                                   elements=elements)
 
     def get_detector_efficiency(self,
                                 detector_name,
@@ -1490,8 +1485,8 @@ class EDSSpectrum(Spectrum):
         if det_efficiency.axes_manager[-1].units != ax_s.units:
             det_efficiency._eV_to_keV()
         det_efficiency = det_efficiency[
-            ax_s.low_value:ax_s.high_value +
-            ax_s.scale]
+            int(round(ax_s.offset / ax_s.scale
+            )) : int(round(ax_s.size + ax_s.offset / ax_s.scale))]
         ax_det = det_efficiency.axes_manager[-1]
 
         if ax_s.low_value < ax_det.low_value:

@@ -259,6 +259,7 @@ class EDSModel(Model):
                        generation_factors=[1, 2],
                        detector_name=4,
                        weight_fraction='auto',
+                       thickness=None,
                        gateway='auto'):
         """
         Add a backround to the model in the form of several
@@ -282,6 +283,9 @@ class EDSModel(Model):
              The sample composition used for the sample absorption.
              If 'auto', takes value in metadata. If not there,
              use and equ-composition
+        thickness : None or float
+            If None, absorption for bulk sample (PHD model for SEM)
+            If float, absorption for thin film (X-ray distribution constent)
         gateway: execnet Gateway
             If 'auto', generate automatically the connection to jython.
 
@@ -296,18 +300,25 @@ class EDSModel(Model):
                 exp_factor))
             generation[-1].metadata.General.title = 'generation'\
                 + str(exp_factor)
-        absorption = self.spectrum.compute_continuous_xray_absorption(
-            weight_fraction=weight_fraction)
+                
+        if thickness == None:
+            absorption = self.spectrum.compute_continuous_xray_absorption(
+                weight_fraction=weight_fraction)
+        elif thickness == 0.:
+            absorption = generation[0].deepcopy()
+            absorption.data = np.ones_like(generation[0].data)
+        #else : 
         absorption.metadata.General.title = 'absorption'
-        if detector_name is not None:
+        
+        if detector_name is None:
+            det_efficiency = generation[0].deepcopy()
+            det_efficiency.data = np.ones_like(generation[0].data)
+        else : 
             det_efficiency = self.spectrum.get_detector_efficiency(
                 detector_name, gateway=gateway)
 
         for gen, gen_fact in zip(generation, generation_factors):
-            if detector_name is None:
-                bck = gen * absorption
-            else:
-                bck = det_efficiency * gen * absorption
+            bck = det_efficiency * gen * absorption
             # bck.plot()
             bck = bck[self.axes_manager[-1].scale:]
             bck.metadata.General.title = 'bck_' + str(gen_fact)

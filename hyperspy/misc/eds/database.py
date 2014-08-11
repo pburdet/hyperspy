@@ -21,10 +21,11 @@ def spec1D(which_spec='BAM'):
     Parameters
     ----------
 
-    which_spec: {'BAM','msa','noisy'}
+    which_spec: {'BAM','msa','noisy','TEM'}
         if BAM: bam sample
         if msa: GnMeba test, coin of euro
         if noisy: 1 pixel in AlZn
+        if TEM: sum spec from Robert A5
 
     """
 
@@ -34,6 +35,9 @@ def spec1D(which_spec='BAM'):
         return _load_in_database('GNmeba_test.msa')
     elif which_spec == 'noisy':
         return _load_in_database('1pix_AlZn.msa')
+    elif which_spec == 'TEM':
+        return _load_in_database('1D_TEM_Robert.hdf5')
+        
 
 
 def spec3D(which_spec='PCA_SEM'):
