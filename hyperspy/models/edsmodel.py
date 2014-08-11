@@ -259,14 +259,16 @@ class EDSModel(Model):
                        generation_factors=[1, 2],
                        detector_name=4,
                        weight_fraction='auto',
-                       thickness=None,
+                       thickness=100,
+                       density='auto',
                        gateway='auto'):
         """
         Add a backround to the model in the form of several
         scalable fixed patterns.
 
         Each pattern is the muliplication of the detector efficiency,
-        the absorption in the sample (PDH equation) and a continuous X-ray
+        the absorption in the sample (PDH equation for SEM, constant
+        X-ray pdouction for TEM) and a continuous X-ray
         generation.
 
         Parameters
@@ -283,9 +285,13 @@ class EDSModel(Model):
              The sample composition used for the sample absorption.
              If 'auto', takes value in metadata. If not there,
              use and equ-composition
-        thickness : None or float
-            If None, absorption for bulk sample (PHD model for SEM)
-            If float, absorption for thin film (X-ray distribution constent)
+        thickness : float
+            Thickness of thin film. 
+            Option only relevant for EDSTEMSpectrum. 
+        density: float or 'auto'
+            Set the density. in g/cm^3
+            if 'auto', calculated from weight_fraction
+            Option only relevant for EDSTEMSpectrum. 
         gateway: execnet Gateway
             If 'auto', generate automatically the connection to jython.
 
@@ -301,12 +307,16 @@ class EDSModel(Model):
             generation[-1].metadata.General.title = 'generation'\
                 + str(exp_factor)
                 
-        if thickness == None:
+        if 'SEM' in self.spectrum.metadata.Signal.signal_type:
             absorption = self.spectrum.compute_continuous_xray_absorption(
                 weight_fraction=weight_fraction)
         elif thickness == 0.:
             absorption = generation[0].deepcopy()
             absorption.data = np.ones_like(generation[0].data)
+        else :
+            absorption = self.spectrum.compute_continuous_xray_absorption(
+                thickness=thickness, density=density,
+                weight_fraction=weight_fraction)
         #else : 
         absorption.metadata.General.title = 'absorption'
         
