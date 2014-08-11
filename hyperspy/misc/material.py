@@ -185,28 +185,26 @@ def compound_mass_absorption_coefficient(elements,
     --------
     utils.material.mass_absorption_coefficient
     """
-    #from hyperspy.signal import Signal
-
-    # if hasattr(elements, '__iter__') is False and elements == 'auto':
-        # if isinstance(energies[0], str) is False:
-            #raise ValueError("need X-ray lines name for elements='auto'")
-        #elements = []
-        # for xray_line in energies:
-            #element, line = _get_element_and_line(xray_line)
-            # elements.append(element)
-        #elements = set(elements)
     if len(elements) != len(weight_fraction):
         raise ValueError(
             "Elements and weight_fraction should have the same lenght")
-    # works for weight_fraction as a signal
-    if isinstance(weight_fraction[0], float):
-        mac = 0
-    #elif isinstance(weight_fraction[0],Signal):
-    #    mac = weight_fraction[0].deepcopy()
-    #    mac.data = np.zeros_like(mac.data)
+  
+    if hasattr(energies, '__iter__'):
+        is_iter = True
     else:
-        mac = np.zeros_like(weight_fraction)
-    for el, weight in zip(elements, weight_fraction):
-        mac += weight * np.array(mass_absorption_coefficient(
-            el, energies))
-    return mac
+        is_iter = False
+        energies = [energies]
+        
+    mac_res = []
+    for i, energy in enumerate(energies):
+        if isinstance(weight_fraction[0], float):
+            mac_res.append(0)
+        else:
+            mac_res.append(np.zeros_like(weight_fraction))
+        for el, weight in zip(elements, weight_fraction):
+            mac_res[i] += weight * np.array(mass_absorption_coefficient(
+                el, energy))
+    if is_iter:
+        return mac_res
+    else:
+        return mac_res[0]
