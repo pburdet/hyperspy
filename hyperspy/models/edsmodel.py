@@ -261,7 +261,7 @@ class EDSModel(Model):
                        detector_name=4,
                        weight_fraction='auto',
                        thickness=100,
-                       density='auto'
+                       density='auto',
                        gateway='auto'):
         """
         Add a backround to the model in the form of several
@@ -287,7 +287,12 @@ class EDSModel(Model):
              If 'auto', takes value in metadata. If not there,
              use and equ-composition
         thickness : float
-            Thickness of thin film. Option only relevant for EDSTEMSpectrum. 
+            Thickness of thin film. 
+            Option only relevant for EDSTEMSpectrum. 
+        density: float or 'auto'
+            Set the density. in g/cm^3
+            if 'auto', calculated from weight_fraction
+            Option only relevant for EDSTEMSpectrum. 
         gateway: execnet Gateway
             If 'auto', generate automatically the connection to jython.
 
@@ -303,7 +308,7 @@ class EDSModel(Model):
             generation[-1].metadata.General.title = 'generation'\
                 + str(exp_factor)
                 
-        if 'SEM' in s.metadata.Signal.signal_type:
+        if 'SEM' in self.spectrum.metadata.Signal.signal_type:
             absorption = self.spectrum.compute_continuous_xray_absorption(
                 weight_fraction=weight_fraction)
         elif thickness == 0.:

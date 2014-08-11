@@ -260,7 +260,7 @@ class EDSTEMSpectrum(EDSSpectrum):
         weight_fraction: list of float
             The sample composition. If 'auto', takes value in metadata.
             If not there, use and equ-composition.
-        density: float
+        density: float or 'auto'
             Set the density. in g/cm^3
             if 'auto', calculated from weight_fraction
 
