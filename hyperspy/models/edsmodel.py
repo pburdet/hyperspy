@@ -71,7 +71,7 @@ class EDSModel(Model):
 
     """
 
-    def __init__(self, spectrum, auto_background=True,
+    def __init__(self, spectrum,
                  auto_add_lines=True,
                  *args, **kwargs):
         Model.__init__(self, spectrum, *args, **kwargs)
@@ -87,8 +87,6 @@ class EDSModel(Model):
                              str(unit_name))
         if auto_add_lines is True:
             self.add_lines()
-        if auto_background is True:
-            self.add_background()
 
     @property
     def spectrum(self):
@@ -105,7 +103,7 @@ class EDSModel(Model):
                 "but an object of type %s was provided" %
                 str(type(value)))
 
-    def add_lines(self, xray_lines=None, only_one=False,
+    def add_lines(self, xray_lines='from_elements', only_one=False,
                   only_lines=("Ka", "La", "Ma")):
         """Create the Xray-lines instances and configure them appropiately
 
@@ -255,90 +253,90 @@ class EDSModel(Model):
         if store_in_mp is False:
             return intensities
 
-    def add_background(self,
-                       generation_factors=[1, 2],
-                       detector_name=4,
-                       weight_fraction='auto',
-                       thickness=100,
-                       density='auto',
-                       gateway='auto'):
-        """
-        Add a backround to the model in the form of several
-        scalable fixed patterns.
+    #def add_background(self,
+                       #generation_factors=[1, 2],
+                       #detector_name=4,
+                       #weight_fraction='auto',
+                       #thickness=100,
+                       #density='auto',
+                       #gateway='auto'):
+        #"""
+        #Add a backround to the model in the form of several
+        #scalable fixed patterns.
 
-        Each pattern is the muliplication of the detector efficiency,
-        the absorption in the sample (PDH equation for SEM, constant
-        X-ray pdouction for TEM) and a continuous X-ray
-        generation.
+        #Each pattern is the muliplication of the detector efficiency,
+        #the absorption in the sample (PDH equation for SEM, constant
+        #X-ray pdouction for TEM) and a continuous X-ray
+        #generation.
 
-        Parameters
-        ----------
-        generation_factors: list of int
-            For each number n, add (E0-E)^n/E
-            [1] is equivalent to Kramer equation.
-            [1,2] is equivalent to Lisfhisn modification of Kramer equation.
-        det_name: int, str, None
-            If None, no det_efficiency
-            If {0,1,2,3,4}, INCA efficiency database
-            If str, model from DTSAII
-        weight_fraction: list of float
-             The sample composition used for the sample absorption.
-             If 'auto', takes value in metadata. If not there,
-             use and equ-composition
-        thickness : float
-            Thickness of thin film. 
-            Option only relevant for EDSTEMSpectrum. 
-        density: float or 'auto'
-            Set the density. in g/cm^3
-            if 'auto', calculated from weight_fraction
-            Option only relevant for EDSTEMSpectrum. 
-        gateway: execnet Gateway
-            If 'auto', generate automatically the connection to jython.
+        #Parameters
+        #----------
+        #generation_factors: list of int
+            #For each number n, add (E0-E)^n/E
+            #[1] is equivalent to Kramer equation.
+            #[1,2] is equivalent to Lisfhisn modification of Kramer equation.
+        #det_name: int, str, None
+            #If None, no det_efficiency
+            #If {0,1,2,3,4}, INCA efficiency database
+            #If str, model from DTSAII
+        #weight_fraction: list of float
+             #The sample composition used for the sample absorption.
+             #If 'auto', takes value in metadata. If not there,
+             #use and equ-composition
+        #thickness : float
+            #Thickness of thin film. 
+            #Option only relevant for EDSTEMSpectrum. 
+        #density: float or 'auto'
+            #Set the density. in g/cm^3
+            #if 'auto', calculated from weight_fraction
+            #Option only relevant for EDSTEMSpectrum. 
+        #gateway: execnet Gateway
+            #If 'auto', generate automatically the connection to jython.
 
-        See also
-        --------
-        database.detector_efficiency_INCA,
-        utils_eds.get_detector_properties
-        """
-        generation = []
-        for exp_factor in generation_factors:
-            generation.append(self.spectrum.compute_continuous_xray_generation(
-                exp_factor))
-            generation[-1].metadata.General.title = 'generation'\
-                + str(exp_factor)
+        #See also
+        #--------
+        #database.detector_efficiency_INCA,
+        #utils_eds.get_detector_properties
+        #"""
+        #generation = []
+        #for exp_factor in generation_factors:
+            #generation.append(self.spectrum.compute_continuous_xray_generation(
+                #exp_factor))
+            #generation[-1].metadata.General.title = 'generation'\
+                #+ str(exp_factor)
                 
-        if 'SEM' in self.spectrum.metadata.Signal.signal_type:
-            absorption = self.spectrum.compute_continuous_xray_absorption(
-                weight_fraction=weight_fraction)
-        elif thickness == 0.:
-            absorption = generation[0].deepcopy()
-            absorption.data = np.ones_like(generation[0].data)
-        else :
-            absorption = self.spectrum.compute_continuous_xray_absorption(
-                thickness=thickness, density=density,
-                weight_fraction=weight_fraction)
+        #if 'SEM' in self.spectrum.metadata.Signal.signal_type:
+            #absorption = self.spectrum.compute_continuous_xray_absorption(
+                #weight_fraction=weight_fraction)
+        #elif thickness == 0.:
+            #absorption = generation[0].deepcopy()
+            #absorption.data = np.ones_like(generation[0].data)
+        #else :
+            #absorption = self.spectrum.compute_continuous_xray_absorption(
+                #thickness=thickness, density=density,
+                #weight_fraction=weight_fraction)
         
-        if detector_name is None:
-            det_efficiency = generation[0].deepcopy()
-            det_efficiency.data = np.ones_like(generation[0].data)
-        else : 
-            det_efficiency = self.spectrum.get_detector_efficiency(
-                detector_name, gateway=gateway)
+        #if detector_name is None:
+            #det_efficiency = generation[0].deepcopy()
+            #det_efficiency.data = np.ones_like(generation[0].data)
+        #else : 
+            #det_efficiency = self.spectrum.get_detector_efficiency(
+                #detector_name, gateway=gateway)
 
-        for gen, gen_fact in zip(generation, generation_factors):
-            bck = det_efficiency * gen * absorption
-            # bck.plot()
-            bck = bck[self.axes_manager[-1].scale:]
-            bck.metadata.General.title = 'bck_' + str(gen_fact)
-            component = create_component.ScalableFixedPattern(bck)
-            component.set_parameters_not_free(['xscale', 'shift'])
-            component.name = bck.metadata.General.title
-            #component.yscale.ext_bounded = True
-            #component.yscale.bmin = 0
-            component.yscale.ext_force_positive = True
-            component.isbackground = True
-            self.append(component)
-            self.background_components.append(component)
+        #for gen, gen_fact in zip(generation, generation_factors):
+            #bck = det_efficiency * gen * absorption
+            ## bck.plot()
+            #bck = bck[self.axes_manager[-1].scale:]
+            #bck.metadata.General.title = 'bck_' + str(gen_fact)
+            #component = create_component.ScalableFixedPattern(bck)
+            #component.set_parameters_not_free(['xscale', 'shift'])
+            #component.name = bck.metadata.General.title
+            ##component.yscale.ext_bounded = True
+            ##component.yscale.bmin = 0
+            #component.yscale.ext_force_positive = True
+            #component.isbackground = True
+            #self.append(component)
+            #self.background_components.append(component)
 
     @property
     def _active_xray_lines(self):
@@ -605,10 +603,9 @@ class EDSModel(Model):
     def fit_energy_resolution(self, kind='single',
                               **kwargs):
         """
-        Fit the weight of the sub X-ray lines
-
-        Fit the height of the gaussians and fix them to the main line
-        with a twin function
+        Fit the energy resolution 
+        
+        energy scaling of the spectrum
 
         Parameters
         ----------
