@@ -1398,6 +1398,7 @@ def get_detector_properties(name, gateway='auto'):
             prop = item
         else:
             datas.append(item)
+    print det_name
     spec = signals.EDSSEMSpectrum(datas)
     spec.set_microscope_parameters(
         azimuth_angle=float(prop.split(
@@ -1407,10 +1408,10 @@ def get_detector_properties(name, gateway='auto'):
         energy_resolution_MnKa=float(prop.split(
             'Resolution=')[1].split(' eV')[0]))
     spec.axes_manager[-1].offset = float(
-        prop.split('Energy offset=')[1].split(' eV')[0]) / 1000
+        prop.split('Energy offset=')[1].split(' eV')[0]) / 1000.
     spec.axes_manager[-1].scale = float(
-        prop.split('Energy scale=')[1].split(' eV')[0]) / 1000
-    spec.axes_manager[-1].offset += spec.axes_manager[-1].scale / 2
+        prop.split('Energy scale=')[1].split(' eV')[0]) / 1000.
+    #spec.axes_manager[-1].offset += spec.axes_manager[-1].scale / 2.
     spec.axes_manager[-1].name = 'Energy'
     spec.axes_manager[-1].units = 'keV'
     spec.metadata.General.title = det_name

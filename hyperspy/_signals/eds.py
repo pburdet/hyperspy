@@ -1348,10 +1348,10 @@ class EDSSpectrum(Spectrum):
         edsmodel.add_background
         """
 
+        spec = self._get_signal_signal()
         beam_energy = self._get_beam_energy()
-        spec = self.deepcopy()
-        for ax in self.axes_manager.navigation_axes:
-            spec = spec[0]
+        spec.metadata.General.title = 'Generation model (factor:' + str(1) +')'
+
         energy_axis = spec.axes_manager.signal_axes[0]
         eng = np.linspace(energy_axis.low_value,
                           energy_axis.high_value,
@@ -1463,7 +1463,9 @@ class EDSSpectrum(Spectrum):
         database.detector_efficiency_INCA
         utils_eds.get_detector_properties
         """
-        ax_s = self.axes_manager[-1]
+        spec = self._get_signal_signal()   
+        energy_axis = spec.axes_manager.signal_axes[0]
+        
         if isinstance(detector_name, str):
             if gateway == 'auto':
                 gateway = utils_eds.get_link_to_jython()
@@ -1471,20 +1473,35 @@ class EDSSpectrum(Spectrum):
                 detector_name, gateway=gateway)
         else:
             det_efficiency = database.detector_efficiency_INCA(detector_name)
-        if det_efficiency.axes_manager[-1].units != ax_s.units:
+            
+        if det_efficiency.axes_manager.signal_axes[0].units != energy_axis.units:
             det_efficiency._eV_to_keV()
-        det_efficiency = det_efficiency[
-            int(round(ax_s.offset / ax_s.scale
-            )) : int(round(ax_s.size + ax_s.offset / ax_s.scale))]
-        ax_det = det_efficiency.axes_manager[-1]
+            
+        spec.metadata.General.title = 'detector efficiency: ' + \
+                det_efficiency.metadata.General.title
+                
+        eng = np.linspace(energy_axis.low_value,
+                  energy_axis.high_value,
+                  energy_axis.size)
+        #slow but doesn't work
+        spec.data = np.array([det_efficiency[en].data[0] for en in eng])
+        #fast but doesnrt work
+        #spec.data = det_efficiency[energy_axis.low_value:\
+        #            energy_axis.high_value+energy_axis.scale:\
+        #            energy_axis.scale].data
+                  
+        #det_efficiency = det_efficiency[
+            #int(round(ax_s.offset / ax_s.scale
+            #)) : int(round(ax_s.size + ax_s.offset / ax_s.scale))]
+        #ax_det = det_efficiency.axes_manager[-1]
 
-        if ax_s.low_value < ax_det.low_value:
-            det_efficiency.data = np.append(np.array([0] *
-                                                     (ax_s.size - ax_det.size)), det_efficiency.data)
-            det_efficiency.get_dimensions_from_data()
-            ax_det.offset = ax_s.offset
+        #if ax_s.low_value < ax_det.low_value:
+            #det_efficiency.data = np.append(np.array([0] *
+                                                     #(ax_s.size - ax_det.size)), det_efficiency.data)
+            #det_efficiency.get_dimensions_from_data()
+            #ax_det.offset = ax_s.offset.copy()
 
-        return det_efficiency
+        return spec
         
     def save_result(self, result, filename, xray_lines='all',
                     extension='hdf5'):
@@ -1530,6 +1547,13 @@ class EDSSpectrum(Spectrum):
                 # res.change_dtype('uint32')
             res.save(filename=filename + "_" + result + "_" + xray_line,
                      extension=extension, overwrite=True)
+                     
+    def _get_signal_signal(self):
+        s = Spectrum(np.zeros(self.axes_manager._signal_shape_in_array,
+                                dtype=self.data.dtype),
+                       axes=self.axes_manager._get_signal_axes_dicts())
+        s.set_signal_type(self.metadata.Signal.signal_type)
+        return s
 
 # to be suppress, can be done with model->fit_energy_resolution
 

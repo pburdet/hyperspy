@@ -149,13 +149,13 @@ def detector_efficiency_INCA(index=4):
     data = np.memmap(foldername, dtype="float32")
 
     if index < 2:
-        det = signals.EDSSEMSpectrum(data[745:5646])
+        det = signals.EDSSEMSpectrum(data[645:5646])
         det.axes_manager[-1].scale = 0.001
-        det.axes_manager[-1].offset = 0.1
+        det.axes_manager[-1].offset = 0.0
     else:
-        det = signals.Spectrum(data[649:3000 + 646])
+        det = signals.Spectrum(data[645:3646])
         det.axes_manager[-1].scale = 0.01
-        det.axes_manager[-1].offset = 0.05
+        det.axes_manager[-1].offset = 0.0
     det.metadata.General.title = det_name[index]
     det.axes_manager[-1].units = "keV"
     det.axes_manager[-1].name = "Energy"

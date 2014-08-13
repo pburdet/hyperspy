@@ -317,8 +317,6 @@ class EDSModel(Model):
             absorption = self.spectrum.compute_continuous_xray_absorption(
                 thickness=thickness, density=density,
                 weight_fraction=weight_fraction)
-        #else : 
-        absorption.metadata.General.title = 'absorption'
         
         if detector_name is None:
             det_efficiency = generation[0].deepcopy()

@@ -739,11 +739,13 @@ class EDSTEMSpectrum(EDSSpectrum):
         utils.misc.eds.model.continuous_xray_absorption
         edsmodel.add_background
         """
-        
-        if self.axes_manager.signal_axes[0].units == 'eV' : 
+        spec = self._get_signal_signal()
+        spec.metadata.General.title = 'Absorption model (Thin film)'
+        if spec.axes_manager.signal_axes[0].units == 'eV' : 
             units_factor = 1000.
         else :
             units_factor = 1.
+
         elements = self.metadata.Sample.elements
         TOA = self.get_take_off_angle()
         if weight_fraction == 'auto':
@@ -753,11 +755,10 @@ class EDSTEMSpectrum(EDSSpectrum):
                 weight_fraction = []
                 for elm in elements:
                     weight_fraction.append(1. / len(elements))
-                spec = self.deepcopy()
+                
         if density == 'auto':
             density= self.get_sample_density()
-        for ax in self.axes_manager.navigation_axes:
-            spec = spec[0]
+
         energy_axis = spec.axes_manager.signal_axes[0]
         eng = np.linspace(energy_axis.low_value,
                           energy_axis.high_value,
