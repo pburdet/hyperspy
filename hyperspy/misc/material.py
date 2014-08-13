@@ -159,6 +159,7 @@ def mass_absorption_coefficient(element, energies):
     """
     from hyperspy.misc.eds.ffast_mac import ffast_mac_db as ffast_mac
     energies_db = ffast_mac[element].energies_keV
+    macs = ffast_mac[element].mass_absorption_coefficient_cm2g
     if hasattr(energies, '__iter__'):
         is_iter = True
     else:
@@ -172,10 +173,10 @@ def mass_absorption_coefficient(element, energies):
         for index, energy_db in enumerate(energies_db):
             if energy <= energy_db:
                 break
-        mac = ffast_mac[element].mass_absorption_coefficient_cm2g[index]
-        mac1 = ffast_mac[element].mass_absorption_coefficient_cm2g[index - 1]
-        energy_db = ffast_mac[element].energies_keV[index]
-        energy_db1 = ffast_mac[element].energies_keV[index - 1]
+        mac = macs[index]
+        mac1 = macs[index - 1]
+        energy_db = energies_db[index]
+        energy_db1 = energies_db[index - 1]
         if energy == energy_db or energy_db1 == 0:
             mac_res.append(mac)
         else:
