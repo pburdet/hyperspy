@@ -21,6 +21,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
 import copy
+from scipy.interpolate import interp1d
 
 from hyperspy import utils
 from hyperspy._signals.spectrum import Spectrum
@@ -1480,27 +1481,12 @@ class EDSSpectrum(Spectrum):
         spec.metadata.General.title = 'detector efficiency: ' + \
                 det_efficiency.metadata.General.title
                 
-        eng = np.linspace(energy_axis.low_value,
-                  energy_axis.high_value,
-                  energy_axis.size)
-        #slow but doesn't work
-        spec.data = np.array([det_efficiency[en].data[0] for en in eng])
-        #fast but doesnrt work
-        #spec.data = det_efficiency[energy_axis.low_value:\
-        #            energy_axis.high_value+energy_axis.scale:\
-        #            energy_axis.scale].data
-                  
-        #det_efficiency = det_efficiency[
-            #int(round(ax_s.offset / ax_s.scale
-            #)) : int(round(ax_s.size + ax_s.offset / ax_s.scale))]
-        #ax_det = det_efficiency.axes_manager[-1]
-
-        #if ax_s.low_value < ax_det.low_value:
-            #det_efficiency.data = np.append(np.array([0] *
-                                                     #(ax_s.size - ax_det.size)), det_efficiency.data)
-            #det_efficiency.get_dimensions_from_data()
-            #ax_det.offset = ax_s.offset.copy()
-
+        f =  interp1d(det_efficiency.axes_manager.signal_axes[0].axis,
+            det_efficiency.data.squeeze(),bounds_error=False,
+            fill_value=0.,)
+            
+        spec.data = f(energy_axis.axis)
+        
         return spec
         
     def save_result(self, result, filename, xray_lines='all',

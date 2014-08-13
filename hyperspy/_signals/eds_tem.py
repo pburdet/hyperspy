@@ -757,7 +757,7 @@ class EDSTEMSpectrum(EDSSpectrum):
                     weight_fraction.append(1. / len(elements))
                 
         if density == 'auto':
-            density= self.get_sample_density()
+            density= self.get_sample_density(weight_fraction=weight_fraction)
 
         energy_axis = spec.axes_manager.signal_axes[0]
         eng = np.linspace(energy_axis.low_value,

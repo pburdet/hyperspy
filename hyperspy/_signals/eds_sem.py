@@ -38,6 +38,7 @@ from hyperspy import utils
 from hyperspy.misc.elements import elements as elements_db
 from hyperspy.misc.config_dir import config_path, os_name, data_path
 from hyperspy.drawing.utils import animate_legend
+from hyperspy.misc.eds import physical_model
 
 
 class EDSSEMSpectrum(EDSSpectrum):

@@ -339,7 +339,7 @@ def plot_spectra(
         color=None,
         line_style=None,
         padding=1.,
-        legend=None,
+        legend='auto',
         legend_picking=True,
         fig=None,
         ax=None,):
