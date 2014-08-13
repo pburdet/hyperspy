@@ -1785,32 +1785,32 @@ def get_kfactors(xray_lines,
     kab = kab[1] / kab[0]
     return kab
     
-def absorption_correction_factor_for_thin_film(mac_sample,
-                                        density,
-                                        thickness,
-                                        TOA):
-    """
-    Compute the absorption corrections factor (ACF) for a thin film
+#def absorption_correction_factor_for_thin_film(mac_sample,
+                                        #density,
+                                        #thickness,
+                                        #TOA):
+    #"""
+    #Compute the absorption corrections factor (ACF) for a thin film
     
-    Return the ACF for each X-ray-lines
+    #Return the ACF for each X-ray-lines
     
-    Parameters
-    ---------- 
-    mac_sample: 
-        The mass absorption cofficients, in cm^2/g
-    density: float
-        Set the density. in g/cm^3
-    thickness: float
-        Set the thickness in nm
-    TOA: float
-        the take of angle
-    """
-    rt =  density * thickness * 1e-7 / np.sin(np.radians(TOA))
-    abs_corr=[]
-    for mac in mac_sample:
-        fact = mac*rt
-        abs_corr.append(np.nan_to_num((1-np.exp(-(fact)))/fact))  
-    return abs_corr
+    #Parameters
+    #---------- 
+    #mac_sample: 
+        #The mass absorption cofficients, in cm^2/g
+    #density: float
+        #Set the density. in g/cm^3
+    #thickness: float
+        #Set the thickness in nm
+    #TOA: float
+        #the take of angle
+    #"""
+    #rt =  density * thickness * 1e-7 / np.sin(np.radians(TOA))
+    #abs_corr=[]
+    #for mac in mac_sample:
+        #fact = mac*rt
+        #abs_corr.append(np.nan_to_num((1-np.exp(-(fact)))/fact))  
+    #return abs_corr
     
 
 def quantification_absorption_corrections_thin_film(intensities,
