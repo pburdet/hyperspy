@@ -28,9 +28,7 @@ import hyperspy.gui.messages as messagesui
 from hyperspy.misc.eds import utils as utils_eds
 from hyperspy import utils
 from hyperspy.misc.eds import physical_model
-
-
-# TEM spectrum is just a copy of the basic function of SEM spectrum.
+from hyperspy.misc.eds import database
 
 
 class EDSTEMSpectrum(EDSSpectrum):
@@ -361,13 +359,55 @@ class EDSTEMSpectrum(EDSSpectrum):
             intens = std.get_lines_intensity([xray] + [common_xray], **kwargs)
             kfactor = intens[1].data / intens[0].data
             if i == 0:
-                kfactor0 = kfactor[0]
+                kfactor0 = kfactor
                 kfactor0_name = xray
             else:
-                kfactors.append(kfactor[0] / kfactor0)
+                kfactors.append(kfactor / kfactor0)
                 kfactors_name.append(xray + '/' + kfactor0_name)
         self.metadata.Sample.kfactors = kfactors
-        self.metadata.Sample.kfactors_name = kfactors_name   
+        self.metadata.Sample.kfactors_name = kfactors_name 
+    
+
+    def get_kfactors_from_brucker(self,common_line='first',
+                            microscope_name='osiris_200'):
+        """
+        Get the kfactor from the brucker database
+
+        Parameters
+        ----------
+        common_line: str
+            The line for the common element to use ('Al_Ka').
+        microscope_name: str
+            name of the microscope
+
+        Examples
+        ---------
+        >>> s = database.spec1D('TEM')
+        >>> s.set_elements(["Ni", "Cr",'Al'])
+        >>> s.set_lines(["Ni_Ka", "Cr_Ka", "Al_Ka"])
+        >>> s.get_kfactors_from_osiris_database()
+        """
+        kfactors = []
+        kfactors_name = []
+        xray_lines = self.metadata.Sample.xray_lines
+        kfactors_db = database.kfactors_brucker(xray_lines=xray_lines,
+            microscope_name=microscope_name)[0]
+        if common_line == 'first' :
+            xray_line0 = xray_lines[0]
+            kfactor0 = kfactors_db[0]
+        else : 
+            
+            xray_line0 = xray_lines[xray_lines.index(common_line)]    
+            kfactor0 = kfactors_db[xray_lines.index(common_line)] 
+        
+        for iline, xray_line in enumerate(xray_lines):      
+            kfactor = kfactors_db[iline]
+            #kfactorer = kfactors_db[elem][line]['kfactor_error']
+            if xray_line != xray_line0:
+                kfactors.append(kfactor / kfactor0)
+                kfactors_name.append(xray_line + '/' + xray_line0)
+        self.metadata.Sample.kfactors = kfactors
+        self.metadata.Sample.kfactors_name = kfactors_name  
 
     def quant_cliff_lorimer(self,
                             intensities='integrate',
@@ -759,12 +799,13 @@ class EDSTEMSpectrum(EDSSpectrum):
         if density == 'auto':
             density= self.get_sample_density(weight_fraction=weight_fraction)
 
-        energy_axis = spec.axes_manager.signal_axes[0]
-        eng = np.linspace(energy_axis.low_value,
-                          energy_axis.high_value,
-                          energy_axis.size) / units_factor
-        eng = eng[np.searchsorted(eng, 0.0):]
-        spec.data = np.append(np.array([0] * (len(spec.data) - len(eng))),
+        #energy_axis = spec.axes_manager.signal_axes[0]
+        #eng = np.linspace(energy_axis.low_value,
+                          #energy_axis.high_value,
+                          #energy_axis.size) / units_factor
+        eng = spec.axes_manager.signal_axes[0].axis / units_factor
+        eng = eng[np.searchsorted(eng, 0.0)+1:]
+        spec.data = np.append(np.array([0.0] * (len(spec.data) - len(eng))),
                               physical_model.xray_absorption_thin_film(energy=eng,
                                                                         weight_fraction=weight_fraction,
                                                                         elements=elements,

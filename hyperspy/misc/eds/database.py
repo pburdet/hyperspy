@@ -2,7 +2,7 @@ import os
 import numpy as np
 
 from hyperspy.misc.config_dir import config_path
-
+from hyperspy.misc.utils import DictionaryTreeBrowser
 
 def _load_in_database(name, result=False):
     from hyperspy.misc.eds import utils as utils_eds
@@ -160,3 +160,114 @@ def detector_efficiency_INCA(index=4):
     det.axes_manager[-1].units = "keV"
     det.axes_manager[-1].name = "Energy"
     return det
+
+def detector_layers_brucker(microscope_name='osiris'):
+    """
+    Import detector layers descrption from brucker file
+    
+    Parameters
+    ----------    
+    microscope_name: str
+        name of the microscope
+    
+    Return
+    ------
+    elements,thicknesses_layer,thickness_detector
+
+    """
+    from hyperspy import utils
+
+    foldername = os.path.join(config_path,
+            'database//brucker\\SpectraList_' + microscope_name + '.xml')
+
+    import base64
+    import zlib
+
+    f = open(foldername)
+    a = f.readlines()
+    b = filter(lambda x: '<DetLayers>' in x, a)[0].split(
+     '<DetLayers>')[1].split('</DetLayers>')[0].decode('base64').decode('zlib')
+    atom = [int(c.split('"')[0]) for c in b.split('Atom="')[1:]]
+    thicknesses = [float(c.split('"')[0]) for c in b.split('ss="')[1:]]
+    b = filter(lambda x: 'Layer0 Atom' in x, a)[0]
+    atom.append(int(b.split('Atom="')[1].split('"')[0]))
+    thicknesses.append(float(b.split('ss="')[1].split('"')[0]))
+    elements = []
+    for at in atom:
+        for el in utils.material.elements.keys():
+            if utils.material.elements[el].General_properties.Z ==  at:
+                elements.append(el)
+    thicknesses = np.array(thicknesses) * 1e3
+    thickness_det = float(filter(lambda x: '<DetectorThickness>' in x, a
+           )[0].split('ss>')[1].split('</D')[0])
+           
+    return elements, thicknesses, thickness_det
+
+def kfactors_brucker(xray_lines='all',microscope_name='osiris_200'):
+    """
+    Import kfactors from brucker file
+    
+    Parameters
+    ----------  
+    xray_lines: list of str
+        The name of the X-ray line. If All return a full dictionnaries of value
+    microscope_name: str
+        name of the microscope
+    
+    Return
+    ------
+    dictionary of kfactors or kfactor, kerror
+
+    """
+    from hyperspy import utils
+    from hyperspy.misc.eds import utils as utils_eds
+    foldername = os.path.join(config_path,
+        'database//brucker\\Current_' + microscope_name + '.esl')
+    f = open(foldername)
+    a = f.readlines()
+    kfactors = []
+    for line in ['K','L','M']:
+        kfactors.append(filter(lambda x: '<'+line+'_Factors>' in x, a)[0].split(
+         '<'+line+'_Factors>')[1].split('</'+line+'_Factors>')[0].split(','))
+        kfactors[-1] = [float(c) for c in kfactors[-1]]
+    kerrors = []
+    for line in ['K','L','M']:
+        kerrors.append(filter(lambda x: '<'+line+'_Errors>' in x, a)[0].split(
+         '<'+line+'_Errors>')[1].split('</'+line+'_Errors>')[0].split(','))
+        kerrors[-1] = [float(c) for c in kerrors[-1]]
+        
+    
+    dic_el = utils.material.elements
+    if xray_lines == 'all':
+        dic = DictionaryTreeBrowser()
+        for el in dic_el.keys():
+            iZ = dic_el[el].General_properties.Z 
+            if 'Xray_lines' in dic_el[el].Atomic_properties:
+                for line in dic_el[el].Atomic_properties.Xray_lines.keys():    
+                    if line == 'Ka':
+                        iline =0
+                    elif line == 'La':
+                        iline =1
+                    elif line == 'Ma':
+                        iline = 2
+                    else :
+                        iline = None
+                    if iline is not None:
+                        dic.set_item(el+'.'+line+'.kfactor',kfactors[iline][iZ])
+                        dic.set_item(el+'.'+line+'.kfactor_error',kerrors[iline][iZ])
+        return dic
+    else:
+        kfactor = []
+        kerror = []
+        for xray_line in xray_lines:
+            elem, line = utils_eds._get_element_and_line(xray_line)
+            iZ = dic_el[elem].General_properties.Z 
+            if line == 'Ka':
+                iline =0
+            elif line == 'La':
+                iline =1
+            elif line == 'Ma':
+                iline = 2
+            kfactor.append(kfactors[iline][iZ])
+            kerror.append(kerrors[iline][iZ])
+        return kfactor, kerror

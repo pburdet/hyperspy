@@ -59,7 +59,7 @@ class EDSTEMModel(EDSModel):
 
     def add_background(self,
                        generation_factor=1,
-                       detector_name=4,
+                       detector_name='osiris',
                        weight_fraction='auto',
                        thicknesses=[100.],
                        density='auto',
@@ -120,6 +120,8 @@ class EDSTEMModel(EDSModel):
         if detector_name is None:
             det_efficiency = generation.deepcopy()
             det_efficiency.data = np.ones_like(generation.data)
+        elif detector_name == 'osiris':
+            det_efficiency = self.spectrum.compute_detector_efficiency_from_layers(microscope_name=detector_name)
         else : 
             det_efficiency = self.spectrum.get_detector_efficiency(
                 detector_name, gateway=gateway)

@@ -59,6 +59,7 @@ from hyperspy.misc.eds import database
 from hyperspy.misc.eds import image_eds
 from hyperspy.misc.eds import epq_database
 #from hyperspy.misc.eds.MAC import MAC_db as MAC
+#from hyperspy.misc.eds.kfactors_osiris import kfactors_db as kfactors
 
 
 def get_configuration_directory_path():

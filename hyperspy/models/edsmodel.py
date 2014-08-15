@@ -378,6 +378,7 @@ class EDSModel(Model):
     def fit_background(self,
                        start_energy=None,
                        end_energy=None,
+                       windows_sigma=[4,3],
                        kind='single',
                        **kwargs):
         """
@@ -413,8 +414,8 @@ class EDSModel(Model):
             if component.isbackground is False:
                 try:
                     self.remove_signal_range(component.centre.value -
-                                             4 * component.sigma.value, component.centre.value +
-                                             3 * component.sigma.value)
+                                             windows_sigma[0] * component.sigma.value, component.centre.value +
+                                             windows_sigma[1] * component.sigma.value)
                 except:
                     pass
 

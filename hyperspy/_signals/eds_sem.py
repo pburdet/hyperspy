@@ -1797,12 +1797,13 @@ class EDSSEMSpectrum(EDSSpectrum):
                     weight_fraction.append(1. / len(elements))
                 
 
-        energy_axis = spec.axes_manager.signal_axes[0]
-        eng = np.linspace(energy_axis.low_value,
-                          energy_axis.high_value,
-                          energy_axis.size) / units_factor
-        eng = eng[np.searchsorted(eng, 0.0):]
-        spec.data = np.append(np.array([0] * (len(spec.data) - len(eng))),
+        #energy_axis = spec.axes_manager.signal_axes[0]
+        eng = spec.axes_manager.signal_axes[0].axis / units_factor
+        #eng = np.linspace(energy_axis.low_value,
+                          #energy_axis.high_value,
+                          #energy_axis.size) / units_factor
+        eng = eng[np.searchsorted(eng, 0.0)+1:]
+        spec.data = np.append(np.array([0.0] * (len(spec.data) - len(eng))),
                               physical_model.xray_absorption_bulk(energy=eng,
                                                                         weight_fraction=weight_fraction,
                                                                         elements=elements,
