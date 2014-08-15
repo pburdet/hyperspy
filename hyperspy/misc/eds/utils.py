@@ -891,10 +891,10 @@ def simulate_linescan(nTraj,
 
     compos_wt = []
     for compo_at in compos_at:
-        compos_wt.append(list(
+        compos_wt.append(list(np.array(
             material.atomic_to_weight(
                 elements,
-                compo_at) /
+                compo_at) )/
             100))
 
     if density == 'auto':
@@ -938,7 +938,7 @@ def simulate_linescan(nTraj,
             live_time = """ + str(ltime) + """
             elevation = """ + str(elevation) + """
             azim = """ + str(azim) + """
-
+            print 1
             nTraj = """ + str(nTraj) + """
             dose = 100
 
@@ -1029,8 +1029,8 @@ def simulate_linescan(nTraj,
             propsb.setNumericProperty(epq.SpectrumProperties.LiveTime, dose)
             propsb.setNumericProperty(epq.SpectrumProperties.FaradayBegin,1.0)
             propsb.setNumericProperty(epq.SpectrumProperties.BeamEnergy,e0)
-            #noisyb=epq.SpectrumUtils.addNoiseToSpectrum(specb,live_time)
-            #dtsa2.display(noisyb)
+            noisyb=epq.SpectrumUtils.addNoiseToSpectrum(specb,live_time)
+            dtsa2.display(noisyb)
 
             a = det.calibration.getProperties()
 
@@ -1239,7 +1239,6 @@ def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
         azim = """ + str(azim) + """
         #TOA = """ + str(TOangle) + """
         nTraj = """ + str(nTraj) + """
-
         print WD
         #Position of detector and sample (WD in km, d-to-crystal in m)
         origin = [0.0,0.0,WD]
@@ -1782,8 +1781,11 @@ def get_kfactors(xray_lines,
             kab.append(xray_prop / A *
                        detector_efficiency[line_energy].data[0])
     #kab = kab[0] / kab[1]
-    kab = kab[1] / kab[0]
-    return kab
+    if len(xray_lines) == 1:
+        return kab[0]
+    else:
+        kab = kab[1] / kab[0]
+        return kab
     
 #def absorption_correction_factor_for_thin_film(mac_sample,
                                         #density,
