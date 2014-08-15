@@ -1353,13 +1353,51 @@ class EDSSpectrum(Spectrum):
         beam_energy = self._get_beam_energy()
         spec.metadata.General.title = 'Generation model (factor:' + str(1) +')'
 
-        energy_axis = spec.axes_manager.signal_axes[0]
-        eng = np.linspace(energy_axis.low_value,
-                          energy_axis.high_value,
-                          energy_axis.size)
-        spec.data = physical_model.xray_generation(energy=eng,
+        #energy_axis = spec.axes_manager.signal_axes[0]
+        #eng = np.linspace(energy_axis.low_value,
+                          #energy_axis.high_value,
+                          #energy_axis.size)
+        spec.data = physical_model.xray_generation(
+                    energy=spec.axes_manager.signal_axes[0].axis,
                                                               generation_factor=generation_factor,
                                                               beam_energy=beam_energy)
+        return spec
+        
+    def compute_detector_efficiency_from_layers(self,
+                         elements='auto',
+                        thicknesses_layer='auto',
+                        thickness_detector='auto',
+                        microscope_name='osiris'):
+        """Detector efficiency from layers descrption
+
+        Parameters
+        ----------
+        elements: list of str
+            The elements of the layer, if 'auto', take the osiris data
+        thicknesses_layer: list of float
+            Thicknesses of layer in nm, if 'auto', take the osiris data
+        thickness_detector: float
+            The thickness of the detector in mm, if 'auto', take the osiris data
+        """
+        spec = self._get_signal_signal()
+        spec.metadata.General.title = 'Detection efficiency'
+        if spec.axes_manager.signal_axes[0].units == 'eV' : 
+            units_factor = 1000.
+        else :
+            units_factor = 1.
+            
+        if elements == 'auto' and thicknesses_layer == 'auto':
+            elements,thicknesses_layer,thickness_detector = \
+                database.detector_layers_brucker(
+                    microscope_name=microscope_name)            
+
+        eng = spec.axes_manager.signal_axes[0].axis / units_factor
+        eng = eng[np.searchsorted(eng, 0.0):]
+        spec.data = np.append(np.array([0] * (len(spec.data) - len(eng))),
+                              physical_model.detetector_efficiency_from_layers(energies=eng,
+                                                        elements=elements,
+                                         thicknesses_layer=thicknesses_layer,
+                                         thickness_detector=thickness_detector))
         return spec
 
     def get_sample_density(self, weight_fraction='auto'):
