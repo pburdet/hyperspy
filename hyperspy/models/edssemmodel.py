@@ -107,7 +107,7 @@ class EDSSEMModel(EDSModel):
         else : 
             det_efficiency = self.spectrum.get_detector_efficiency(
                 detector_name, gateway=gateway)
-
+        sumspec = self.spectrum.sum(-1).data
         for gen, gen_fact in zip(generation, generation_factors):
             bck = det_efficiency * gen * absorption
             # bck.plot()
@@ -122,6 +122,13 @@ class EDSSEMModel(EDSModel):
             component.isbackground = True
             self.append(component)
             self.background_components.append(component)
+            init = True
+            if init:
+                self[bck.metadata.General.title].yscale.map[
+                    'values'] = sumspec / bck.sum(-1).data / len(generation ) / 3 / self.spectrum.axes_manager[-1].scale
+                self[bck.metadata.General.title].yscale.map['is_set'] = (
+                    np.ones(sumspec.shape) == 1)
+        self.fetch_stored_values()
 
    
 

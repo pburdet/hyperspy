@@ -170,7 +170,8 @@ class EDSModel(Model):
             init = True
             if init:
                 self[xray_line].A.map[
-                    'values'] = self.spectrum[..., line_energy].data / line_FWHM
+                    'values'] = self.spectrum[..., line_energy].data * \
+                            line_FWHM / self.spectrum.axes_manager[-1].scale
                 self[xray_line].A.map['is_set'] = (
                     np.ones(self.spectrum[..., line_energy].data.shape) == 1)
 
@@ -194,6 +195,7 @@ class EDSModel(Model):
                     component_sub.A.twin_inverse_function = _get_iweight(
                         element, li)
                     self.append(component_sub)
+            self.fetch_stored_values()
 
     def get_lines_intensity(self,
                              xray_lines='auto',
