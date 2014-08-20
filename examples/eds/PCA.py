@@ -32,15 +32,14 @@ mask = (s.sum(-1) < 28)
 mask.plot()
 s.change_dtype('float')
 s.decomposition(True,navigation_mask=mask.data)
+s.learning_results.loadings = np.nan_to_num(s.learning_results.loadings)
 sr = s.get_decomposition_model(3)
-sr.data = np.nan_to_num(sr.data)
 
 s.plot_explained_variance_ratio()
 s.plot_decomposition_results()
 s.blind_source_separation(3)
 
 loa = s.get_bss_loadings()
-loa.data = np.nan_to_num(loa.data)
 loa.plot()
 
 # PCA saving memory

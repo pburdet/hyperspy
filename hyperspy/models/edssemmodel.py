@@ -109,7 +109,7 @@ class EDSSEMModel(EDSModel):
                 detector_name, gateway=gateway)
         sumspec = self.spectrum.sum(-1).data
         for gen, gen_fact in zip(generation, generation_factors):
-            bck = det_efficiency * gen * absorption
+            bck = absorption * det_efficiency * gen
             # bck.plot()
             bck = bck[self.axes_manager[-1].scale:]
             bck.metadata.General.title = 'bck_' + str(gen_fact) + 'factors'

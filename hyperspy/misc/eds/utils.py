@@ -1410,7 +1410,8 @@ def get_detector_properties(name, gateway='auto'):
         prop.split('Energy offset=')[1].split(' eV')[0]) / 1000.
     spec.axes_manager[-1].scale = float(
         prop.split('Energy scale=')[1].split(' eV')[0]) / 1000.
-    #spec.axes_manager[-1].offset += spec.axes_manager[-1].scale / 2.
+    #Why that?
+    spec.axes_manager[-1].offset += spec.axes_manager[-1].scale / 2.
     spec.axes_manager[-1].name = 'Energy'
     spec.axes_manager[-1].units = 'keV'
     spec.metadata.General.title = det_name
