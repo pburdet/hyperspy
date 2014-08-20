@@ -11,11 +11,10 @@ m.add_background([1,2,3],detector_name='Xmax')
 m.fit()
 m.fit_background(start_energy=0.0)
 m.fit_energy_resolution()
+m.fit_sub_xray_lines_weight(['Cu_La','Mn_La','Zr_La'],bound=1)
 m.fit_xray_lines_energy(bound=0.02)
-m.fit_sub_xray_lines_weight(bound=1)                      
-                        
-
-                        
+m.fit()
+           
 #TEM
 s = database.spec1D('TEM')
 #determining the scaling (fast method)
@@ -39,6 +38,7 @@ m.add_background(detector_name='osiris'
                  ,thicknesses = [75,100,125])
 m.fit()
 m.fit_background()
+m.fit_xray_lines_energy(['Cr_Ka'],bound=20)
 m.fit_energy_resolution()
 m.fit_sub_xray_lines_weight(bound=1)#Might be slow
 
@@ -50,6 +50,11 @@ utils.plot.plot_spectra([s,m.as_signal(),s-m.as_signal()],
 for bc in m.background_components:
     print bc.name
     print bc.yscale.value
+    
+from hyperspy.drawing.utils import animate_legend
+m.plot(plot_components=True)
+legend(['spectrum','model']+[co.name for co in m])
+animate_legend()
     
 #TEM quant
 m.get_lines_intensity(xray_lines='from_metadata')

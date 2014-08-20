@@ -429,20 +429,28 @@ class EDSModel(Model):
         self.enable_xray_lines()
         self.fix_background()
 
-    def free_xray_lines_energy(self, bound=0.001):
+    def free_xray_lines_energy(self,xray_lines='all', bound=0.001):
         """
         Free the X-ray line energy (shift or centre of the Gaussian)
 
         Parameters
         ----------
+        xray_lines: {list of str | 'all'}
+            The Xray lines. If 'all', fit all lines
         bound: float
             the bound around the actual energy, in keV or eV
         """
+
         for component in self:
             if component.isbackground is False:
-                component.centre.free = True
-                component.centre.bmin = component.centre.value - bound
-                component.centre.bmax = component.centre.value + bound
+                if xray_lines=='all':
+                    component.centre.free = True
+                    component.centre.bmin = component.centre.value - bound
+                    component.centre.bmax = component.centre.value + bound
+                elif component.name in xray_lines:
+                    component.centre.free = True
+                    component.centre.bmin = component.centre.value - bound
+                    component.centre.bmax = component.centre.value + bound
 
     def fix_xray_lines_energy(self):
         """
@@ -452,13 +460,15 @@ class EDSModel(Model):
             if component.isbackground is False:
                 component.centre.free = False
 
-    def fit_xray_lines_energy(self, bound=0.001, kind='single',
+    def fit_xray_lines_energy(self, xray_lines='all', bound=0.001, kind='single',
                               **kwargs):
         """
-        Fit the X-ray line energy (shift or centre of the Gaussian)
+        Fit the X-ray line energy (shift of centre of the Gaussian)
 
         Parameters
         ----------
+        xray_lines: {list of str | 'all'}
+            The Xray lines. If 'all', fit all lines
         bound: float
             the bound around the actual energy, in keV or eV
         kind : {'single', 'multi'}
@@ -468,14 +478,14 @@ class EDSModel(Model):
             All extra key word arguments are passed to fit or
         multifit, depending on the value of kind.
         """
-        self.free_xray_lines_energy(bound)
+        self.free_xray_lines_energy(xray_lines=xray_lines,bound=bound)
         if kind == 'single':
             self.fit(fitter="mpfit", bounded=True, **kwargs)
         if kind == 'multi':
             self.multifit(fitter="mpfit", bounded=True, **kwargs)
         self.fix_xray_lines_energy()
 
-    def free_sub_xray_lines_weight(self, bound=0.01):
+    def free_sub_xray_lines_weight(self, xray_lines='all', bound=0.01):
         """
         Free the weight of a sub X-ray lines
 
@@ -483,23 +493,33 @@ class EDSModel(Model):
 
         Parameters
         ----------
+        xray_lines: {list of str | 'all'}
+            The Xray lines. If 'all', fit all lines
         bounds: float
             Bound the height of the peak to fraction (bound) of
             its height
         """
+        def free_twin():
+            component.A.twin = None
+            component.A.free = True
+            if component.A.value - bound * component.A.value < 0:
+                component.A.bmin = 0.
+                print 'negative twin!'
+            else:
+                component.A.bmin = component.A.value - \
+                    bound * component.A.value
+            component.A.bmax = component.A.value + \
+                bound * component.A.value            
+            #component.A.ext_force_positive = True
+        xray_families = [utils_eds._get_xray_lines_family(line) for line in xray_lines]
         for component in self:
             if component.isbackground is False:
-                component.A.twin = None
-                component.A.free = True
-                if component.A.value - bound * component.A.value < 0:
-                    component.A.bmin = 0.
-                    print 'a'
-                else:
-                    component.A.bmin = component.A.value - \
-                        bound * component.A.value
-                component.A.bmax = component.A.value + \
-                    bound * component.A.value
-                #component.A.ext_force_positive = True
+                if xray_lines=='all':
+                    free_twin()
+                elif utils_eds._get_xray_lines_family(
+                            component.name) in xray_families:
+                    #print component.name
+                    free_twin()
 
     def fix_sub_xray_lines_weight(self):
         """
@@ -519,7 +539,8 @@ class EDSModel(Model):
                     component_sub.A.twin_inverse_function = _get_iweight(
                         element, li, weight_line)
 
-    def fit_sub_xray_lines_weight(self, bound=0.01, kind='single',
+    def fit_sub_xray_lines_weight(self, xray_lines='all', bound=0.01,
+                                    kind='single',
                                   **kwargs):
         """
         Fit the weight of the sub X-ray lines
@@ -529,6 +550,8 @@ class EDSModel(Model):
 
         Parameters
         ----------
+        xray_lines: {list of str | 'all'}
+            The Xray lines. If 'all', fit all lines
         bounds: float
             Bound the height of the peak to fraction (bound) of
             its height
@@ -540,7 +563,7 @@ class EDSModel(Model):
         multifit, depending on the value of kind.
 
         """
-        self.free_sub_xray_lines_weight(bound)
+        self.free_sub_xray_lines_weight(xray_lines=xray_lines,bound=bound)
         if kind == 'single':
             self.fit(fitter="mpfit", bounded=True, **kwargs)
         if kind == 'multi':

@@ -28,6 +28,9 @@ def _get_energy_xray_line(xray_line):
     energy, line = _get_element_and_line(xray_line)
     return elements_db[energy]['Atomic_properties']['Xray_lines'][
         line]['energy (keV)']
+        
+def _get_xray_lines_family(xray_line):
+    return xray_line[:xray_line.find('_')+2]
 
 
 def get_FWHM_at_Energy(energy_resolution_MnKa, E):
