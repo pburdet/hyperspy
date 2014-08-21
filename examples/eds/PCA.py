@@ -54,7 +54,7 @@ s.change_dtype('int16')
 s = database.spec3D('SEM')
 from hyperspy.misc.config_dir import config_path
 s.add_elements(['Hf', 'Ta'])
-s.link_standard(config_path + '/database/std_RR')
+s.link_standard(config_path + '/database/SEM/std_RR')
 s = s.add_standards_to_signal('all')
 
 s.change_dtype('float')

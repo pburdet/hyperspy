@@ -1715,7 +1715,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         >>> s = database.spec3D('SEM')
         >>> from hyperspy.misc.config_dir import config_path
         >>> s.add_elements(['Hf','Ta'])
-        >>> s.link_standard(config_path+'/database/std_RR')
+        >>> s.link_standard(config_path+'/database/SEM/std_RR')
         >>> s2 = s.add_standards_to_signal(['Hf'])
 
         To show that works

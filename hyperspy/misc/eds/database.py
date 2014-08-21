@@ -26,17 +26,20 @@ def spec1D(which_spec='BAM'):
         if msa: GnMeba test, coin of euro
         if noisy: 1 pixel in AlZn
         if TEM: sum spec from Robert A5
+        if TEM_nico: IMT sample from Nico
 
     """
 
     if which_spec == 'BAM':
-        return _load_in_database('bam.hdf5')
+        return _load_in_database('SEM/1DS_bam.hdf5')
     elif which_spec == 'msa':
-        return _load_in_database('GNmeba_test.msa')
+        return _load_in_database('SEM/1DS_GNmeba_test.msa')
     elif which_spec == 'noisy':
-        return _load_in_database('1pix_AlZn.msa')
+        return _load_in_database('SEM/1DS_1pix_AlZn.msa')
     elif which_spec == 'TEM':
-        return _load_in_database('1D_TEM_Robert.hdf5')
+        return _load_in_database('TEM/1Ds_Robert.hdf5')
+    elif which_spec == 'TEM_nico':
+        return _load_in_database('TEM/1Ds_Nico_IMT.hdf5') 
         
 
 
@@ -57,17 +60,17 @@ def spec3D(which_spec='PCA_SEM'):
     """
 
     if which_spec == 'PCA_SEM':
-        return _load_in_database('specImg3DBinPCAre46.hdf5')
+        return _load_in_database('SEM/3Ds_specImg3DBinPCAre46.hdf5')
     elif which_spec == 'TEM':
-        return _load_in_database('robert_a5.hdf5')
+        return _load_in_database('TEM/3Ds_robert_a5.hdf5')
     elif which_spec == 'SEM':
-        return _load_in_database('specImg3D46.hdf5')
+        return _load_in_database('SEM/3Ds_specImg3D46.hdf5')
     elif which_spec == 'Ti_SEM':
-        return _load_in_database('TiFeNi1h.hdf5')
+        return _load_in_database('SEM/3Ds_TiFeNi1h.hdf5')
     elif which_spec == 'rpl':
-        return _load_in_database('jonas1h.rpl')
+        return _load_in_database('SEM/3Ds_jonas1h.rpl')
     elif which_spec == 'noisy':
-        return _load_in_database('AlZn__040.rpl')
+        return _load_in_database('SEM/3Ds_AlZn__040.rpl')
 
 
 def spec4D(which_spec='PCA_SEM'):
@@ -82,9 +85,9 @@ def spec4D(which_spec='PCA_SEM'):
         if 'TEM', load Cat (TEM) no PCA
     """
     if which_spec == 'PCA_SEM':
-        return _load_in_database('specImg3DBinPCArec.hdf5')
+        return _load_in_database('SEM/4Ds_specImg3DBinPCArec.hdf5')
     elif which_spec == 'TEM':
-        return _load_in_database('cate_3D_bin_reduced.hdf5')
+        return _load_in_database('TEM/4Ds_cate_bin_reduced.hdf5')
 
 
 def image2D(which_spec='SEM'):
@@ -97,9 +100,9 @@ def image2D(which_spec='SEM'):
         if lena, scipy.misc.lena
     """
     if which_spec == 'SEM':
-        return _load_in_database('img46.hdf5')
+        return _load_in_database('SEM/2Dim_img46.hdf5')
     elif which_spec == 'Ti_SEM':
-        return _load_in_database('SE_imTiFeNi1h.hdf5')
+        return _load_in_database('SEM/2Dim_SE_imTiFeNi1h.hdf5')
     elif which_spec == 'lena':
         import scipy.ndimage
         from hyperspy.signals import Image
@@ -110,14 +113,14 @@ def image3D():
     """
     load RR SE (10:20)
     """
-    return _load_in_database('2img3DA.hdf5')
+    return _load_in_database('SEM/3Dim_2img3DA.hdf5')
 
 
 def result3D():
     """
     load RR 2 3D
     """
-    return _load_in_database('2res3DrsAH.hdf5', result=True)
+    return _load_in_database('SEM/3Dres_2res3DrsAH.hdf5', result=True)
 
 
 def detector_efficiency_INCA(index=4):
