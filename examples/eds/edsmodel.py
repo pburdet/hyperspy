@@ -17,23 +17,8 @@ m.fit()
            
 #TEM
 s = database.spec1D('TEM')
-#determining the scaling (fast method)
-m = create_model(s,auto_add_lines=False,auto_background=False)
-m.add_lines(['Ni_Ka'])
-m.fit()
-m.plot()
-m.fit_xray_lines_energy(bound=20)
-scale = s.axes_manager[-1].scale
-energy_fit = m.xray_lines[0].centre.value 
-energy_line = s._get_line_energy('Ni_Ka')
-s.axes_manager[-1].scale = scale - (
-        energy_fit-energy_line) / energy_line * scale
-print (energy_fit-energy_line) / energy_line * scale
-
-
-#Fit TEM
 m = create_model(s,auto_background=False)
-m.add_lines(['Cu_Ka','Cu_La'])
+m.add_family_lines(['Cu_Ka','Cu_La'])
 m.add_background(detector_name='osiris' 
                  ,thicknesses = [75,100,125])
 m.fit()
@@ -41,6 +26,18 @@ m.fit_background()
 m.fit_xray_lines_energy(['Cr_Ka'],bound=20)
 m.fit_energy_resolution()
 m.fit_sub_xray_lines_weight(bound=1)#Might be slow
+
+#Determining the scaling (fast method)
+m = create_model(s,auto_add_lines=False,auto_background=False)
+line_to_fit = 'Ni_Ka'
+m.add_family_lines([line_to_fit])
+m.fit()
+m.fit_xray_lines_energy([line_to_fit],bound=20)
+scale = s.axes_manager[-1].scale
+energy_fit = m[line_to_fit].centre.value 
+energy_line = s._get_line_energy(line_to_fit)
+s.axes_manager[-1].scale = scale - (
+        energy_fit-energy_line) / energy_line * scale
 
 #Plotting
 m.plot(plot_components=True)
