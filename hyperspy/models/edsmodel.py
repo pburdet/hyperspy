@@ -493,7 +493,7 @@ class EDSModel(Model):
             self.fit(fitter="mpfit", bounded=True, **kwargs)
             if xray_lines!='all':
                 for i, xray_line in enumerate(xray_lines):  
-                    print xray_line  + ' shift of' + str(
+                    print xray_line  + ' shift of ' + str(
                             self[xray_line].centre.value-energy_before[i])              
                        
         if kind == 'multi':
