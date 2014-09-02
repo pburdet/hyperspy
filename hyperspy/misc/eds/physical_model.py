@@ -59,7 +59,7 @@ def xray_absorption_bulk(energy,
 
     coeff = 4.5e5 # keV^1.65
 
-    xi = np.array(utils.material.compound_mass_absorption_coefficient(
+    xi = np.array(utils.material.mass_absorption_coefficient_of_mixture_of_pure_elements(
         energies=energy, elements=elements,
         weight_fraction=weight_fraction)) / np.sin(np.radians(TOA))
     sig = coeff / (np.power(beam_energy, 1.65
@@ -107,7 +107,7 @@ def xray_absorption_thin_film(energy,
         the take of angle in degree
     """
     from hyperspy import utils
-    mac_sample = np.array(utils.material.compound_mass_absorption_coefficient(
+    mac_sample = np.array(utils.material.mass_absorption_coefficient_of_mixture_of_pure_elements(
         energies=energy, elements=elements,
         weight_fraction=weight_fraction))
     rt =  density * thickness * 1e-7 / np.sin(np.radians(TOA))

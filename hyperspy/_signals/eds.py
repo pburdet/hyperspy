@@ -1477,7 +1477,7 @@ class EDSSpectrum(Spectrum):
             else:
                 weight_fraction = [1. / len(elements) for elm in elements] 
                 print 'Weight fraction is automatically set to ' + str(weight_fraction)
-        return utils.material.compound_mass_absorption_coefficient(energies=xray_lines,
+        return utils.material.mass_absorption_coefficient_of_mixture_of_pure_elements(energies=xray_lines,
                                                                    weight_fraction=weight_fraction, 
                                                                    elements=elements)
 

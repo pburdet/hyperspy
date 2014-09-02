@@ -2,6 +2,7 @@ import numpy as np
 
 from hyperspy.misc.elements import elements as elements_db
 from hyperspy.misc.eds import utils as utils_eds
+from hyperspy.misc.eds.ffast_mac import ffast_mac_db as ffast_mac
 
 def weight_to_atomic(elements, weight_percent):
     """Convert weight percent (wt%) to atomic percent (at.%).
@@ -117,27 +118,27 @@ def density_of_mixture_of_pure_elements(elements, weight_percent):
 # return density
 
 
-def _mac_interpolation(mac, mac1, energy,
-                       energy_db, energy_db1):
-    """
-    Interpolate between the tabulated mass absorption coefficients
-    for an energy
+#def _mac_interpolation(mac, mac1, energy,
+                       #energy_db, energy_db1):
+    #"""
+    #Interpolate between the tabulated mass absorption coefficients
+    #for an energy
 
-    Parameters
-    ----------
-    mac, mac1: float
-        The mass absorption coefficients in cm^2/g
-    energy,energy_db,energy_db1:
-        The energy. The given energy and the tabulated energy,
-        respectively
+    #Parameters
+    #----------
+    #mac, mac1: float
+        #The mass absorption coefficients in cm^2/g
+    #energy,energy_db,energy_db1:
+        #The energy. The given energy and the tabulated energy,
+        #respectively
 
-    Return
-    ------
-    mass absorption coefficient in cm^2/g
-    """
-    return np.exp(np.log(mac1) + np.log(mac / mac1)
-                  * (np.log(energy / energy_db1) / np.log(
-                      energy_db / energy_db1)))
+    #Return
+    #------
+    #mass absorption coefficient in cm^2/g
+    #"""
+    #return np.exp(np.log(mac1) + np.log(mac / mac1)
+                  #* (np.log(energy / energy_db1) / np.log(
+                      #energy_db / energy_db1)))
 
 
 def mass_absorption_coefficient(element, energies):
@@ -157,40 +158,28 @@ def mass_absorption_coefficient(element, energies):
     ------
     mass absorption coefficient(s) in cm^2/g
     """
-    from hyperspy.misc.eds.ffast_mac import ffast_mac_db as ffast_mac
-    energies_db = ffast_mac[element].energies_keV
-    macs = ffast_mac[element].mass_absorption_coefficient_cm2g
-    if hasattr(energies, '__iter__'):
-        is_iter = True
-    else:
-        is_iter = False
-        energies = [energies]
-    if isinstance(energies[0], str):
-        for i, energy in enumerate(energies):
-            energies[i] = utils_eds._get_energy_xray_line(energy)
-    mac_res = []
-    for energy in energies:
-        for index, energy_db in enumerate(energies_db):
-            if energy <= energy_db:
-                break
-        mac = macs[index]
-        mac1 = macs[index - 1]
-        energy_db = energies_db[index]
-        energy_db1 = energies_db[index - 1]
-        if energy == energy_db or energy_db1 == 0:
-            mac_res.append(mac)
-        else:
-            mac_res.append(_mac_interpolation(mac, mac1, energy,
-                                              energy_db, energy_db1))
-    if is_iter:
-        return mac_res
-    else:
-        return mac_res[0]
 
-def compound_mass_absorption_coefficient(elements,
+    energies_db = np.array(ffast_mac[element].energies_keV)
+    macs = np.array(ffast_mac[element].mass_absorption_coefficient_cm2g)
+    if isinstance(energies, str):
+        energies = utils_eds._get_energy_xray_line(energies)    
+    elif hasattr(energies, '__iter__'):
+        if isinstance(energies[0], str):
+            for i, energy in enumerate(energies):
+                energies[i] = utils_eds._get_energy_xray_line(energy)
+
+    index = np.searchsorted(energies_db,energies)
+
+    mac_res = np.exp(np.log(macs[index - 1]
+                ) +  np.log(macs[index] / macs[index - 1] 
+                ) * (np.log(energies / energies_db[index - 1]
+                ) / np.log( energies_db[index] / energies_db[index - 1])))
+    return np.nan_to_num(mac_res)
+
+def mass_absorption_coefficient_of_mixture_of_pure_elements(elements,
                                          weight_fraction,
                                          energies):
-    """Return the mass absorption coefficients of a compound
+    """Calculate the mass absorption coefficients a mixture of elements.
 
     A compund is a mixture of pure elements
 
@@ -205,7 +194,7 @@ def compound_mass_absorption_coefficient(elements,
 
     Examples
     --------
-    >>> utils.material.compound_mass_absorption_coefficient(
+    >>> utils.material.mass_absorption_coefficient_of_mixture_of_pure_elements(
     >>>     ['Al','Zn'],[0.5,0.5],'Al_Ka')
 
     Return
@@ -219,23 +208,37 @@ def compound_mass_absorption_coefficient(elements,
     if len(elements) != len(weight_fraction):
         raise ValueError(
             "Elements and weight_fraction should have the same lenght")
-  
-    if hasattr(energies, '__iter__'):
-        is_iter = True
-    else:
-        is_iter = False
-        energies = [energies]
-        
-    mac_res = []
-    for i, energy in enumerate(energies):
-        if isinstance(weight_fraction[0], float):
-            mac_res.append(0)
-        else:
-            mac_res.append(np.zeros_like(weight_fraction))
-        for el, weight in zip(elements, weight_fraction):
-            mac_res[i] += weight * np.array(mass_absorption_coefficient(
-                el, energy))
-    if is_iter:
+            
+    if isinstance(weight_fraction[0], float):
+        mac_res = np.array([mass_absorption_coefficient(
+            el, energies) for el in elements])
+        mac_res = np.dot(weight_fraction , mac_res)
         return mac_res
     else:
-        return mac_res[0]
+        weight_fraction = np.array(weight_fraction)
+        mac_res = []
+        mac_re = np.array([mass_absorption_coefficient(
+            el, energies) for el in elements])
+        for weight in weight_fraction:
+            mac_res.append(np.dot(weight, mac_re))
+        return np.array(mac_res)
+  
+    #if hasattr(energies, '__iter__'):
+        #is_iter = True
+    #else:
+        #is_iter = False
+        #energies = [energies]
+        
+    #mac_res = []
+    #for i, energy in enumerate(energies):
+        #if isinstance(weight_fraction[0], float):
+            #mac_res.append(0)
+        #else:
+            #mac_res.append(np.zeros_like(weight_fraction))
+        #for el, weight in zip(elements, weight_fraction):
+            #mac_res[i] += weight * np.array(mass_absorption_coefficient(
+                #el, energy))
+    #if is_iter:
+        #return mac_res
+    #else:
+        #return mac_res[0]

@@ -1870,7 +1870,7 @@ def quantification_absorption_corrections_thin_film(intensities,
     for j in range(max_iter):
         density = material.density_of_mixture_of_pure_elements(
                 elements, weight_fractions[-1])
-        mac_sample = material.compound_mass_absorption_coefficient(
+        mac_sample = material.mass_absorption_coefficient_of_mixture_of_pure_elements(
                         energies=xray_lines,
                         weight_fraction=weight_fractions[-1], 
                         elements=elements)

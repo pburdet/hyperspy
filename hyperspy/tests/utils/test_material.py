@@ -56,5 +56,5 @@ def test_mass_absorption_coefficient():
         utils.material.mass_absorption_coefficient('Zn', ['Cu_La', 'Nb_La']),
                 [1704.7912903000029, 1881.2081950943339]))
     assert_almost_equal(
-        utils.material.compound_mass_absorption_coefficient(
+        utils.material.mass_absorption_coefficient_of_mixture_of_pure_elements(
             ['Al', 'Zn'], [0.5, 0.5], 'Al_Ka'), 2587.4161643905127)
