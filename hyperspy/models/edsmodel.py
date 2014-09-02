@@ -19,6 +19,7 @@
 # To do: weight_fraction different for different pixe. (so basckground)
 # Calibrate on standard and transfer dictionnary
 # k-ratios
+from __future__ import division
 
 import copy
 import numpy as np
@@ -181,14 +182,14 @@ class EDSModel(Model):
                     component_sub.centre.value = line_energy
                     component_sub.name = xray_sub
                     #component_sub.fwhm = line_FWHM 
-                    component_sub.sigma.value = line_FWHM / 2.355
-                    component_sub.A.twin = component.A
-                    component.A.ext_force_positive = True
+                    component_sub.sigma.value = line_FWHM / 2.355                    
+                    #component.A.ext_force_positive = True
                     component_sub.centre.free = False
                     component_sub.sigma.free = False
                     component_sub.A.twin_function = _get_weight(element, li)
                     component_sub.A.twin_inverse_function = _get_iweight(
                         element, li)
+                    component_sub.A.twin = component.A
                     self.append(component_sub)
             self.fetch_stored_values()
 
@@ -482,7 +483,7 @@ class EDSModel(Model):
             All extra key word arguments are passed to fit or
         multifit, depending on the value of kind.
         """
-        bound = bound / 1000 * self.units_factor
+        bound = bound / 1000. * self.units_factor
         self.free_xray_lines_energy(xray_lines=xray_lines,bound=bound)
         
         if kind == 'single':
@@ -517,9 +518,9 @@ class EDSModel(Model):
         def free_twin():
             component.A.twin = None
             component.A.free = True
-            if component.A.value - bound * component.A.value < 0:
-                component.A.bmin = 0.
-                print 'negative twin!'
+            if component.A.value - bound * component.A.value <= 0:
+                component.A.bmin = 1e-10
+                #print 'negative twin!'
             else:
                 component.A.bmin = component.A.value - \
                     bound * component.A.value
@@ -533,7 +534,6 @@ class EDSModel(Model):
                     free_twin()
                 elif utils_eds._get_xray_lines_family(
                             component.name) in xray_families:
-                    #print component.name
                     free_twin()
 
     def fix_sub_xray_lines_weight(self, xray_lines='all'):
@@ -550,19 +550,20 @@ class EDSModel(Model):
                 if line[0] in li and line != li:
                     xray_sub = element + '_' + li
                     component_sub = self[xray_sub]
-                    component_sub.A.bmin = 0.0
-                    component_sub.A.bmax = None   
-                    component_sub.A.twin = component.A                                     
+                    component_sub.A.bmin = 1e-10
+                    component_sub.A.bmax = None                                                      
                     weight_line = component_sub.A.value / component.A.value
-                    component_sub.A.twin_function = _get_weight(element,
-                                                                li, weight_line)
+                    component_sub.A.twin_function = _get_weight(
+                            element,li, weight_line)
                     component_sub.A.twin_inverse_function = _get_iweight(
-                        element, li, weight_line)
+                            element, li, weight_line)
+                    component_sub.A.twin = component.A  
         for component in self.xray_lines:
             if xray_lines=='all':
                 fix_twin()
             elif component.name in xray_lines:
                 fix_twin()
+        self.fetch_stored_values()
                 
 
 
@@ -593,7 +594,7 @@ class EDSModel(Model):
         self.free_sub_xray_lines_weight(xray_lines=xray_lines,bound=bound)
         if kind == 'single':
             self.fit(fitter="mpfit", bounded=True, **kwargs)
-        if kind == 'multi':
+        elif kind == 'multi':
             self.multifit(fitter="mpfit", bounded=True, **kwargs)
         self.fix_sub_xray_lines_weight(xray_lines=xray_lines)
 
@@ -613,15 +614,14 @@ class EDSModel(Model):
                 component_ref = component
                 component_ref.sigma.free = True
                 E_ref = component_ref.centre.value
-            else:
-                component.sigma.twin = component_ref.sigma
+            else:                
                 component.sigma.free = True
-
                 E = component.centre.value
                 component.sigma.twin_function = _get_sigma(
                     E, E_ref, self.units_factor)
                 component.sigma.twin_inverse_function = _get_sigma(
                     E_ref, E, self.units_factor)
+                component.sigma.twin = component_ref.sigma
 
     def fix_energy_resolution(self,xray_lines):
         """
