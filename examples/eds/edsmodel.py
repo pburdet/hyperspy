@@ -5,7 +5,7 @@
 #SEM BAM
 s = database.spec1D()
 m = create_model(s,auto_background=False)
-m.add_lines(['Ar_Ka','O_Ka'])
+m.add_family_lines(['Ar_Ka','O_Ka'])
 m.add_background([1,2,3],detector_name='Xmax')
     # , weight_fraction=[0.25,0,0.25,0.25,0.25])
 m.fit()

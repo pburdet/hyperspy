@@ -56,10 +56,13 @@ fig
 # 2 y axes
 ax2 = ax.twinx()
 plot(xdat, ydat)
+
 ax2.set_ylim(0, 1)
 ax2.set_ylabel('SE Contrast')
 ax2.set_position(
     matplotlib.transforms.Bbox(array([[0.125, 0.17], [0.9, 0.975]])))
+    
+
 
 
 # subplot()

@@ -94,3 +94,21 @@ copy paste part of code
 %load "C:\Users\pb565\Documents\Python\hyperspy\examples\eds\simulation.py"
 %load "C:\Users\pb565\Documents\Python\hyperspy\examples\eds\visualisation.py"
 %load "C:\Users\pb565\Documents\Python\hyperspy\examples\eds\quantification_tem.py"
+
+#To configure lprune
+#http://pynash.org/2013/03/06/timing-and-profiling.html
+
+%time or %%time
+
+%timeit
+
+%prun
+
+from hyperspy._signals.eds_sem import EDSSEMSpectrum 
+from hyperspy.misc.utils import slugify
+from hyperspy.misc.material import mass_absorption_coefficient
+%lprun -f  mass_absorption_coefficient \
+    -f EDSSEMSpectrum.compute_continuous_xray_generation \
+    -f slugify \
+    EDSSEMSpectrum.compute_continuous_xray_absorption(s) 
+
