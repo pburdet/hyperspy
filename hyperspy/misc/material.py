@@ -81,21 +81,22 @@ def density_of_mixture_of_pure_elements(elements, weight_percent):
     8.6903187973131466
 
     """
-    if isinstance(weight_percent[0], float):
+    if hasattr(weight_percent[0], '__iter__'):
+        weight_percent = np.array(weight_percent)
+        density = np.array(
+            [elements_db[element]['Physical_properties']['density (g/cm^3)'] for element in elements])
+        densities = []
+        for weight in weight_percent:
+            den_tmp = (weight/ density / sum(weight)).sum()** -1
+            densities.append(den_tmp)
+        return np.array(densities)
+    else:
         densities = np.array(
             [elements_db[element]['Physical_properties']['density (g/cm^3)'] for element in elements])
         density = (
             weight_percent / densities / sum(weight_percent)).sum() ** -1
         return density
-    else:
-        weight_percent = np.array(weight_percent)
-        densities = []
-        for element, weight in zip(elements, weight_percent):
-            density = elements_db[element]['Physical_properties']\
-                ['density (g/cm^3)']
-            densities.append(weight / density)
-        densities = np.array(densities)
-        return weight_percent.sum(0) / densities.sum(0)
+
 
 # working for signals as well
 # weight_fraction=utils.stack(weight_fraction)
