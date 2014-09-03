@@ -34,8 +34,11 @@ from scipy.optimize import (leastsq,
                             fmin_powell)
 from traits.trait_errors import TraitError
 
+from hyperspy import components
 from hyperspy import messages
+from hyperspy.signal import Signal
 import hyperspy.drawing.spectrum
+from hyperspy.axes import AxesManager
 from hyperspy.drawing.utils import on_figure_window_close
 from hyperspy.misc import progressbar
 from hyperspy._signals.eels import Spectrum
@@ -77,7 +80,7 @@ class Model(list):
     Attributes
     ----------
 
-    spectrum : Spectrum instance
+    spectrum : Spectrum instance or a dictionary of model
         It contains the data to fit.
     chisq : A Signal of floats
         Chi-squared of the signal (or np.nan if not yet fit)
@@ -176,39 +179,122 @@ class Model(list):
 
     _firstimetouch = True
 
+    def __init__(self, spectrum, **kwds):
+
+        self._plot = None
+        self._position_widgets = []
+        self._adjust_position_all = None
+        self._plot_components = False
+        self._suspend_update = False
+        self._model_line = None
+        if isinstance(spectrum, dict):
+            self._load_dictionary(spectrum)
+        else:
+            kwds['spectrum'] = spectrum
+            self._load_dictionary(kwds)
+        self.inav = modelSpecialSlicers(self, True)
+        self.isig = modelSpecialSlicers(self, False)
+
     def __hash__(self):
         # This is needed to simulate a hashable object so that PySide does not
         # raise an exception when using windows.connect
         return id(self)
 
-    def __init__(self, spectrum):
-        self.convolved = False
-        self.spectrum = spectrum
+    def _load_dictionary(self, dic):
+        """Load data from dictionary.
+
+        Parameters
+        ----------
+        dic : dictionary
+            A dictionary containing at least a 'spectrum' keyword with either
+            a spectrum itself, or a dictionary created with spectrum._to_dictionary()
+            Additionally the dictionary can containt the following items:
+            spectrum : Signal type or dictionary
+                Either a signal itself, or a dictionary created from one
+            axes_manager : dictionary (optional)
+                Dictionary to define the axes (see the
+                documentation of the AxesManager class for more details).
+            free_parameters_boundaries : list (optional)
+                A list of free parameters boundaries
+            low_loss : (optional)
+            convolved : boolean (optional)
+            components : dictionary (optional)
+                Dictionary, with information about components of the model
+                (see the documentation of component.to_dictionary() method)
+            chisq : dictionary
+                A dictionary of signal of chi-squared
+            dof : dictionary
+                A dictionary of signal of degrees-of-freedom
+        """
+
+        if isinstance(dic['spectrum'], dict):
+            self.spectrum = Spectrum(**dic['spectrum'])
+        else:
+            self.spectrum = dic['spectrum']
+
         self.axes_manager = self.spectrum.axes_manager
         self.axis = self.axes_manager.signal_axes[0]
         self.axes_manager.connect(self.fetch_stored_values)
-
-        self.free_parameters_boundaries = None
         self.channel_switches = np.array([True] * len(self.axis.axis))
-        self._low_loss = None
-        self._position_widgets = []
-        self._plot = None
-        self._model_line = None
 
-        self.chisq = spectrum._get_navigation_signal()
-        self.chisq.change_dtype("float")
-        self.chisq.data.fill(np.nan)
-        self.chisq.metadata.General.title = self.spectrum.metadata.General.title + \
-            ' chi-squared'
-        self.dof = self.chisq._deepcopy_with_new_data(
-            np.zeros_like(
-                self.chisq.data,
-                dtype='int'))
-        self.dof.metadata.General.title = self.spectrum.metadata.General.title + \
-            ' degrees of freedom'
-        self._suspend_update = False
-        self._adjust_position_all = None
-        self._plot_components = False
+        if 'chisq' in dic:
+            self.chisq = Signal(**dic['chisq'])
+        else:
+            self.chisq = self.spectrum._get_navigation_signal()
+            self.chisq.change_dtype("float")
+            self.chisq.data.fill(np.nan)
+            self.chisq.metadata.General.title = self.spectrum.metadata.General.title + \
+                ' chi-squared'
+
+        if 'dof' in dic:
+            self.dof = Signal(**dic['dof'])
+        else:
+            self.dof = self.chisq._deepcopy_with_new_data(
+                np.zeros_like(self.chisq.data, dtype='int'))
+            self.dof.metadata.General.title = self.spectrum.metadata.General.title + \
+                ' degrees of freedom'
+
+        if 'free_parameters_boundaries' in dic:
+            self.free_parameters_boundaries = copy.deepcopy(
+                dic['free_parameters_boundaries'])
+        else:
+            self.free_parameters_boundaries = None
+
+        if 'low_loss' in dic:
+            if dic['low_loss'] is not None:
+                self._low_loss = Signal(**dic['low_loss'])
+            else:
+                self._low_loss = None
+        else:
+            self._low_loss = None
+
+        if 'convolved' in dic:
+            self.convolved = dic['convolved']
+        else:
+            self.convolved = False
+
+        if 'components' in dic:
+            while len(self) != 0:
+                self.remove(self[0])
+            id_dict = {}
+
+            for c in dic['components']:
+                if '_init_par' in c:
+                    tmp = []
+                    for i in c['_init_par']:
+                        if i == 'spectrum':
+                            tmp.append(Spectrum(**c[i]))
+                        else:
+                            tmp.append(c[i])
+                    self.append(getattr(components, c['_id_name'])(*tmp))
+                else:
+                    self.append(getattr(components, c['_id_name'])())
+                id_dict.update(self[-1]._load_dictionary(c))
+            # deal with twins:
+            for c in dic['components']:
+                for p in c['parameters']:
+                    for t in p['_twins']:
+                        id_dict[t].twin = id_dict[p['id']]
 
     def __repr__(self):
         return u"<Model %s>".encode('utf8') % super(Model, self).__repr__()
@@ -1253,8 +1339,8 @@ class Model(list):
             self.update_plot()
 
     def multifit(self, mask=None, fetch_only_fixed=False,
-                 autosave=False, autosave_every=10, show_progressbar=None,
-                 **kwargs):
+                 autosave=False, autosave_every=10, parallel=None, ipython_timeout=1.,
+                 show_progressbar=None, **kwargs):
         """Fit the data to the model at all the positions of the
         navigation dimensions.
 
@@ -1273,6 +1359,14 @@ class Model(list):
             with a frequency defined by autosave_every.
         autosave_every : int
             Save the result of fitting every given number of spectra.
+        parallel : {None, int}
+            If None or 1, does not parallelise multifit. If >1, will look for
+            ipython clusters with the required number of workers. If none or not enougth
+            are found, it will create multiprocessing cluster with the required number
+            of workers, so that the model is always calculated on the specified number
+            of cores.
+        ipython_timeout : float
+            Timeout to be passed for ipython parallel Client.
 
         show_progressbar : None or bool
             If True, display a progress bar. If None the default is set in
@@ -1314,9 +1408,6 @@ class Model(list):
                 str(self.axes_manager._navigation_shape_in_array))
         masked_elements = 0 if mask is None else mask.sum()
         maxval = self.axes_manager.navigation_size - masked_elements
-        if maxval > 0:
-            pbar = progressbar.progressbar(maxval=maxval,
-                                           disabled=not show_progressbar)
         if 'bounded' in kwargs and kwargs['bounded'] is True:
             if kwargs['fitter'] == 'mpfit':
                 self.set_mpfit_parameters_info()
@@ -1330,25 +1421,117 @@ class Model(list):
                     "If you require bounding please select one of the "
                     "following fitters instead: mpfit, tnc, l_bfgs_b")
                 kwargs['bounded'] = False
-        i = 0
-        self.axes_manager.disconnect(self.fetch_stored_values)
-        for index in self.axes_manager:
-            if mask is None or not mask[index[::-1]]:
-                self.fetch_stored_values(only_fixed=fetch_only_fixed)
-                self.fit(**kwargs)
-                i += 1
-                if maxval > 0:
-                    pbar.update(i)
-            if autosave is True and i % autosave_every == 0:
-                self.save_parameters2file(autosave_fn)
-        if maxval > 0:
-            pbar.finish()
-        self.axes_manager.connect(self.fetch_stored_values)
-        if autosave is True:
-            messages.information(
-                'Deleting the temporary file %s pixels' % (
-                    autosave_fn + 'npz'))
-            os.remove(autosave_fn + '.npz')
+
+#                 ==============
+#         i = 0
+#         self.axes_manager.disconnect(self.fetch_stored_values)
+#         for index in self.axes_manager:
+#             if mask is None or not mask[index[::-1]]:
+#                 self.fetch_stored_values(only_fixed=fetch_only_fixed)
+#                 self.fit(**kwargs)
+#                 i += 1
+#                 if maxval > 0:
+#                     pbar.update(i)
+#             if autosave is True and i % autosave_every == 0:
+#                 self.save_parameters2file(autosave_fn)
+#         if maxval > 0:
+#             pbar.finish()
+#         self.axes_manager.connect(self.fetch_stored_values)
+#         if autosave is True:
+#             messages.information(
+#                 'Deleting the temporary file %s pixels' % (
+#                     autosave_fn + 'npz'))
+#             os.remove(autosave_fn + '.npz')
+#             ===================
+        if parallel is None or parallel <= 1:
+            if maxval > 0:
+                pbar = progressbar.progressbar(maxval=maxval,
+                                               disabled=not show_progressbar)
+            i = 0
+            self.axes_manager.disconnect(self.fetch_stored_values)
+            for index in self.axes_manager:
+                if mask is None or not mask[index[::-1]]:
+                    self.fetch_stored_values(only_fixed=fetch_only_fixed)
+                    self.fit(**kwargs)
+                    i += 1
+                    if maxval > 0:
+                        pbar.update(i)
+                if autosave is True and i % autosave_every == 0:
+                    self.save_parameters2file(autosave_fn)
+            if maxval > 0:
+                pbar.finish()
+            self.axes_manager.connect(self.fetch_stored_values)
+            if autosave is True:
+                messages.information(
+                    'Deleting the temporary file %s pixels' % (
+                        autosave_fn + 'npz'))
+                os.remove(autosave_fn + '.npz')
+        else:
+            # look for cluster, if not (enougth) found, create multiprocessing
+            # pool
+            kwargs['parallel'] = 1
+            from IPython.parallel import Client, error
+            num = 0
+            try:
+                c = Client(profile='hyperspy', timeout=ipython_timeout)
+                num = len(c.ids[:parallel])
+                ipyth = c.load_balanced_view()
+                ipyth.targets = c.ids[:parallel]
+            except (error.TimeoutError, IOError):
+                pass
+            if num != parallel:
+                from multiprocessing import Pool
+                multip = Pool(processes=int(parallel - num))
+
+            # import function to pass to workers
+            from hyperspy.model import multifit_kernel
+
+            # split model and send to workers
+            self.axes_manager.disconnect(self.fetch_stored_values)
+            self.unfold()
+            cuts = np.array_split(
+                np.arange(
+                    self.spectrum.axes_manager.navigation_size),
+                parallel)
+            pass_slices = [(l[0], l[-1] + 1) for l in cuts]
+            models = [self.inav[l[0]:l[-1] + 1].as_dictionary() for l in cuts]
+            for m in models:
+                del m['spectrum']['metadata']['_HyperSpy']
+            res = []
+            for i in xrange(parallel):
+                if i < num:
+                    res.append(ipyth.apply_async(
+                        multifit_kernel,
+                        models[i],
+                        pass_slices[i],
+                        kwargs))
+                else:
+                    res.append(multip.apply_async(
+                        multifit_kernel,
+                        [models[i],
+                         pass_slices[i],
+                         kwargs, ]))
+
+            # gather the results back
+            results = []
+            for i in xrange(parallel):
+                results.append(res[i].get())
+            for r in results:
+                slices = r[0]
+                model_dict = r[1]
+                tm = self.inav[slices[0]:slices[1]]
+                self.chisq.data[
+                    slices[0]:slices[1]] = model_dict['chisq']['data'].copy()
+                for ic, c in enumerate(self):
+                    for p in c.parameters:
+                        for p_d in model_dict['components'][ic]['parameters']:
+                            if p_d['_id_name'] == p._id_name:
+                                p.map[slices[0]:slices[1]] = p_d['map'].copy()
+            if num != parallel:
+                multip.close()
+                multip.join()
+            self.fold()
+            self.axes_manager.connect(self.fetch_stored_values)
 
     def save_parameters2file(self, filename):
         """Save the parameters array in binary format
@@ -1920,6 +2103,113 @@ class Model(list):
                         _parameter.value = value
                         _parameter.assign_current_value_to_all()
 
+    def as_dictionary(self, indices=None):
+        """Returns a dictionary of the model, including full Signal dictionary,
+        all components and all values of their components, and twin functions.
+
+        Parameters
+        ----------
+        indices : tuple
+            A tuple of indices to return a particular point of a model
+        Returns
+        -------
+        dictionary : a complete dictionary of the model
+
+        Examples
+        --------
+        >>> s = signals.Spectrum(np.random.random((10,100)))
+        >>> m = create_model(s)
+        >>> l1 = components.Lorentzian()
+        >>> l2 = components.Lorentzian()
+        >>> m.append(l1)
+        >>> m.append(l2)
+        >>> dict = m.as_dictionary()
+        >>> m2 = create_model(dict)
+
+        """
+        dic = {}
+        if indices is not None:
+            dic['spectrum'] = self.spectrum.inav[indices]._to_dictionary()
+            dic['chisq'] = self.chisq[indices]._to_dictionary()
+            dic['dof'] = self.dof[indices]._to_dictionary()
+            if self._low_loss is not None:
+                dic['low_loss'] = self._low_loss.inav[indices]._to_dictionary()
+            else:
+                dic['low_loss'] = self._low_loss
+        else:
+            dic['chisq'] = self.chisq._to_dictionary()
+            dic['dof'] = self.dof._to_dictionary()
+            dic['spectrum'] = self.spectrum._to_dictionary()
+            if self._low_loss is not None:
+                dic['low_loss'] = self._low_loss._to_dictionary()
+            else:
+                dic['low_loss'] = self._low_loss
+        dic['components'] = [c.as_dictionary(indices) for c in self]
+        dic['free_parameters_boundaries'] = copy.deepcopy(
+            self.free_parameters_boundaries)
+        dic['convolved'] = self.convolved
+
+        def remove_empty_numpy_strings(dic):
+            for k, v in dic.iteritems():
+                if isinstance(v, dict):
+                    remove_empty_numpy_strings(v)
+                elif isinstance(v, list):
+                    for vv in v:
+                        if isinstance(vv, dict):
+                            remove_empty_numpy_strings(vv)
+                        elif isinstance(vv, numpy.string_) and len(vv) == 0:
+                            vv = ''
+                elif isinstance(v, numpy.string_) and len(v) == 0:
+                    del dic[k]
+                    dic[k] = ''
+        remove_empty_numpy_strings(dic)
+
+        return dic
+
+    def unfold(self):
+        """Modifies the shape of the model by unfolding the navigation dimensions
+        see signal.unfold_navigation_space()
+        """
+        old_chisq_data = self.chisq.data.copy()
+        old_dof_data = self.dof.data.copy()
+        self.spectrum.unfold_navigation_space()
+        nav_shape = self.spectrum.axes_manager.navigation_shape[::-1]
+        self.chisq = self.spectrum._get_navigation_signal()
+        self.chisq.change_dtype("float")
+        self.chisq.data = old_chisq_data.reshape(nav_shape)
+        self.chisq.metadata.General.title = self.spectrum.metadata.General.title + \
+            ' chi-squared'
+        self.dof = self.chisq._deepcopy_with_new_data(
+            old_dof_data.reshape(nav_shape).astype(int))
+        self.dof.metadata.General.title = self.spectrum.metadata.General.title + \
+            ' degrees of freedom'
+        self.axes_manager = self.spectrum.axes_manager
+        for c in self:
+            c._axes_manager = self.axes_manager
+            for p in c.parameters:
+                p.map = p.map.reshape(nav_shape)
+
+    def fold(self):
+        """If the model was previously unfolded, folds it back"""
+        old_chisq_data = self.chisq.data.copy()
+        old_dof_data = self.dof.data.copy()
+        self.spectrum.fold()
+        nav_shape = self.spectrum.axes_manager.navigation_shape[::-1]
+        self.chisq = self.spectrum._get_navigation_signal()
+        self.chisq.change_dtype("float")
+        self.chisq.data = old_chisq_data.reshape(nav_shape)
+        self.chisq.metadata.General.title = self.spectrum.metadata.General.title + \
+            ' chi-squared'
+        self.dof = self.chisq._deepcopy_with_new_data(
+            old_dof_data.reshape(nav_shape).astype(int))
+        self.dof.metadata.General.title = self.spectrum.metadata.General.title + \
+            ' degrees of freedom'
+        self.axes_manager = self.spectrum.axes_manager
+        for c in self:
+            c._axes_manager = self.axes_manager
+            for p in c.parameters:
+                p.map = p.map.reshape(nav_shape)
+
     def set_component_active_value(
             self, value, component_list=None, only_current=False):
         """
@@ -1966,7 +2256,7 @@ class Model(list):
                 else:
                     _component._active_array.fill(value)
 
-    def __getitem__(self, value):
+    def __getitem__(self, value, not_components=False, isNavigation=None):
         """x.__getitem__(y) <==> x[y]"""
         if isinstance(value, str):
             component_list = []
@@ -1987,5 +2277,146 @@ class Model(list):
                 raise ValueError(
                     "Component name \"" + str(value) +
                     "\" not found in model")
-        else:
+        elif not not_components:
             return list.__getitem__(self, value)
+        else:
+            if isNavigation is None:
+                raise ValueError('has to be either navigation or signal slice')
+            slices = value
+            try:
+                len(slices)
+            except TypeError:
+                slices = (slices,)
+
+            if not isNavigation:
+                slices_new = ()
+                for s in slices:
+                    if not isinstance(s, slice):
+                        slices_new += (slice(s, s + 1, None),)
+                    else:
+                        slices_new += (s,)
+                slices = slices_new
+
+            _orig_slices = slices
+
+            # Create a deepcopy of self.spectrum that contains a view of
+            # self.spectrum.data
+            _spectrum = self.spectrum._deepcopy_with_new_data(
+                self.spectrum.data)
+
+            if isNavigation:
+                idx = [el.index_in_array for el in
+                       _spectrum.axes_manager.navigation_axes]
+            else:
+                idx = [el.index_in_array for el in
+                       _spectrum.axes_manager.signal_axes]
+
+            # Add support for Ellipsis
+            if Ellipsis in _orig_slices:
+                _orig_slices = list(_orig_slices)
+                # Expand the first Ellipsis
+                ellipsis_index = _orig_slices.index(Ellipsis)
+                _orig_slices.remove(Ellipsis)
+                _orig_slices = (_orig_slices[:ellipsis_index] +
+                                [slice(None), ] * max(0, len(idx) - len(_orig_slices)) +
+                                _orig_slices[ellipsis_index:])
+                # Replace all the following Ellipses by :
+                while Ellipsis in _orig_slices:
+                    _orig_slices[_orig_slices.index(Ellipsis)] = slice(None)
+                _orig_slices = tuple(_orig_slices)
+            if len(_orig_slices) > len(idx):
+                raise IndexError("too many indices")
+
+            slices = np.array([slice(None,)] *
+                              len(_spectrum.axes_manager._axes))
+
+            slices[idx] = _orig_slices + (slice(None),) * max(
+                0, len(idx) - len(_orig_slices))
+
+            array_slices = []
+            for slice_, axis in zip(slices, _spectrum.axes_manager._axes):
+                if (isinstance(slice_, slice) or
+                        len(_spectrum.axes_manager._axes) < 2):
+                    array_slices.append(axis._slice_me(slice_))
+                else:
+                    if isinstance(slice_, float):
+                        slice_ = axis.value2index(slice_)
+                    array_slices.append(slice_)
+                    _spectrum._remove_axis(axis.index_in_axes_manager)
+
+            _spectrum.data = _spectrum.data[array_slices]
+            if self.spectrum.metadata.has_item('Signal.Noise_properties.variance'):
+                if isinstance(self.spectrum.metadata.Signal.Noise_properties.variance, Signal):
+                    _spectrum.metadata.Signal.Noise_properties.variance = self.spectrum.metadata.Signal.Noise_properties.variance.__getitem__(
+                        _orig_slices,
+                        isNavigation)
+            _spectrum.get_dimensions_from_data()
+            from hyperspy.model import Model
+            from hyperspy import components
+            _model = Model(_spectrum)
+            # create components:
+            twin_dict = {}
+            for c in self:
+                try:
+                    _model.append(getattr(components, c._id_name)())
+                except TypeError:
+                    tmp = []
+                    for i in c._init_par:
+                        tmp.append(getattr(c, i))
+                    _model.append(getattr(components, c._id_name)(*tmp))
+            if isNavigation:
+                _model.dof.data = self.dof.data[array_slices[:-1]]
+                _model.chisq.data = self.chisq.data[array_slices[:-1]]
+                for ic, c in enumerate(_model):
+                    for p_new, p_orig in zip(c.parameters, self[ic].parameters):
+                        p_new.twin_function = p_orig.twin_function
+                        p_new.twin_inverse_function = p_orig.twin_inverse_function
+                        p_new.map = p_orig.map[array_slices[:-1]]
+                        #p_new.value = p_new.map['values'].ravel()[0]
+                        p_new.value = p_orig.value
+                        twin_dict[id(p_orig)] = ([id(i)
+                                                  for i in list(p_orig._twins)], p_new)
+                    # if hasattr(c, '_important'):
+                    #    for i in c._important:
+                    #        if i['signal_like']:
+                    #            tmp  = getattr(_model[ic], i['name']).__getitem__(_orig_slices, isNavigation)
+                    #            getattr(c, i['name']) = tmp
+                    #        else:
+                    # getattr(c, i['name']) = getattr(_model[ic], i['name'])
+            else:
+                for ic, c in enumerate(_model):
+                    for p_new, p_orig in zip(c.parameters, self[ic].parameters):
+                        p_new.twin_function = p_orig.twin_function
+                        p_new.twin_inverse_function = p_orig.twin_inverse_function
+                        p_new.map = p_orig.map
+                        p_new.value = p_new.map['values'].ravel()[0]
+                        twin_dict[id(p_orig)] = ([id(i)
+                                                  for i in list(p_orig._twins)], p_new)
+                _model.dof.data = self.dof.data
+                for index in _model.axes_manager:
+                    _model._calculate_chisq()
+            for k in twin_dict.keys():
+                for tw_id in twin_dict[k][0]:
+                    twin_dict[tw_id][1].twin = twin_dict[k][1]
+            return _model
+
+
+class modelSpecialSlicers:
+
+    def __init__(self, model, isNavigation):
+        self.isNavigation = isNavigation
+        self.model = model
+
+    def __getitem__(self, slices):
+        return self.model.__getitem__(slices, True, self.isNavigation)
+
+
+def multifit_kernel(model_dict, slices, kwargs):
+    import hyperspy.hspy as hp
+    m = hp.create_model(model_dict)
+    m.multifit(**kwargs)
+    d = m.as_dictionary()
+    del d['spectrum']
+    # delete everything else that doesn't matter. Only maps of
+    # parameters and chisq matter
+    return slices, d
