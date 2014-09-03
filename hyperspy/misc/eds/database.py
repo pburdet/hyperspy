@@ -241,7 +241,22 @@ def kfactors_brucker(xray_lines='all',microscope_name='osiris_200'):
         
     
     dic_el = utils.material.elements
-    if xray_lines == 'all':
+    if hasattr(xray_lines, '__iter__'):
+        kfactor = []
+        kerror = []
+        for xray_line in xray_lines:
+            elem, line = utils_eds._get_element_and_line(xray_line)
+            iZ = dic_el[elem].General_properties.Z 
+            if line == 'Ka':
+                iline =0
+            elif line == 'La':
+                iline =1
+            elif line == 'Ma':
+                iline = 2
+            kfactor.append(kfactors[iline][iZ])
+            kerror.append(kerrors[iline][iZ])
+        return kfactor, kerror
+    else:
         dic = DictionaryTreeBrowser()
         for el in dic_el.keys():
             iZ = dic_el[el].General_properties.Z 
@@ -259,18 +274,4 @@ def kfactors_brucker(xray_lines='all',microscope_name='osiris_200'):
                         dic.set_item(el+'.'+line+'.kfactor',kfactors[iline][iZ])
                         dic.set_item(el+'.'+line+'.kfactor_error',kerrors[iline][iZ])
         return dic
-    else:
-        kfactor = []
-        kerror = []
-        for xray_line in xray_lines:
-            elem, line = utils_eds._get_element_and_line(xray_line)
-            iZ = dic_el[elem].General_properties.Z 
-            if line == 'Ka':
-                iline =0
-            elif line == 'La':
-                iline =1
-            elif line == 'Ma':
-                iline = 2
-            kfactor.append(kfactors[iline][iZ])
-            kerror.append(kerrors[iline][iZ])
-        return kfactor, kerror
+
