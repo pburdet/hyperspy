@@ -64,7 +64,7 @@ class EDSModel(Model):
     auto_background : boolean
         If True, and if spectrum is an EELS instance adds automatically
         a powerlaw to the model and estimate the parameters by the
-        two-area method.
+        two-area method. 
 
     """
 
