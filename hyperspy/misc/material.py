@@ -148,7 +148,7 @@ def mass_absorption_coefficient(element, energies):
 
     In a pure material for a Xray(s) of given energy(ies) or given name(s)
 
-    Parameters
+    Parameters 
     ----------
     element: str
         The element symbol of the absorber, e.g. 'Al'.

@@ -51,7 +51,7 @@ def _get_iweight(element, line, weight_line=None):
 def _get_sigma(E, E_ref, units_factor):
     # 2.5 from Goldstein, / 1000 eV->keV, / 2.355^2 for FWHM -> sigma
     return lambda sig_ref: math.sqrt(abs(
-        4.5077 * 1e-4  * (E - E_ref) * units_factor + np.power(sig_ref, 2))) 
+        4.5077 * 1e-4 * (E - E_ref) * units_factor + np.power(sig_ref, 2)))
 
 
 class EDSModel(Model):
@@ -64,7 +64,7 @@ class EDSModel(Model):
     auto_background : boolean
         If True, and if spectrum is an EELS instance adds automatically
         a powerlaw to the model and estimate the parameters by the
-        two-area method. 
+        two-area method.
 
     """
 
@@ -75,7 +75,7 @@ class EDSModel(Model):
         self.xray_lines = list()
         self.background_components = list()
         units_name = self.axes_manager.signal_axes[0].units
-        if units_name == 'eV' :
+        if units_name == 'eV':
             self.units_factor = 1000.
         elif units_name == 'keV':
             self.units_factor = 1.
@@ -102,7 +102,7 @@ class EDSModel(Model):
 
     def add_family_lines(self, xray_lines='from_elements'):
         """Create the Xray-lines instances and configure them appropiately
-               
+
         If a X-ray line is given, all the the lines of the familiy is added
 
         Parameters
@@ -119,17 +119,17 @@ class EDSModel(Model):
             Alternatively, provide an iterable containing
             a list of valid X-ray lines symbols. (eg. ('Al_Ka','Zn_Ka')).
         """
-        
-        only_one=False
-        only_lines=("Ka", "La", "Ma")
 
-        #if only_lines is not None:
-            #only_lines = list(only_lines)
-            #for only_line in only_lines:
-                #if only_line == 'a':
-                    #only_lines.extend(['Ka', 'La', 'Ma'])
-                #elif only_line == 'b':
-                    #only_lines.extend(['Kb', 'Lb1', 'Mb'])
+        only_one = False
+        only_lines = ("Ka", "La", "Ma")
+
+        # if only_lines is not None:
+        #only_lines = list(only_lines)
+        # for only_line in only_lines:
+        # if only_line == 'a':
+        #only_lines.extend(['Ka', 'La', 'Ma'])
+        # elif only_line == 'b':
+        #only_lines.extend(['Kb', 'Lb1', 'Mb'])
 
         if xray_lines is None or xray_lines == 'from_elements':
             if 'Sample.xray_lines' in self.spectrum.metadata \
@@ -143,10 +143,10 @@ class EDSModel(Model):
             else:
                 raise ValueError(
                     "No elements defined, set them with `add_elements`")
-                    
+
         components_names = [xr.name for xr in self.xray_lines]
         xray_lines = filter(lambda x: x not in components_names, xray_lines)
- 
+
         for i, xray_line in enumerate(xray_lines):
             element, line = utils_eds._get_element_and_line(xray_line)
             line_energy, line_FWHM = self.spectrum._get_line_energy(xray_line,
@@ -166,7 +166,7 @@ class EDSModel(Model):
             if init:
                 self[xray_line].A.map[
                     'values'] = self.spectrum[..., line_energy].data * \
-                            line_FWHM / self.spectrum.axes_manager[-1].scale
+                    line_FWHM / self.spectrum.axes_manager[-1].scale
                 self[xray_line].A.map['is_set'] = (
                     np.ones(self.spectrum[..., line_energy].data.shape) == 1)
 
@@ -181,8 +181,8 @@ class EDSModel(Model):
                     component_sub = create_component.Gaussian()
                     component_sub.centre.value = line_energy
                     component_sub.name = xray_sub
-                    #component_sub.fwhm = line_FWHM 
-                    component_sub.sigma.value = line_FWHM / 2.355                    
+                    #component_sub.fwhm = line_FWHM
+                    component_sub.sigma.value = line_FWHM / 2.355
                     #component.A.ext_force_positive = True
                     component_sub.centre.free = False
                     component_sub.sigma.free = False
@@ -194,10 +194,10 @@ class EDSModel(Model):
             self.fetch_stored_values()
 
     def get_lines_intensity(self,
-                             xray_lines='auto',
-                             plot_result=True,
-                             store_in_mp=True,
-                             **kwargs):
+                            xray_lines='auto',
+                            plot_result=True,
+                            store_in_mp=True,
+                            **kwargs):
         """
 
         Parameters
@@ -215,15 +215,15 @@ class EDSModel(Model):
             The extra keyword arguments for plotting. See
             `utils.plot.plot_signals`
         """
-        intensities = []       
-        
-        if xray_lines == 'auto':        
-            xray_lines = [] 
+        intensities = []
+
+        if xray_lines == 'auto':
+            xray_lines = []
             components = self.xray_lines
             for component in components:
                 xray_lines.append(component.name)
         else:
-            if xray_lines == 'from_metadata' : 
+            if xray_lines == 'from_metadata':
                 xray_lines = self.spectrum.metadata.Sample.xray_lines
             components = filter(lambda x: x.name in xray_lines,
                                 self.xray_lines)
@@ -251,79 +251,79 @@ class EDSModel(Model):
         if store_in_mp is False:
             return intensities
 
-    #def add_background(self,
-                       #generation_factors=[1, 2],
-                       #detector_name=4,
-                       #weight_fraction='auto',
-                       #thickness=100,
-                       #density='auto',
-                       #gateway='auto'):
+    # def add_background(self,
+            #generation_factors=[1, 2],
+            # detector_name=4,
+            # weight_fraction='auto',
+            # thickness=100,
+            # density='auto',
+            # gateway='auto'):
         #"""
-        #Add a backround to the model in the form of several
-        #scalable fixed patterns.
+        # Add a backround to the model in the form of several
+        # scalable fixed patterns.
 
-        #Each pattern is the muliplication of the detector efficiency,
-        #the absorption in the sample (PDH equation for SEM, constant
-        #X-ray pdouction for TEM) and a continuous X-ray
-        #generation.
+        # Each pattern is the muliplication of the detector efficiency,
+        # the absorption in the sample (PDH equation for SEM, constant
+        # X-ray pdouction for TEM) and a continuous X-ray
+        # generation.
 
-        #Parameters
+        # Parameters
         #----------
-        #generation_factors: list of int
-            #For each number n, add (E0-E)^n/E
+        # generation_factors: list of int
+            # For each number n, add (E0-E)^n/E
             #[1] is equivalent to Kramer equation.
             #[1,2] is equivalent to Lisfhisn modification of Kramer equation.
-        #det_name: int, str, None
-            #If None, no det_efficiency
-            #If {0,1,2,3,4}, INCA efficiency database
-            #If str, model from DTSAII
-        #weight_fraction: list of float
-             #The sample composition used for the sample absorption.
-             #If 'auto', takes value in metadata. If not there,
-             #use and equ-composition
-        #thickness : float
-            #Thickness of thin film. 
-            #Option only relevant for EDSTEMSpectrum. 
-        #density: float or 'auto'
-            #Set the density. in g/cm^3
-            #if 'auto', calculated from weight_fraction
-            #Option only relevant for EDSTEMSpectrum. 
-        #gateway: execnet Gateway
-            #If 'auto', generate automatically the connection to jython.
+        # det_name: int, str, None
+            # If None, no det_efficiency
+            # If {0,1,2,3,4}, INCA efficiency database
+            # If str, model from DTSAII
+        # weight_fraction: list of float
+            # The sample composition used for the sample absorption.
+            # If 'auto', takes value in metadata. If not there,
+            #use and equ-composition
+        # thickness : float
+            # Thickness of thin film.
+            # Option only relevant for EDSTEMSpectrum.
+        # density: float or 'auto'
+            # Set the density. in g/cm^3
+            # if 'auto', calculated from weight_fraction
+            # Option only relevant for EDSTEMSpectrum.
+        # gateway: execnet Gateway
+            # If 'auto', generate automatically the connection to jython.
 
-        #See also
+        # See also
         #--------
-        #database.detector_efficiency_INCA,
-        #utils_eds.get_detector_properties
+        # database.detector_efficiency_INCA,
+        # utils_eds.get_detector_properties
         #"""
         #generation = []
-        #for exp_factor in generation_factors:
-            #generation.append(self.spectrum.compute_continuous_xray_generation(
-                #exp_factor))
+        # for exp_factor in generation_factors:
+            # generation.append(self.spectrum.compute_continuous_xray_generation(
+            # exp_factor))
             #generation[-1].metadata.General.title = 'generation'\
-                #+ str(exp_factor)
-                
-        #if 'SEM' in self.spectrum.metadata.Signal.signal_type:
-            #absorption = self.spectrum.compute_continuous_xray_absorption(
-                #weight_fraction=weight_fraction)
-        #elif thickness == 0.:
+            #+ str(exp_factor)
+
+        # if 'SEM' in self.spectrum.metadata.Signal.signal_type:
+            # absorption = self.spectrum.compute_continuous_xray_absorption(
+            # weight_fraction=weight_fraction)
+        # elif thickness == 0.:
             #absorption = generation[0].deepcopy()
             #absorption.data = np.ones_like(generation[0].data)
-        #else :
-            #absorption = self.spectrum.compute_continuous_xray_absorption(
-                #thickness=thickness, density=density,
-                #weight_fraction=weight_fraction)
-        
-        #if detector_name is None:
+        # else :
+            # absorption = self.spectrum.compute_continuous_xray_absorption(
+            #thickness=thickness, density=density,
+            # weight_fraction=weight_fraction)
+
+        # if detector_name is None:
             #det_efficiency = generation[0].deepcopy()
             #det_efficiency.data = np.ones_like(generation[0].data)
-        #else : 
-            #det_efficiency = self.spectrum.get_detector_efficiency(
-                #detector_name, gateway=gateway)
+        # else :
+            # det_efficiency = self.spectrum.get_detector_efficiency(
+            # detector_name, gateway=gateway)
 
-        #for gen, gen_fact in zip(generation, generation_factors):
+        # for gen, gen_fact in zip(generation, generation_factors):
             #bck = det_efficiency * gen * absorption
-            ## bck.plot()
+            # bck.plot()
             #bck = bck[self.axes_manager[-1].scale:]
             #bck.metadata.General.title = 'bck_' + str(gen_fact)
             #component = create_component.ScalableFixedPattern(bck)
@@ -333,8 +333,8 @@ class EDSModel(Model):
             ##component.yscale.bmin = 0
             #component.yscale.ext_force_positive = True
             #component.isbackground = True
-            #self.append(component)
-            #self.background_components.append(component)
+            # self.append(component)
+            # self.background_components.append(component)
 
     @property
     def _active_xray_lines(self):
@@ -376,7 +376,7 @@ class EDSModel(Model):
     def fit_background(self,
                        start_energy=None,
                        end_energy=None,
-                       windows_sigma=[4,3],
+                       windows_sigma=[4, 3],
                        kind='single',
                        **kwargs):
         """
@@ -425,7 +425,7 @@ class EDSModel(Model):
         self.enable_xray_lines()
         self.fix_background()
 
-    def free_xray_lines_energy(self,xray_lines='all', bound=0.001):
+    def free_xray_lines_energy(self, xray_lines='all', bound=0.001):
         """
         Free the X-ray line energy (shift or centre of the Gaussian)
 
@@ -439,7 +439,7 @@ class EDSModel(Model):
 
         for component in self:
             if component.isbackground is False:
-                if xray_lines=='all':
+                if xray_lines == 'all':
                     component.centre.free = True
                     component.centre.bmin = component.centre.value - bound
                     component.centre.bmax = component.centre.value + bound
@@ -448,13 +448,13 @@ class EDSModel(Model):
                     component.centre.bmin = component.centre.value - bound
                     component.centre.bmax = component.centre.value + bound
 
-    def fix_xray_lines_energy(self,xray_lines='all'):
+    def fix_xray_lines_energy(self, xray_lines='all'):
         """
         Fix the X-ray line energy (shift or centre of the Gaussian)
         """
         for component in self:
             if component.isbackground is False:
-                if xray_lines=='all':
+                if xray_lines == 'all':
                     component.centre.free = False
                     component.centre.bmin = None
                     component.centre.bmax = None
@@ -463,9 +463,9 @@ class EDSModel(Model):
                     component.centre.bmin = None
                     component.centre.bmax = None
 
-    def fit_xray_lines_energy(self, xray_lines='all', 
-                            bound=5., 
-                            kind='single',
+    def fit_xray_lines_energy(self, xray_lines='all',
+                              bound=5.,
+                              kind='single',
                               **kwargs):
         """
         Fit the X-ray line energy (shift of centre of the Gaussian)
@@ -484,19 +484,19 @@ class EDSModel(Model):
         multifit, depending on the value of kind.
         """
         bound = bound / 1000. * self.units_factor
-        self.free_xray_lines_energy(xray_lines=xray_lines,bound=bound)
-        
+        self.free_xray_lines_energy(xray_lines=xray_lines, bound=bound)
+
         if kind == 'single':
-            if xray_lines!='all':
-                energy_before=[]
-                for xray_line in xray_lines:                
+            if xray_lines != 'all':
+                energy_before = []
+                for xray_line in xray_lines:
                     energy_before.append(self[xray_line].centre.value)
             self.fit(fitter="mpfit", bounded=True, **kwargs)
-            if xray_lines!='all':
-                for i, xray_line in enumerate(xray_lines):  
-                    print xray_line  + ' shift of ' + str(
-                            self[xray_line].centre.value-energy_before[i])              
-                       
+            if xray_lines != 'all':
+                for i, xray_line in enumerate(xray_lines):
+                    print xray_line + ' shift of ' + str(
+                        self[xray_line].centre.value - energy_before[i])
+
         if kind == 'multi':
             self.multifit(fitter="mpfit", bounded=True, **kwargs)
         self.fix_xray_lines_energy(xray_lines=xray_lines)
@@ -520,20 +520,21 @@ class EDSModel(Model):
             component.A.free = True
             if component.A.value - bound * component.A.value <= 0:
                 component.A.bmin = 1e-10
-                #print 'negative twin!'
+                # print 'negative twin!'
             else:
                 component.A.bmin = component.A.value - \
                     bound * component.A.value
             component.A.bmax = component.A.value + \
-                bound * component.A.value            
+                bound * component.A.value
             #component.A.ext_force_positive = True
-        xray_families = [utils_eds._get_xray_lines_family(line) for line in xray_lines]
+        xray_families = [
+            utils_eds._get_xray_lines_family(line) for line in xray_lines]
         for component in self:
             if component.isbackground is False:
-                if xray_lines=='all':
+                if xray_lines == 'all':
                     free_twin()
                 elif utils_eds._get_xray_lines_family(
-                            component.name) in xray_families:
+                        component.name) in xray_families:
                     free_twin()
 
     def fix_sub_xray_lines_weight(self, xray_lines='all'):
@@ -544,31 +545,29 @@ class EDSModel(Model):
         """
         def fix_twin():
             component.A.bmin = 0.0
-            component.A.bmax = None 
+            component.A.bmax = None
             element, line = utils_eds._get_element_and_line(component.name)
             for li in elements_db[element]['Atomic_properties']['Xray_lines']:
                 if line[0] in li and line != li:
                     xray_sub = element + '_' + li
                     component_sub = self[xray_sub]
                     component_sub.A.bmin = 1e-10
-                    component_sub.A.bmax = None                                                      
+                    component_sub.A.bmax = None
                     weight_line = component_sub.A.value / component.A.value
                     component_sub.A.twin_function = _get_weight(
-                            element,li, weight_line)
+                        element, li, weight_line)
                     component_sub.A.twin_inverse_function = _get_iweight(
-                            element, li, weight_line)
-                    component_sub.A.twin = component.A  
+                        element, li, weight_line)
+                    component_sub.A.twin = component.A
         for component in self.xray_lines:
-            if xray_lines=='all':
+            if xray_lines == 'all':
                 fix_twin()
             elif component.name in xray_lines:
                 fix_twin()
         self.fetch_stored_values()
-                
-
 
     def fit_sub_xray_lines_weight(self, xray_lines='all', bound=0.01,
-                                    kind='single',
+                                  kind='single',
                                   **kwargs):
         """
         Fit the weight of the sub X-ray lines
@@ -591,14 +590,14 @@ class EDSModel(Model):
         multifit, depending on the value of kind.
 
         """
-        self.free_sub_xray_lines_weight(xray_lines=xray_lines,bound=bound)
+        self.free_sub_xray_lines_weight(xray_lines=xray_lines, bound=bound)
         if kind == 'single':
             self.fit(fitter="mpfit", bounded=True, **kwargs)
         elif kind == 'multi':
             self.multifit(fitter="mpfit", bounded=True, **kwargs)
         self.fix_sub_xray_lines_weight(xray_lines=xray_lines)
 
-    def free_energy_resolution(self,xray_lines):
+    def free_energy_resolution(self, xray_lines):
         """
         Free the energy resolution of the main X-ray lines
 
@@ -614,7 +613,7 @@ class EDSModel(Model):
                 component_ref = component
                 component_ref.sigma.free = True
                 E_ref = component_ref.centre.value
-            else:                
+            else:
                 component.sigma.free = True
                 E = component.centre.value
                 component.sigma.twin_function = _get_sigma(
@@ -623,12 +622,11 @@ class EDSModel(Model):
                     E_ref, E, self.units_factor)
                 component.sigma.twin = component_ref.sigma
 
-    def fix_energy_resolution(self,xray_lines):
+    def fix_energy_resolution(self, xray_lines):
         """
         Fix and remove twin of X-ray lines sigma
         """
 
-        
         if xray_lines == 'all_alpha':
             xray_lines = [compo.name for compo in self.xray_lines]
         for i, xray_line in enumerate(xray_lines):
@@ -636,41 +634,40 @@ class EDSModel(Model):
             component.sigma.twin = None
             component.sigma.free = False
 
-                    
-    def set_energy_resolution(self,xray_lines):
+    def set_energy_resolution(self, xray_lines):
         """
-        Set the fitted energy resolution to the spectrum and 
+        Set the fitted energy resolution to the spectrum and
         adjust the FHWM for all lines
         """
         if xray_lines == 'all_alpha':
             xray_lines = [compo.name for compo in self.xray_lines]
         energy_Mn_Ka = self.spectrum._get_line_energy('Mn_Ka')
-        get_sigma_Mn_Ka = _get_sigma(energy_Mn_Ka, 
-                    self[xray_lines[0]].centre.value, self.units_factor)
+        get_sigma_Mn_Ka = _get_sigma(energy_Mn_Ka,
+                                     self[xray_lines[0]].centre.value, self.units_factor)
         FWHM_MnKa = get_sigma_Mn_Ka(self[xray_lines[0]].sigma.value
-                    ) * 1000. / self.units_factor * 2.355
+                                    ) * 1000. / self.units_factor * 2.355
         if FWHM_MnKa < 110:
-            print "FWHM_MnKa of "+ str(FWHM_MnKa)+" smaller than "+ \
-                    "physically possible" 
+            print "FWHM_MnKa of " + str(FWHM_MnKa) + " smaller than " + \
+                "physically possible"
         else:
-                
+
             self.spectrum.set_microscope_parameters(
                 energy_resolution_MnKa=FWHM_MnKa)
             print 'FWHM_MnKa ' + str(FWHM_MnKa)
-            
-            for component in self:            
+
+            for component in self:
                 if component.isbackground is False:
                     line_energy, line_FWHM = self.spectrum._get_line_energy(
                         component.name, FWHM_MnKa='auto')
                     component.sigma.value = line_FWHM / 2.355
 
     def fit_energy_resolution(self, xray_lines='all_alpha',
-                                kind='single',
-                                spread_to_all_lines=True,
+                              kind='single',
+                              spread_to_all_lines=True,
                               **kwargs):
         """
-        Fit the energy resolution 
-        
+        Fit the energy resolution
+
         energy scaling of the spectrum
 
         Parameters
@@ -681,7 +678,7 @@ class EDSModel(Model):
             If 'single' fit only the current location. If 'multi'
             use multifit.
         spread_to_all_lines: bool
-            if True, change the width of all lines and change the 
+            if True, change the width of all lines and change the
             energy_resolution_MnKa of the spectrum
         **kwargs : extra key word arguments
             All extra key word arguments are passed to fit or
