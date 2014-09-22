@@ -171,40 +171,44 @@ def detector_layers_brucker(microscope_name='osiris'):
     Parameters
     ----------    
     microscope_name: str
-        name of the microscope
+        name of the microscope ("from_p_buffat",'osiris')
     
     Return
     ------
-    elements,thicknesses_layer,thickness_detector
+    elements (str),thicknesses_layer (nm),thickness_detector (mum)
 
     """
-    from hyperspy import utils
+    
+    if microscope_name == "from_p_buffat":
+        return ['Al', 'Si','Si', 'O'], np.array([30.,40.,80.,40.]),0.45
+    else:
+        from hyperspy import utils
 
-    foldername = os.path.join(config_path,
-            'database//brucker\\SpectraList_' + microscope_name + '.xml')
+        foldername = os.path.join(config_path,
+                'database//brucker\\SpectraList_' + microscope_name + '.xml')
 
-    import base64
-    import zlib
+        import base64
+        import zlib
 
-    f = open(foldername)
-    a = f.readlines()
-    b = filter(lambda x: '<DetLayers>' in x, a)[0].split(
-     '<DetLayers>')[1].split('</DetLayers>')[0].decode('base64').decode('zlib')
-    atom = [int(c.split('"')[0]) for c in b.split('Atom="')[1:]]
-    thicknesses = [float(c.split('"')[0]) for c in b.split('ss="')[1:]]
-    b = filter(lambda x: 'Layer0 Atom' in x, a)[0]
-    atom.append(int(b.split('Atom="')[1].split('"')[0]))
-    thicknesses.append(float(b.split('ss="')[1].split('"')[0]))
-    elements = []
-    for at in atom:
-        for el in utils.material.elements.keys():
-            if utils.material.elements[el].General_properties.Z ==  at:
-                elements.append(el)
-    thicknesses = np.array(thicknesses) * 1e3
-    thickness_det = float(filter(lambda x: '<DetectorThickness>' in x, a
-           )[0].split('ss>')[1].split('</D')[0])
-           
-    return elements, thicknesses, thickness_det
+        f = open(foldername)
+        a = f.readlines()
+        b = filter(lambda x: '<DetLayers>' in x, a)[0].split(
+         '<DetLayers>')[1].split('</DetLayers>')[0].decode('base64').decode('zlib')
+        atom = [int(c.split('"')[0]) for c in b.split('Atom="')[1:]]
+        thicknesses = [float(c.split('"')[0]) for c in b.split('ss="')[1:]]
+        b = filter(lambda x: 'Layer0 Atom' in x, a)[0]
+        atom.append(int(b.split('Atom="')[1].split('"')[0]))
+        thicknesses.append(float(b.split('ss="')[1].split('"')[0]))
+        elements = []
+        for at in atom:
+            for el in utils.material.elements.keys():
+                if utils.material.elements[el].General_properties.Z ==  at:
+                    elements.append(el)
+        thicknesses = np.array(thicknesses) * 1e3
+        thickness_det = float(filter(lambda x: '<DetectorThickness>' in x, a
+               )[0].split('ss>')[1].split('</D')[0])  
+               
+        return elements, thicknesses, thickness_det
 
 def kfactors_brucker(xray_lines='all',microscope_name='osiris_200'):
     """
