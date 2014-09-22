@@ -690,6 +690,8 @@ class EDSTEMSpectrum(EDSSpectrum):
             If 'auto', take the thickness stored in metadata.Sample
         plot_result: bool
             If true (default option), plot the result.
+        all_data: bool
+            if True return only the data in a spectrum
         kwargs
             The extra keyword arguments for get_lines_intensity
         """
@@ -814,3 +816,42 @@ class EDSTEMSpectrum(EDSSpectrum):
                                                                         TOA=TOA))
         return spec
 
+
+    def correct_intensities_from_absorption(self,tilt='auto',plot_result=True):
+        """
+        Correct the intensities from absorption knowing the composition
+        
+        Parameters
+        ----------        
+        plot_resut: bool
+            plot the result
+            
+        Return
+        -------        
+        store the result in quant_enh
+        """
+        xray_lines = self.metadata.Sample.xray_lines
+        elements = self.metadata.Sample.elements
+        elevation_angle = \
+            self.metadata.Acquisition_instrument.TEM.Detector.EDS.elevation_angle
+        azimuth_angle = \
+            self.metadata.Acquisition_instrument.TEM.Detector.EDS.azimuth_angle
+        elements = self.metadata.Sample.elements
+        xray_lines = self.metadata.Sample.xray_lines
+        weight_fraction = self.metadata.Sample.quant
+        ax = weight_fraction[0].axes_manager
+        thickness = ax.signal_axes[0].scale * 1e-7
+        weight_fraction = utils.stack(weight_fraction)
+        if tilt == 'auto':
+            tilt = 1
+        abs_corr = physical_model.absorption_correction_matrix(weight_fraction=weight_fraction.data,
+                 xray_lines=xray_lines,
+                elements=elements,
+                thickness= thickness,
+                azimuth_angle=azimuth_angle,
+                elevation_angle=elevation_angle)
+
+        for i, xray_line in enumerate(xray_lines):
+            data = self.metadata.Sample.intensities[i].data/abs_corr[i]
+            self._set_result(xray_line,"quant_enh",data,
+                             plot_result=plot_result)

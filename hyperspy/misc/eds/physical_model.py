@@ -1,7 +1,7 @@
 import numpy as np
 import math
 import matplotlib.mlab as mlab
-
+import scipy.ndimage
 
 def xray_generation(energy,
                                generation_factor,
@@ -157,3 +157,83 @@ def detetector_efficiency_from_layers(energies,
                                           thickness_detector * 1e-1))))
 
     return absorption
+    
+    
+
+def absorption_correction_matrix(weight_fraction,
+             xray_lines,
+            elements,
+            thickness,
+            azimuth_angle,
+            elevation_angle,
+            tilt):
+    """
+    Matrix of absorption for an isotropic 3D data cube of composition
+    
+    Parameters
+    ----------
+    
+    weight_fraction: np.array
+        dim = {el,z,y,x} The sample composition
+    xray_lines: list of str
+         The X-ray lines eg ['Al_Ka']        
+    elements: list of str
+        The elements of the sample
+    thickness: float
+            Set the thickness in nm
+    azimuth_angle: float
+        the azimuth_angle in degree
+    elevation_angle: float
+        the elevation_angle in degree
+    tilt: float
+        the tilt in degree   
+        
+    Return
+    ------
+    
+    The absorption matrix: np.array
+        {xray_lines,z,y,x}
+    """
+    from hyperspy import utils
+    
+    x_ax,y_ax,z_ax, el_ax = 3,2,1,0
+    order = 3
+
+    weight_fraction_r = scipy.ndimage.rotate(weight_fraction,
+                                         angle=-azimuth_angle,
+                                         axes=(x_ax ,y_ax ),
+                              order=order)
+    weight_fraction_r = scipy.ndimage.rotate(weight_fraction_r,
+                                             angle=-elevation_angle-tilt,
+                                  axes=(x_ax ,z_ax ),order=order)
+
+    rho = utils.material.density_of_mixture_of_pure_elements(elements,
+                                                    weight_fraction_r*100.)
+    abs_corr = []
+    for xray_line in xray_lines:
+        mac = utils.material.mass_absorption_coefficient_of_mixture_of_pure_elements(
+            elements,weight_fraction_r,xray_line)
+        fact=np.nan_to_num(rho*mac*thickness)
+        
+        fact_sum = np.zeros_like(fact)
+        fact_sum[:,:,-1]=fact[:,:,-1]
+        for i in range(len(fact[0,0])-2,-1,-1):
+             fact_sum[:,:,i] = fact_sum[:,:,i+1] + fact[:,:,i]
+        #abs_corr.append(np.nan_to_num((1-np.exp(-(fact_sum)))/fact_sum))
+        abs_corr.append(np.nan_to_num(np.exp(-(fact_sum))))
+
+    abs_corr = np.array(abs_corr)    
+    abs_corr = scipy.ndimage.rotate(abs_corr,angle=elevation_angle+tilt,
+                                    axes=(x_ax ,z_ax )
+                             ,reshape=False,order=order)
+    abs_corr = scipy.ndimage.rotate(abs_corr,angle=azimuth_angle,
+                                    axes=(x_ax,y_ax )
+                             ,reshape=False,order=order)
+    dim = np.array(weight_fraction.shape[1:])
+    dim2 = np.array(abs_corr.shape[1:])
+    diff = (dim2-dim)/2
+    abs_corr = abs_corr[:,diff[0]:diff[0]+dim[0],
+                        diff[1]:diff[1]+dim[1],diff[2]:diff[2]+dim[2]]
+    np.place(abs_corr,(abs_corr == 0.),1.)
+    abs_corr[:,0] = np.ones_like(abs_corr[:,0])
+    return abs_corr
