@@ -58,10 +58,10 @@
 >> > set([0, 1, 0, 1, 4, 1, 1, 2, 3, 5, 6])
     {0, 1, 2, 3, 4, 5, 6}
 
->>> a =np.array([0.,1.])
->>> np.place(a,(a == 0.),1.)
->>> a
-    array([1.,1.])
+>> > a = np.array([0., 1.])
+>> > np.place(a, (a == 0.), 1.)
+>> > a
+    array([1., 1.])
 
 .ravel()
 
@@ -95,27 +95,26 @@ copy paste part of code
 %load "C:\Users\pb565\Documents\Python\hyperspy\examples\eds\visualisation.py"
 %load "C:\Users\pb565\Documents\Python\hyperspy\examples\eds\quantification_tem.py"
 
-#To configure lprune
-#http://pynash.org/2013/03/06/timing-and-profiling.html
+# To configure lprune
+# http://pynash.org/2013/03/06/timing-and-profiling.html
 
 import time
 a = time.time()
-1+2
+1 + 2
 b = time.time()
-print b-a
+print b - a
 
 
-%time or %%time
+%time or % %time
 
 %timeit
 
 %prun
 
-from hyperspy._signals.eds_sem import EDSSEMSpectrum 
+from hyperspy._signals.eds_sem import EDSSEMSpectrum
 from hyperspy.misc.utils import slugify
 from hyperspy.misc.material import mass_absorption_coefficient
-%lprun -f  mass_absorption_coefficient \
-    -f EDSSEMSpectrum.compute_continuous_xray_generation \
-    -f slugify \
-    EDSSEMSpectrum.compute_continuous_xray_absorption(s) 
-
+%lprun - f  mass_absorption_coefficient \
+    - f EDSSEMSpectrum.compute_continuous_xray_generation \
+    - f slugify \
+    EDSSEMSpectrum.compute_continuous_xray_absorption(s)

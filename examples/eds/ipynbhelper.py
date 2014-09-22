@@ -2,9 +2,9 @@
 
 This a mix from @minrk's various gists.
 
-in terminal 
+in terminal
 
-python _ipynbhelper.py Hyperpsy_EDS_SEM_tutorial_IMC_2014.ipynb 
+python _ipynbhelper.py Hyperpsy_EDS_SEM_tutorial_IMC_2014.ipynb
 
 """
 
