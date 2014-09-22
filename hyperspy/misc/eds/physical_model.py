@@ -3,9 +3,10 @@ import math
 import matplotlib.mlab as mlab
 import scipy.ndimage
 
+
 def xray_generation(energy,
-                               generation_factor,
-                               beam_energy):
+                    generation_factor,
+                    beam_energy):
     """X-ray generation.
 
     Kramer or Lisfshin equation
@@ -29,10 +30,10 @@ def xray_generation(energy,
 
 
 def xray_absorption_bulk(energy,
-                               weight_fraction,
-                               elements,
-                               beam_energy,
-                               TOA):
+                         weight_fraction,
+                         elements,
+                         beam_energy,
+                         TOA):
     """X-ray Absorption within bulk sample
 
     PDH equation (Philibert-Duncumb-Heinrich)
@@ -57,14 +58,14 @@ def xray_absorption_bulk(energy,
         Z = utils.material.elements[el]['General_properties']['Z']
         h += wt * 1.2 * A / np.power(Z, 2)
 
-    coeff = 4.5e5 # keV^1.65
+    coeff = 4.5e5  # keV^1.65
 
     xi = np.array(utils.material.mass_absorption_coefficient_of_mixture_of_pure_elements(
         energies=energy, elements=elements,
         weight_fraction=weight_fraction)) / np.sin(np.radians(TOA))
     sig = coeff / (np.power(beam_energy, 1.65
                             ) - np.power(energy, 1.65))
-    return 1. / ((1. + xi / sig) * (1. + h / (1. + h) * ( xi / sig) ))
+    return 1. / ((1. + xi / sig) * (1. + h / (1. + h) * (xi / sig)))
 
 # def absorption_Yakowitz(self, E):
     #"""Absorption within sample
@@ -76,23 +77,24 @@ def xray_absorption_bulk(energy,
     # a1 = 2.4 * 1e-6  # gcm-2keV-1.65
     # a2 = 1.44 * 1e-12  # g2cm-4keV-3.3
     # xc = epq_database.get_mass_absorption_coefficient(
-        # E, elements, weight_percent, gateway=gateway)[0] / np.sin(np.radians(TOA))
+    # E, elements, weight_percent, gateway=gateway)[0] / np.sin(np.radians(TOA))
     # return 1 / (1 + a1 * (np.power(beam_energy, 1.65) - np.power(E, 1.65)) * xc +
-                # a2 * np.power(np.power(beam_energy, 1.65) - np.power(E,
-                # 1.65), 2) * xc * xc)
-    
+    # a2 * np.power(np.power(beam_energy, 1.65) - np.power(E,
+    # 1.65), 2) * xc * xc)
+
+
 def xray_absorption_thin_film(energy,
-                                   weight_fraction,
-                                   elements,
-                                    density,
-                                    thickness,
-                                    TOA):
+                              weight_fraction,
+                              elements,
+                              density,
+                              thickness,
+                              TOA):
     """X-ray absorption in thin film sample
-    
+
     Depth distribution of X-ray production is assumed constant
-    
+
     Parameters
-    ---------- 
+    ----------
     energy: float or list of float
         The energy of the generated X-ray in keV.
     weight_fraction: list of float
@@ -110,19 +112,20 @@ def xray_absorption_thin_film(energy,
     mac_sample = np.array(utils.material.mass_absorption_coefficient_of_mixture_of_pure_elements(
         energies=energy, elements=elements,
         weight_fraction=weight_fraction))
-    rt =  density * thickness * 1e-7 / np.sin(np.radians(TOA))
-    fact = mac_sample*rt
-    abs_corr= np.nan_to_num((1-np.exp(-(fact)))/fact)
+    rt = density * thickness * 1e-7 / np.sin(np.radians(TOA))
+    fact = mac_sample * rt
+    abs_corr = np.nan_to_num((1 - np.exp(-(fact))) / fact)
     return abs_corr
-    
+
+
 def detetector_efficiency_from_layers(energies,
-                              elements,
-                              thicknesses_layer,
-                              thickness_detector):
+                                      elements,
+                                      thicknesses_layer,
+                                      thickness_detector):
     """Detector efficiency from layers
-    
+
     Parameters
-    ---------- 
+    ----------
     energy: float or list of float
         The energy of the generated X-ray in keV.
     elements: list of str
@@ -131,7 +134,7 @@ def detetector_efficiency_from_layers(energies,
         Thicknesses of layer in nm
     thickness_detector: float
         The thickness of the detector in mm
-        
+
     Notes
     -----
     Equation adapted from  Alvisi et al 2006
@@ -139,44 +142,43 @@ def detetector_efficiency_from_layers(energies,
     from hyperspy import utils
     absorption = np.ones_like(energies)
 
-    for element,thickness in zip(elements,
-                                                 thicknesses_layer):
+    for element, thickness in zip(elements,
+                                  thicknesses_layer):
         macs = np.array(utils.material.mass_absorption_coefficient(
-                                                        energies=energies,
-                                                         element=element))
+            energies=energies,
+            element=element))
         density = utils.material.elements[element]\
-                .Physical_properties.density_gcm3  
+            .Physical_properties.density_gcm3
         absorption *= np.nan_to_num(np.exp(-(
-                macs * density * thickness * 1e-7)))
+            macs * density * thickness * 1e-7)))
     macs = np.array(utils.material.mass_absorption_coefficient(
-                                                energies=energies,
-                                                 element='Si'))
+        energies=energies,
+        element='Si'))
     density = utils.material.elements.Si\
-        .Physical_properties.density_gcm3  
-    absorption *= (1-np.nan_to_num(np.exp(-(macs * density * 
-                                          thickness_detector * 1e-1))))
+        .Physical_properties.density_gcm3
+    absorption *= (1 - np.nan_to_num(np.exp(-(macs * density *
+                                              thickness_detector * 1e-1))))
 
     return absorption
-    
-    
+
 
 def absorption_correction_matrix(weight_fraction,
-             xray_lines,
-            elements,
-            thickness,
-            azimuth_angle,
-            elevation_angle,
-            tilt):
+                                 xray_lines,
+                                 elements,
+                                 thickness,
+                                 azimuth_angle,
+                                 elevation_angle,
+                                 tilt):
     """
     Matrix of absorption for an isotropic 3D data cube of composition
-    
+
     Parameters
     ----------
-    
+
     weight_fraction: np.array
         dim = {el,z,y,x} The sample composition
     xray_lines: list of str
-         The X-ray lines eg ['Al_Ka']        
+         The X-ray lines eg ['Al_Ka']
     elements: list of str
         The elements of the sample
     thickness: float
@@ -186,54 +188,52 @@ def absorption_correction_matrix(weight_fraction,
     elevation_angle: float
         the elevation_angle in degree
     tilt: float
-        the tilt in degree   
-        
+        the tilt in degree
+
     Return
     ------
-    
+
     The absorption matrix: np.array
         {xray_lines,z,y,x}
     """
     from hyperspy import utils
-    
-    x_ax,y_ax,z_ax, el_ax = 3,2,1,0
+
+    x_ax, y_ax, z_ax, el_ax = 3, 2, 1, 0
     order = 3
 
     weight_fraction_r = scipy.ndimage.rotate(weight_fraction,
-                                         angle=-azimuth_angle,
-                                         axes=(x_ax ,y_ax ),
-                              order=order)
+                                             angle=-azimuth_angle,
+                                             axes=(x_ax, y_ax),
+                                             order=order)
     weight_fraction_r = scipy.ndimage.rotate(weight_fraction_r,
-                                             angle=-elevation_angle-tilt,
-                                  axes=(x_ax ,z_ax ),order=order)
+                                             angle=-elevation_angle - tilt,
+                                             axes=(x_ax, z_ax), order=order)
 
     rho = utils.material.density_of_mixture_of_pure_elements(elements,
-                                                    weight_fraction_r*100.)
+                                                             weight_fraction_r * 100.)
     abs_corr = []
     for xray_line in xray_lines:
         mac = utils.material.mass_absorption_coefficient_of_mixture_of_pure_elements(
-            elements,weight_fraction_r,xray_line)
-        fact=np.nan_to_num(rho*mac*thickness)
-        
+            elements, weight_fraction_r, xray_line)
+        fact = np.nan_to_num(rho * mac * thickness)
+
         fact_sum = np.zeros_like(fact)
-        fact_sum[:,:,-1]=fact[:,:,-1]
-        for i in range(len(fact[0,0])-2,-1,-1):
-             fact_sum[:,:,i] = fact_sum[:,:,i+1] + fact[:,:,i]
-        #abs_corr.append(np.nan_to_num((1-np.exp(-(fact_sum)))/fact_sum))
+        fact_sum[:, :, -1] = fact[:,:, -1]
+        for i in range(len(fact[0, 0]) - 2, -1, -1):
+            fact_sum[:, :, i] = fact_sum[:,:, i+1] + fact[:,:, i]
+        # abs_corr.append(np.nan_to_num((1-np.exp(-(fact_sum)))/fact_sum))
         abs_corr.append(np.nan_to_num(np.exp(-(fact_sum))))
 
-    abs_corr = np.array(abs_corr)    
-    abs_corr = scipy.ndimage.rotate(abs_corr,angle=elevation_angle+tilt,
-                                    axes=(x_ax ,z_ax )
-                             ,reshape=False,order=order)
-    abs_corr = scipy.ndimage.rotate(abs_corr,angle=azimuth_angle,
-                                    axes=(x_ax,y_ax )
-                             ,reshape=False,order=order)
+    abs_corr = np.array(abs_corr)
+    abs_corr = scipy.ndimage.rotate(abs_corr, angle=elevation_angle + tilt,
+                                    axes=(x_ax, z_ax), reshape=False, order=order)
+    abs_corr = scipy.ndimage.rotate(abs_corr, angle=azimuth_angle,
+                                    axes=(x_ax, y_ax), reshape=False, order=order)
     dim = np.array(weight_fraction.shape[1:])
     dim2 = np.array(abs_corr.shape[1:])
-    diff = (dim2-dim)/2
-    abs_corr = abs_corr[:,diff[0]:diff[0]+dim[0],
-                        diff[1]:diff[1]+dim[1],diff[2]:diff[2]+dim[2]]
-    np.place(abs_corr,(abs_corr == 0.),1.)
-    abs_corr[:,0] = np.ones_like(abs_corr[:,0])
+    diff = (dim2 - dim) / 2
+    abs_corr = abs_corr[:, diff[0]:diff[0] + dim[0],
+                        diff[1]:diff[1] + dim[1], diff[2]:diff[2] + dim[2]]
+    np.place(abs_corr, (abs_corr == 0.), 1.)
+    abs_corr[:, 0] = np.ones_like(abs_corr[:, 0])
     return abs_corr

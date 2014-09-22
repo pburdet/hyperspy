@@ -28,9 +28,10 @@ def _get_energy_xray_line(xray_line):
     energy, line = _get_element_and_line(xray_line)
     return elements_db[energy]['Atomic_properties']['Xray_lines'][
         line]['energy (keV)']
-        
+
+
 def _get_xray_lines_family(xray_line):
-    return xray_line[:xray_line.find('_')+2]
+    return xray_line[:xray_line.find('_') + 2]
 
 
 def get_FWHM_at_Energy(energy_resolution_MnKa, E):
@@ -178,6 +179,7 @@ def take_off_angle(tilt_stage,
 
     return math.degrees(np.arcsin(-math.cos(a) * math.cos(b) * math.cos(c)
                                   + math.sin(a) * math.sin(c)))
+
 
 def get_index_from_names(self, axis_names, index_name, axis_name_in_mp=True):
     """Get the index of an axis that is link to a list of names.
@@ -533,7 +535,7 @@ def simulate_Xray_depth_distribution(nTraj, bins=120, mp='gui',
     """
     from hyperspy import signals
     from hyperspy.misc import material
-    
+
     spec = signals.EDSSEMSpectrum(np.zeros(1024))
     if mp == 'gui':
         spec.set_microscope_parameters()
@@ -786,7 +788,7 @@ def _set_result_signal_list(mp, result):
             # to change
             if 'xray_lines' in mp.Sample:
                 if number_of_parts == len(mp.Sample.xray_lines):
-            # if number_of_parts == len(mp.Sample.elements):
+                    # if number_of_parts == len(mp.Sample.elements):
                     el, li = _get_element_and_line(mp.Sample.xray_lines[i])
                 else:
                     el, li = _get_element_and_line(mp.Sample.elements[i])
@@ -897,7 +899,7 @@ def simulate_linescan(nTraj,
         compos_wt.append(list(np.array(
             material.atomic_to_weight(
                 elements,
-                compo_at) )/
+                compo_at)) /
             100))
 
     if density == 'auto':
@@ -1181,10 +1183,10 @@ def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
                 weight_fraction.append(1. / len(elements))
             print 'Weight fraction is automatically set to ' + str(weight_fraction)
     #mp.Sample.compo_at = compo_at
-    #compo_wt = np.array(
-        #material.atomic_to_weight(
-            #elements,
-            #compo_at)) / 100
+    # compo_wt = np.array(
+        # material.atomic_to_weight(
+            # elements,
+            # compo_at)) / 100
     compo_wt = list(weight_fraction)
     if density == 'auto':
         density = material.density_of_mixture_of_pure_elements(
@@ -1205,7 +1207,7 @@ def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
     elevation = mp.Acquisition_instrument.TEM.Detector.EDS.elevation_angle
     #TOangle = np.radians(spec.get_take_off_angle())
     TOangle = [take_off_angle(tilt, az,
-                                        elevation) for az in azimDeg]
+                              elevation) for az in azimDeg]
     # print TOangle
     #TOangle = [np.radians(TO) for TO in TOangle]
     azim = [np.radians(90 - az) for az in azimDeg]
@@ -1413,7 +1415,7 @@ def get_detector_properties(name, gateway='auto'):
         prop.split('Energy offset=')[1].split(' eV')[0]) / 1000.
     spec.axes_manager[-1].scale = float(
         prop.split('Energy scale=')[1].split(' eV')[0]) / 1000.
-    #Why that?
+    # Why that?
     spec.axes_manager[-1].offset += spec.axes_manager[-1].scale / 2.
     spec.axes_manager[-1].name = 'Energy'
     spec.axes_manager[-1].units = 'keV'
@@ -1457,13 +1459,13 @@ def fft_mirror_center(self):
         imgn = utils.stack([x2, x1], axis=0)
     elif len(n) == 3:
         x1 = utils.stack([tmp[:n[0], n[1]:, :n[2]],
-                         tmp[:n[0], :n[1], :n[2]]], axis=1)
+                          tmp[:n[0], :n[1], :n[2]]], axis=1)
         x2 = utils.stack([tmp[n[0]:, n[1]:, :n[2]],
-                         tmp[n[0]:, :n[1], :n[2]]], axis=1)
+                          tmp[n[0]:, :n[1], :n[2]]], axis=1)
         x3 = utils.stack([tmp[:n[0], n[1]:, n[2]:],
-                         tmp[:n[0], :n[1], n[2]:]], axis=1)
+                          tmp[:n[0], :n[1], n[2]:]], axis=1)
         x4 = utils.stack([tmp[n[0]:, n[1]:, n[2]:],
-                         tmp[n[0]:, :n[1], n[2]:]], axis=1)
+                          tmp[n[0]:, :n[1], n[2]:]], axis=1)
         y1 = utils.stack([x3, x1], axis=2)
         y2 = utils.stack([x4, x2], axis=2)
         imgn = utils.stack([y2, y1], axis=0)
@@ -1669,17 +1671,17 @@ def fft(self, shape_fft=None, axes=None):
 
     #dim = len(self.axes_manager.shape)
     # if dim == 1:
-        # if axes is None:
-            #axis = -1
-        #im_fft = Signal(np.fft.fft(self.data, n=shape_fft, axis=axis))
+    # if axes is None:
+    #axis = -1
+    #im_fft = Signal(np.fft.fft(self.data, n=shape_fft, axis=axis))
     # elif dim == 2:
-        # if axes is None:
-            #axes = (-2, -1)
-        #im_fft = Signal(np.fft.fft2(self.data, s=shape_fft, axes=axes))
+    # if axes is None:
+    #axes = (-2, -1)
+    #im_fft = Signal(np.fft.fft2(self.data, s=shape_fft, axes=axes))
     # else:
-        # if axes is None:
-            #axes = range(-dim,0)
-        #im_fft = Signal(np.fft.fftn(self.data, s=shape_fft, axes=axes))
+    # if axes is None:
+    #axes = range(-dim,0)
+    #im_fft = Signal(np.fft.fftn(self.data, s=shape_fft, axes=axes))
     if self.axes_manager.signal_dimension == 2:
         im_fft = Image(np.fft.fftn(self.data, s=shape_fft, axes=axes))
     else:
@@ -1747,6 +1749,7 @@ def simulate_model(elements=None,
         model = s.simulate_model(elemental_map=elemental_map)
         return model
 
+
 def get_kfactors(xray_lines,
                  beam_energy,
                  detector_efficiency=None,
@@ -1790,47 +1793,47 @@ def get_kfactors(xray_lines,
     else:
         kab = kab[1] / kab[0]
         return kab
-    
-#def absorption_correction_factor_for_thin_film(mac_sample,
-                                        #density,
-                                        #thickness,
-                                        #TOA):
+
+# def absorption_correction_factor_for_thin_film(mac_sample,
+        # density,
+        # thickness,
+        # TOA):
     #"""
-    #Compute the absorption corrections factor (ACF) for a thin film
-    
-    #Return the ACF for each X-ray-lines
-    
-    #Parameters
-    #---------- 
-    #mac_sample: 
-        #The mass absorption cofficients, in cm^2/g
-    #density: float
-        #Set the density. in g/cm^3
-    #thickness: float
-        #Set the thickness in nm
-    #TOA: float
-        #the take of angle
+    # Compute the absorption corrections factor (ACF) for a thin film
+
+    # Return the ACF for each X-ray-lines
+
+    # Parameters
+    #----------
+    # mac_sample:
+        # The mass absorption cofficients, in cm^2/g
+    # density: float
+        # Set the density. in g/cm^3
+    # thickness: float
+        # Set the thickness in nm
+    # TOA: float
+        # the take of angle
     #"""
     #rt =  density * thickness * 1e-7 / np.sin(np.radians(TOA))
-    #abs_corr=[]
-    #for mac in mac_sample:
+    # abs_corr=[]
+    # for mac in mac_sample:
         #fact = mac*rt
-        #abs_corr.append(np.nan_to_num((1-np.exp(-(fact)))/fact))  
-    #return abs_corr
-    
+        # abs_corr.append(np.nan_to_num((1-np.exp(-(fact)))/fact))
+    # return abs_corr
+
 
 def quantification_absorption_corrections_thin_film(intensities,
-                                          elements,
-                                          xray_lines,                                          
-                                          kfactors,
-                                          TOA,
-                                          thickness,
-                                          max_iter=50,
-                                          atol=1e-3,
-                                          all_data=False):
-    """        
+                                                    elements,
+                                                    xray_lines,
+                                                    kfactors,
+                                                    TOA,
+                                                    thickness,
+                                                    max_iter=50,
+                                                    atol=1e-3,
+                                                    all_data=False):
+    """
     Quantification with absorption correction
-    
+
     Based on Cliff-Lorimer
 
     Parameters
@@ -1855,46 +1858,47 @@ def quantification_absorption_corrections_thin_film(intensities,
         The maximum of iteration
     atol:
         The tolerance factor for the conve
-        
+
     Return
-    ------    
+    ------
     The weight fractions for each step of the iteration
     """
     from hyperspy.misc import material
-    
 
-    xray_energy =  [_get_energy_xray_line(xray_line) for xray_line in xray_lines]
+    xray_energy = [
+        _get_energy_xray_line(xray_line) for xray_line in xray_lines]
     weight_fractions = [quantification_cliff_lorimer(
                         intensities=intensities, kfactors=kfactors)]
-    kfactors_abs=[]
+    kfactors_abs = []
     for j in range(max_iter):
         density = material.density_of_mixture_of_pure_elements(
-                elements, weight_fractions[-1])
-        #mac_sample = material.mass_absorption_coefficient_of_mixture_of_pure_elements(
-                        #energies=xray_lines,
-                        #weight_fraction=weight_fractions[-1], 
-                        #elements=elements)
-        abs_corr =  physical_model.xray_absorption_thin_film(energy=xray_energy,
-                                                   weight_fraction=weight_fractions[-1],
-                                                   elements=elements,
-                                                    density=density,
-                                                   thickness=thickness,
-                                                   TOA=TOA)
-        kfactors_abs= [abs_corr[0]/abs_corr[i+1]*kab 
-                       for i,kab in enumerate(kfactors)]
+            elements, weight_fractions[-1])
+        # mac_sample = material.mass_absorption_coefficient_of_mixture_of_pure_elements(
+        # energies=xray_lines,
+        # weight_fraction=weight_fractions[-1],
+        # elements=elements)
+        abs_corr = physical_model.xray_absorption_thin_film(energy=xray_energy,
+                                                            weight_fraction=weight_fractions[
+                                                                -1],
+                                                            elements=elements,
+                                                            density=density,
+                                                            thickness=thickness,
+                                                            TOA=TOA)
+        kfactors_abs = [abs_corr[0] / abs_corr[i + 1] * kab
+                        for i, kab in enumerate(kfactors)]
 
         weight_fractions.append(quantification_cliff_lorimer(
-                            intensities=intensities,
-                              kfactors=kfactors_abs)) 
+            intensities=intensities,
+            kfactors=kfactors_abs))
         if j > 0:
-            dif = sum(np.abs(weight_fractions[-1]-
-                        weight_fractions[-2]))
+            dif = sum(np.abs(weight_fractions[-1] -
+                             weight_fractions[-2]))
             if dif < atol:
                 break
-    #if j==max_iter-1:
-        #print "No convergence in the limit of iteration"
-    #else:
-        #print 'Convergence after %s iterations' % j
+    # if j==max_iter-1:
+        # print "No convergence in the limit of iteration"
+    # else:
+        # print 'Convergence after %s iterations' % j
     if all_data:
         return weight_fractions
     else:
@@ -1931,9 +1935,9 @@ def quantification_absorption_corrections_thin_film(intensities,
         # Change the alpha on the line in the legend so we can see what lines
         # have been toggled
         # if vis:
-            # legline.set_alpha(1.0)
+        # legline.set_alpha(1.0)
         # else:
-            # legline.set_alpha(0.2)
+        # legline.set_alpha(0.2)
         # fig.canvas.draw()
 
     #fig.canvas.mpl_connect('pick_event', onpick)
@@ -1941,9 +1945,9 @@ def quantification_absorption_corrections_thin_film(intensities,
     # plt.show()
 ############################
 # def plot_3D_iso_surface(self,threshold,
-            #color = 'auto',
-            # figure='new',
-            # scale='auto'):
+        #color = 'auto',
+        # figure='new',
+        # scale='auto'):
         # must be the main function in Image, and here jsut to connect with result
         #"""
         # Generate an iso-surface in Mayavi.
@@ -1952,19 +1956,19 @@ def quantification_absorption_corrections_thin_film(intensities,
         #----------
 
         # threshold: float
-            # Between 0 (min intensity) and 1 (max intensity).
-            # If result == quant, 1 == 100%.
+        # Between 0 (min intensity) and 1 (max intensity).
+        # If result == quant, 1 == 100%.
 
         # color: list
-            # The color of the surface, (R,G,B). If 'auto', automatically
-            # selected.
+        # The color of the surface, (R,G,B). If 'auto', automatically
+        # selected.
 
         # figure: str
-            # If 'new', generate a new scene/figure. Else, use the old one.
+        # If 'new', generate a new scene/figure. Else, use the old one.
 
         # scale: str || list
-            # If 'auto', scale with axes_manager.scale. Else, scale with
-            # the given list (x,y,z).
+        # If 'auto', scale with axes_manager.scale. Else, scale with
+        # the given list (x,y,z).
 
         # Return
         #------
@@ -1979,7 +1983,7 @@ def quantification_absorption_corrections_thin_film(intensities,
         #from mayavi import mlab
 
         # if figure=='new':
-            #figure = mlab.figure()
+        #figure = mlab.figure()
 
         #img_res = self.deepcopy()
 
@@ -1994,33 +1998,33 @@ def quantification_absorption_corrections_thin_film(intensities,
         #threshold = img_data.max()-threshold*img_data.ptp()
 
         # if scale=='auto':
-            #scale = []
-            # for i in [1,2,0]:
-                # scale.append(img_res.axes_manager[i].scale)
-            #src.spacing= scale
+        #scale = []
+        # for i in [1,2,0]:
+        # scale.append(img_res.axes_manager[i].scale)
+        #src.spacing= scale
         # else:
-            #src.spacing = scale
+        #src.spacing = scale
         # if color != 'auto':
-            # iso = mlab.pipeline.iso_surface(src,
-                # contours=[threshold, ],color =color)
+        # iso = mlab.pipeline.iso_surface(src,
+        # contours=[threshold, ],color =color)
         # else:
-           # iso = mlab.pipeline.iso_surface(src,
-                # contours=[threshold, ])
+        # iso = mlab.pipeline.iso_surface(src,
+        # contours=[threshold, ])
 
         #iso.compute_normals = False
         # if color != 'auto':
-         ##   iso.actor.property.color = color
+        ##   iso.actor.property.color = color
         ##iso.actor.property.opacity = 0.5
         # return figure, src, iso
 ############################
 # def compare_histograms(imgs,
-                       # bins='freedman',
-                       # color=None,
-                       # line_style=None,
-                       # legend='auto',
-                       # fig=None,
-                       # range_bins=None,
-                       #**kwargs):
+        # bins='freedman',
+        # color=None,
+        # line_style=None,
+        # legend='auto',
+        # fig=None,
+        # range_bins=None,
+        #**kwargs):
     #"""Compare the histogram of the list of image
     # Parameters
     #----------
@@ -2050,7 +2054,7 @@ def quantification_absorption_corrections_thin_film(intensities,
     #hists = []
     # for img in imgs:
         # hists.append(img.get_histogram(bins=bins,
-                                       # range_bins=range_bins, **kwargs))
+        # range_bins=range_bins, **kwargs))
     # if line_style is None:
         #line_style = 'steps'
     # return hyperspy.utils.plot.plot_spectra(
@@ -2058,10 +2062,10 @@ def quantification_absorption_corrections_thin_film(intensities,
         # line_style=line_style, legend=legend, fig=fig)
 ############################
 # def compare_signal(specs,
-                   # indexes=None,
-                   # legend_labels='auto',
-                   # colors='auto',
-                   # line_styles='auto'):
+        # indexes=None,
+        # legend_labels='auto',
+        # colors='auto',
+        # line_styles='auto'):
     #"""Compare the signal from different indexes or|and from different
     # spectra.
     # Parameters
@@ -2091,7 +2095,7 @@ def quantification_absorption_corrections_thin_film(intensities,
         #nb_signals = len(indexes)
     # if colors == 'auto':
         # colors = ['red', 'blue', 'green', 'orange', 'violet', 'magenta',
-                  #'cyan', 'violet', 'black', 'yellow', 'pink']
+        #'cyan', 'violet', 'black', 'yellow', 'pink']
         #colors += colors
         #colors += colors
     # elif isinstance(colors, list) is False:
@@ -2104,28 +2108,28 @@ def quantification_absorption_corrections_thin_film(intensities,
     # if legend_labels == 'auto':
         #legend_labels = []
         # if isinstance(specs, list) or isinstance(specs, tuple):
-            # for spec in specs:
-                # legend_labels.append(spec.metadata.General.title)
+        # for spec in specs:
+        # legend_labels.append(spec.metadata.General.title)
         # else:
-            # for index in indexes:
-                # legend_labels.append(str(index))
+        # for index in indexes:
+        # legend_labels.append(str(index))
     # for i, index in enumerate(indexes):
     # for i in range(nb_signals):
         # if isinstance(specs, list) or isinstance(specs, tuple):
-            #tmp = specs[i]
+        #tmp = specs[i]
         # else:
-            #tmp = specs
+        #tmp = specs
         # if indexes is not None:
-            # for ind in indexes[i]:
-                #tmp = tmp[ind]
+        # for ind in indexes[i]:
+        #tmp = tmp[ind]
         # maxx = (len(tmp.data) - 1) * \
-            #tmp.axes_manager[0].scale + tmp.axes_manager[0].offset
+        #tmp.axes_manager[0].scale + tmp.axes_manager[0].offset
         # xdata = mlab.frange(tmp.axes_manager[0].offset, maxx,
-                            # tmp.axes_manager[0].scale, npts=len(tmp.data))
+        # tmp.axes_manager[0].scale, npts=len(tmp.data))
         #plt.plot(xdata, tmp.data, color=colors[i], ls=line_styles[i])
     # plt.ylabel('Intensity')
     # plt.xlabel(str(tmp.axes_manager[0].name) +
-               #' (' + str(tmp.axes_manager[0].units) + ')')
+        #' (' + str(tmp.axes_manager[0].units) + ')')
     # if legend_labels is not None:
         # plt.legend(legend_labels)
     # fig.show()
@@ -2154,31 +2158,31 @@ def quantification_absorption_corrections_thin_film(intensities,
     # if elements == 'auto':
         #elements = []
         # for xray_line in xray_lines:
-            #element, line = _get_element_and_line(xray_line)
-            # elements.append(element)
+        #element, line = _get_element_and_line(xray_line)
+        # elements.append(element)
         #elements = set(elements)
     # if len(elements) != len(weight_fraction):
         #raise ValueError("Add elements first, see 'set_elements'")
 
     # macs = utils.get_mass_absorption_coefficient_sample(
-            # energies=xray_lines,
-            # elements=elements,
-            # weight_fraction=weight_fraction)
+        # energies=xray_lines,
+        # elements=elements,
+        # weight_fraction=weight_fraction)
     # for xray_line in xray_lines:
         ##line_energy = _get_energy_xray_line(xray_line)
         ###el_emit, line = _get_element_and_line(xray_line)
         # macs.append(utils.get_mass_absorption_coefficient_sample(
-            # energy=line_energy,
-            # elements=elements,
-            # weight_fraction=weight_fraction))
+        # energy=line_energy,
+        # elements=elements,
+        # weight_fraction=weight_fraction))
         # for i_el, el_abs in enumerate(elements):
         # macs[-1] += weight_percent[i_el] / 100 * \
         # utils.get_mass_absorption_coefficient_xray_line(el_abs,xray_line)
-            # MAC[el_emit][line][el_abs]
+        # MAC[el_emit][line][el_abs]
     # return macs
 
 # def _mac_interpolation(mac, mac1, energy,
-                       # energy_db, energy_db1):
+        # energy_db, energy_db1):
     #"""
     # Interpolate between the tabulated mass absorption coefficients
     # for an energy
@@ -2196,8 +2200,8 @@ def quantification_absorption_corrections_thin_film(intensities,
     # mass absorption coefficient in cm^2/g
     #"""
     # return np.exp(np.log(mac1) + np.log(mac / mac1)
-                  #* (np.log(energy / energy_db1) / np.log(
-                      # energy_db / energy_db1)))
+        #* (np.log(energy / energy_db1) / np.log(
+        # energy_db / energy_db1)))
 
 
 # def get_mass_absorption_coefficient(element, energy):
@@ -2220,7 +2224,7 @@ def quantification_absorption_corrections_thin_film(intensities,
 
     # for index, energy_db in enumerate(energies):
         # if energy <= energy_db:
-            # break
+        # break
     # if index1 == len(energies):
     # print 'extrapolation'
     # print element
@@ -2233,9 +2237,9 @@ def quantification_absorption_corrections_thin_film(intensities,
         # return mac
     # else:
         # return _mac_interpolation(mac, mac1, energy,
-                                  # energy_db, energy_db1)
+        # energy_db, energy_db1)
 
-def quantification_cliff_lorimer(intensities,kfactors):
+def quantification_cliff_lorimer(intensities, kfactors):
     """
     Quantification using Cliff-Lorimer
 
@@ -2247,17 +2251,17 @@ def quantification_cliff_lorimer(intensities,kfactors):
         the list of kfactor, compared to the first
         elements. eg. kfactors = [1.47,1.72]
         for kfactors_name = ['Cr_Ka/Al_Ka', 'Ni_Ka/Al_Ka']
-        
+
     Return
-    ------    
-    A list of list of float containing the weight fraction with the same 
+    ------
+    A list of list of float containing the weight fraction with the same
     shape as intensities.
     """
     ab = []
-    composition = []    
+    composition = []
     # ab = Ia/Ib / kab
-    for i, kba in enumerate(kfactors):        
-        ab.append(intensities[0] / intensities[i + 1] / kba)  
+    for i, kba in enumerate(kfactors):
+        ab.append(intensities[0] / intensities[i + 1] / kba)
     # Ca = ab /(1 + ab + ab/ac + ab/ad + ...)
     composition.append(np.ones_like(ab[0]))
     for i, ab1 in enumerate(ab):
@@ -2265,7 +2269,7 @@ def quantification_cliff_lorimer(intensities,kfactors):
             composition[0] += ab[0]
         else:
             composition[0] += (ab[0] / ab1)
-    composition[0] = ab[0] / composition[0]    
+    composition[0] = ab[0] / composition[0]
     # Cb = Ca / ab
     for ab1 in ab:
         composition.append(composition[0] / ab1)

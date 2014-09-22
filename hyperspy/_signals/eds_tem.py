@@ -123,7 +123,7 @@ class EDSTEMSpectrum(EDSSpectrum):
                 energy_resolution_MnKa)
 
         if set([beam_energy, live_time, tilt_stage, azimuth_angle,
-               elevation_angle, energy_resolution_MnKa]) == {None}:
+                elevation_angle, energy_resolution_MnKa]) == {None}:
             self._are_microscope_parameters_missing()
 
     @only_interactive
@@ -209,14 +209,14 @@ class EDSTEMSpectrum(EDSSpectrum):
         ax_m.offset = ax_ref.offset
 
         # if hasattr(self.original_metadata, 'CHOFFSET'):
-            #ax_m.scale = ref.original_metadata.CHOFFSET
+        #ax_m.scale = ref.original_metadata.CHOFFSET
         # if hasattr(self.original_metadata, 'OFFSET'):
-            #ax_m.offset = ref.original_metadata.OFFSET
+        #ax_m.offset = ref.original_metadata.OFFSET
         # if hasattr(self.original_metadata, 'XUNITS'):
-            #ax_m.units = ref.original_metadata.XUNITS
-            # if hasattr(self.original_metadata, 'CHOFFSET'):
-                # if self.original_metadata.XUNITS == 'keV':
-                    #ax_m.scale = ref.original_metadata.CHOFFSET / 1000
+        #ax_m.units = ref.original_metadata.XUNITS
+        # if hasattr(self.original_metadata, 'CHOFFSET'):
+        # if self.original_metadata.XUNITS == 'keV':
+        #ax_m.scale = ref.original_metadata.CHOFFSET / 1000
 
         # Setup metadata
         if 'Acquisition_instrument.TEM' in ref.metadata:
@@ -232,15 +232,15 @@ class EDSTEMSpectrum(EDSSpectrum):
         mp.Acquisition_instrument.TEM = mp_ref.deepcopy()
 
         # if hasattr(mp_ref, 'tilt_stage'):
-            #mp.Acquisition_instrument.SEM.tilt_stage = mp_ref.tilt_stage
+        #mp.Acquisition_instrument.SEM.tilt_stage = mp_ref.tilt_stage
         # if hasattr(mp_ref, 'beam_energy'):
-            #mp.Acquisition_instrument.SEM.beam_energy = mp_ref.beam_energy
+        #mp.Acquisition_instrument.SEM.beam_energy = mp_ref.beam_energy
         # if hasattr(mp_ref.EDS, 'energy_resolution_MnKa'):
-            #mp.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa = mp_ref.EDS.energy_resolution_MnKa
+        #mp.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa = mp_ref.EDS.energy_resolution_MnKa
         # if hasattr(mp_ref.EDS, 'azimuth_angle'):
-            #mp.Acquisition_instrument.SEM.Detector.EDS.azimuth_angle = mp_ref.EDS.azimuth_angle
+        #mp.Acquisition_instrument.SEM.Detector.EDS.azimuth_angle = mp_ref.EDS.azimuth_angle
         # if hasattr(mp_ref.EDS, 'elevation_angle'):
-            #mp.Acquisition_instrument.SEM.Detector.EDS.elevation_angle = mp_ref.EDS.elevation_angle
+        #mp.Acquisition_instrument.SEM.Detector.EDS.elevation_angle = mp_ref.EDS.elevation_angle
 
         if mp_ref.has_item("Detector.EDS.live_time"):
             mp.Acquisition_instrument.TEM.Detector.EDS.live_time = \
@@ -365,11 +365,10 @@ class EDSTEMSpectrum(EDSSpectrum):
                 kfactors.append(kfactor / kfactor0)
                 kfactors_name.append(xray + '/' + kfactor0_name)
         self.metadata.Sample.kfactors = kfactors
-        self.metadata.Sample.kfactors_name = kfactors_name 
-    
+        self.metadata.Sample.kfactors_name = kfactors_name
 
-    def get_kfactors_from_brucker(self,common_line='first',
-                            microscope_name='osiris_200'):
+    def get_kfactors_from_brucker(self, common_line='first',
+                                  microscope_name='osiris_200'):
         """
         Get the kfactor from the brucker database
 
@@ -391,23 +390,23 @@ class EDSTEMSpectrum(EDSSpectrum):
         kfactors_name = []
         xray_lines = self.metadata.Sample.xray_lines
         kfactors_db = database.kfactors_brucker(xray_lines=xray_lines,
-            microscope_name=microscope_name)[0]
-        if common_line == 'first' :
+                                                microscope_name=microscope_name)[0]
+        if common_line == 'first':
             xray_line0 = xray_lines[0]
             kfactor0 = kfactors_db[0]
-        else : 
-            
-            xray_line0 = xray_lines[xray_lines.index(common_line)]    
-            kfactor0 = kfactors_db[xray_lines.index(common_line)] 
-        
-        for iline, xray_line in enumerate(xray_lines):      
+        else:
+
+            xray_line0 = xray_lines[xray_lines.index(common_line)]
+            kfactor0 = kfactors_db[xray_lines.index(common_line)]
+
+        for iline, xray_line in enumerate(xray_lines):
             kfactor = kfactors_db[iline]
             #kfactorer = kfactors_db[elem][line]['kfactor_error']
             if xray_line != xray_line0:
                 kfactors.append(kfactor / kfactor0)
                 kfactors_name.append(xray_line + '/' + xray_line0)
         self.metadata.Sample.kfactors = kfactors
-        self.metadata.Sample.kfactors_name = kfactors_name  
+        self.metadata.Sample.kfactors_name = kfactors_name
 
     def quant_cliff_lorimer(self,
                             intensities='integrate',
@@ -415,9 +414,9 @@ class EDSTEMSpectrum(EDSSpectrum):
                             plot_result=True,
                             store_in_mp=True,
                             **kwargs):
-        """        
+        """
         Quantification using Cliff-Lorimer
-        
+
         Store the result in metadata.Sample.quant
 
         Parameters
@@ -429,7 +428,7 @@ class EDSTEMSpectrum(EDSSpectrum):
         kfactors: {list of float | 'auto'}
             the list of kfactor, compared to the first
             elements. eg. kfactors = [1.47,1.72]
-            for kfactors_name = ['Cr_Ka/Al_Ka', 'Ni_Ka/Al_Ka'] 
+            for kfactors_name = ['Cr_Ka/Al_Ka', 'Ni_Ka/Al_Ka']
             with kfactors_name in alphabetical order
             if 'auto', take the kfactors stored in metadata
         plot_result: bool
@@ -467,10 +466,10 @@ class EDSTEMSpectrum(EDSSpectrum):
         if kfactors == 'auto':
             kfactors = self.metadata.Sample.kfactors
         data_res = utils_eds.quantification_cliff_lorimer(
-                        kfactors=kfactors,
-                        intensities=[intensity.data for intensity in intensities])
-        res=[]
-        for xray_line, data in zip(xray_lines,data_res): 
+            kfactors=kfactors,
+            intensities=[intensity.data for intensity in intensities])
+        res = []
+        for xray_line, data in zip(xray_lines, data_res):
             res.append(self._set_result(xray_line=xray_line, result='quant',
                                         data_res=data,
                                         plot_result=plot_result,
@@ -593,7 +592,7 @@ class EDSTEMSpectrum(EDSSpectrum):
         kfactors: list of float
             the list of kfactor, compared to the first
             elements. eg. kfactors = [1.47,1.72]
-            for kfactors_name = ['Cr_Ka/Al_Ka', 'Ni_Ka/Al_Ka'] 
+            for kfactors_name = ['Cr_Ka/Al_Ka', 'Ni_Ka/Al_Ka']
             with kfactors_name in alphabetical order
         intensities: list of signal.Signals
             the intensities for each X-ray lines.
@@ -609,27 +608,27 @@ class EDSTEMSpectrum(EDSSpectrum):
         >>> utils.plot.plot_signals(res)
         """
 
-        xray_lines = self.metadata.Sample.xray_lines        
+        xray_lines = self.metadata.Sample.xray_lines
         data_res = utils_eds.quantification_cliff_lorimer(
-                        kfactors=kfactors,
-                        intensities=[intensity.data for intensity in intensities])
-        spec_res=[]
+            kfactors=kfactors,
+            intensities=[intensity.data for intensity in intensities])
+        spec_res = []
         for xray_line, data, intensity in zip(
-                    xray_lines,data_res,intensities):
+                xray_lines, data_res, intensities):
             element, line = utils_eds._get_element_and_line(xray_line)
             spec_res.append(intensity.deepcopy())
             spec_res[-1].data = data
-            spec_res[-1].metadata.General.title = 'Weight fraction of ' + element
+            spec_res[-1].metadata.General.title = 'Weight fraction of ' + \
+                element
         return spec_res
 
-        
-    def get_absorption_corrections(self,weight_fraction='auto', 
-                 thickness='auto',density='auto'):
+    def get_absorption_corrections(self, weight_fraction='auto',
+                                   thickness='auto', density='auto'):
         """
         Compute the absoprtion corrections for each X-ray-lines
-        
+
         Parameters
-        ---------- 
+        ----------
         weight_fraction: {list of float or signals.Signal or 'auto'}
             Set the weight fraction
             If 'auto', take the weight fraction stored in metadata.Sample.quant
@@ -639,39 +638,42 @@ class EDSTEMSpectrum(EDSSpectrum):
         density: {float or signals.Signal or 'auto'}
             Set the density. If 'auto', obtain from the compo_at.
             If 'auto', calculate the density with the weight fraction. see
-            get_sample_density        
+            get_sample_density
         """
-        if weight_fraction =='auto' and 'weight_fraction' in self.metadata.Sample:
+        if weight_fraction == 'auto' and 'weight_fraction' in self.metadata.Sample:
             weight_fraction = self.metadata.Sample.quant
         else:
             raise ValueError("Weight fraction needed")
-        if thickness=='auto'and 'thickness' in self.metadata.Sample:
+        if thickness == 'auto'and 'thickness' in self.metadata.Sample:
             thickness = self.metadata.Sample.thickness
-        else :
+        else:
             raise ValueError("thickness needed")
         mac_sample = self.get_sample_mass_absorption_coefficient(
             weight_fraction=weight_fraction)
         TOA = self.get_take_off_angle()
-        if density =='auto':
-            density = self.get_sample_density(weight_fraction=weight_fraction)            
-        abs_corr = utils_eds.absorption_correction(mac_sample,density,thickness,TOA)
+        if density == 'auto':
+            density = self.get_sample_density(weight_fraction=weight_fraction)
+        abs_corr = utils_eds.absorption_correction(
+            mac_sample,
+            density,
+            thickness,
+            TOA)
         return abs_corr
-        
-        
-    def quantification_absorption_corrections(self, 
-                                          intensities='integrate',
-                                          kfactors='auto',
-                                          thickness='auto',
-                                          max_iter=50,
-                                          atol=1e-3,
-                                          plot_result=True,
-                                          store_in_mp=True,
-                                          all_data=False,
-                                          **kwargs):
-        """        
+
+    def quantification_absorption_corrections(self,
+                                              intensities='integrate',
+                                              kfactors='auto',
+                                              thickness='auto',
+                                              max_iter=50,
+                                              atol=1e-3,
+                                              plot_result=True,
+                                              store_in_mp=True,
+                                              all_data=False,
+                                              **kwargs):
+        """
         Quantification with absorption correction
 
-        using Cliff-Lorimer 
+        using Cliff-Lorimer
         Store the result in metadata.Sample.quant
 
         Parameters
@@ -697,9 +699,9 @@ class EDSTEMSpectrum(EDSSpectrum):
         """
         xray_lines = self.metadata.Sample.xray_lines
         elements = self.metadata.Sample.elements
-        if thickness=='auto'and 'thickness' in self.metadata.Sample:
+        if thickness == 'auto'and 'thickness' in self.metadata.Sample:
             thickness = self.metadata.Sample.thickness
-        else :
+        else:
             raise ValueError("thickness needed")
         #beam_energy = self._get_beam_energy()
         if intensities == 'integrate':
@@ -717,19 +719,19 @@ class EDSTEMSpectrum(EDSSpectrum):
         if all_data is False:
             weight_fractions = utils.stack(intensities).as_spectrum(0)
             weight_fractions.map(utils_eds.quantification_absorption_corrections_thin_film,
-                elements=elements,
-                  xray_lines=xray_lines,
-                  kfactors=kfactors,
-                  TOA=TOA,
-                  thickness=thickness,
-                  max_iter=max_iter,
-                  atol=atol,)
+                                 elements=elements,
+                                 xray_lines=xray_lines,
+                                 kfactors=kfactors,
+                                 TOA=TOA,
+                                 thickness=thickness,
+                                 max_iter=max_iter,
+                                 atol=atol,)
             weight_fractions.metadata._HyperSpy.Stacking_history.axis = -1
             weight_fractions = weight_fractions.split()
-            for xray_line, weight_fraction in zip(xray_lines,weight_fractions): 
+            for xray_line, weight_fraction in zip(xray_lines, weight_fractions):
                 weight_fraction.metadata.General.title = (
                     'Weight fraction of %s from %s' %
-                    (xray_line, 
+                    (xray_line,
                      self.metadata.General.title))
             if store_in_mp:
                 self.metadata.Sample.quant = weight_fractions
@@ -737,28 +739,28 @@ class EDSTEMSpectrum(EDSSpectrum):
         else:
             from hyperspy import signals
             data_res = utils_eds.quantification_absorption_corrections_thin_film(
-                                                  elements=elements,
-                                                  xray_lines=xray_lines,
-                                                  intensities=[intensity.data for intensity in intensities],
-                                                  kfactors=kfactors,
-                                                  TOA=TOA,
-                                                  thickness=thickness,
-                                                  max_iter=max_iter,
-                                                  atol=atol,all_data=True)
+                elements=elements,
+                xray_lines=xray_lines,
+                intensities=[intensity.data for intensity in intensities],
+                kfactors=kfactors,
+                TOA=TOA,
+                thickness=thickness,
+                max_iter=max_iter,
+                atol=atol, all_data=True)
             data_res = signals.Spectrum(data_res).as_spectrum(0)
             return data_res
-        #res=[]
-        #for xray_line, data in zip(xray_lines,data_res[-1]): 
-            #res.append(self._set_result(xray_line=xray_line, result='quant',
-                                        #data_res=data,
-                                        #plot_result=plot_result,
-                                        #store_in_mp=store_in_mp))
-        #if store_in_mp is False:
-            #return res
-        #return data_res
-                
+        # res=[]
+        # for xray_line, data in zip(xray_lines,data_res[-1]):
+            # res.append(self._set_result(xray_line=xray_line, result='quant',
+            # data_res=data,
+            # plot_result=plot_result,
+            # store_in_mp=store_in_mp))
+        # if store_in_mp is False:
+            # return res
+        # return data_res
+
     def compute_continuous_xray_absorption(self,
-                                            thickness=100,
+                                           thickness=100,
                                            weight_fraction='auto',
                                            density='auto'):
         """Contninous X-ray Absorption within thin film sample
@@ -783,9 +785,9 @@ class EDSTEMSpectrum(EDSSpectrum):
         """
         spec = self._get_signal_signal()
         spec.metadata.General.title = 'Absorption model (Thin film)'
-        if spec.axes_manager.signal_axes[0].units == 'eV' : 
+        if spec.axes_manager.signal_axes[0].units == 'eV':
             units_factor = 1000.
-        else :
+        else:
             units_factor = 1.
 
         elements = self.metadata.Sample.elements
@@ -797,37 +799,37 @@ class EDSTEMSpectrum(EDSSpectrum):
                 weight_fraction = []
                 for elm in elements:
                     weight_fraction.append(1. / len(elements))
-                
+
         if density == 'auto':
-            density= self.get_sample_density(weight_fraction=weight_fraction)
+            density = self.get_sample_density(weight_fraction=weight_fraction)
 
         #energy_axis = spec.axes_manager.signal_axes[0]
-        #eng = np.linspace(energy_axis.low_value,
-                          #energy_axis.high_value,
-                          #energy_axis.size) / units_factor
+        # eng = np.linspace(energy_axis.low_value,
+            # energy_axis.high_value,
+            # energy_axis.size) / units_factor
         eng = spec.axes_manager.signal_axes[0].axis / units_factor
-        eng = eng[np.searchsorted(eng, 0.0)+1:]
+        eng = eng[np.searchsorted(eng, 0.0) + 1:]
         spec.data = np.append(np.array([0.0] * (len(spec.data) - len(eng))),
                               physical_model.xray_absorption_thin_film(energy=eng,
-                                                                        weight_fraction=weight_fraction,
-                                                                        elements=elements,
-                                                                        density=density,
-                                                                        thickness=thickness,
-                                                                        TOA=TOA))
+                                                                       weight_fraction=weight_fraction,
+                                                                       elements=elements,
+                                                                       density=density,
+                                                                       thickness=thickness,
+                                                                       TOA=TOA))
         return spec
 
-
-    def correct_intensities_from_absorption(self,tilt='auto',plot_result=True):
+    def correct_intensities_from_absorption(
+            self, tilt='auto', plot_result=True):
         """
         Correct the intensities from absorption knowing the composition
-        
+
         Parameters
-        ----------        
+        ----------
         plot_resut: bool
             plot the result
-            
+
         Return
-        -------        
+        -------
         store the result in quant_enh
         """
         xray_lines = self.metadata.Sample.xray_lines
@@ -845,13 +847,13 @@ class EDSTEMSpectrum(EDSSpectrum):
         if tilt == 'auto':
             tilt = 1
         abs_corr = physical_model.absorption_correction_matrix(weight_fraction=weight_fraction.data,
-                 xray_lines=xray_lines,
-                elements=elements,
-                thickness= thickness,
-                azimuth_angle=azimuth_angle,
-                elevation_angle=elevation_angle)
+                                                               xray_lines=xray_lines,
+                                                               elements=elements,
+                                                               thickness=thickness,
+                                                               azimuth_angle=azimuth_angle,
+                                                               elevation_angle=elevation_angle)
 
         for i, xray_line in enumerate(xray_lines):
-            data = self.metadata.Sample.intensities[i].data/abs_corr[i]
-            self._set_result(xray_line,"quant_enh",data,
+            data = self.metadata.Sample.intensities[i].data / abs_corr[i]
+            self._set_result(xray_line, "quant_enh", data,
                              plot_result=plot_result)
