@@ -92,13 +92,13 @@ def density_of_mixture_of_pure_elements(elements, weight_percent):
         densities = np.array(densities)
         return weight_percent.sum(0) / densities.sum(0)
         #weight_percent = np.array(weight_percent)
-        #density = np.array(
-            #[elements_db[element]['Physical_properties']['density (g/cm^3)'] for element in elements])
+        # density = np.array(
+        #[elements_db[element]['Physical_properties']['density (g/cm^3)'] for element in elements])
         #densities = []
-        #for weight in weight_percent:
-            #den_tmp = (weight / density / sum(weight)).sum() ** -1
-            #densities.append(den_tmp)
-        #return np.array(densities)
+        # for weight in weight_percent:
+        #den_tmp = (weight / density / sum(weight)).sum() ** -1
+        # densities.append(den_tmp)
+        # return np.array(densities)
     else:
         densities = np.array(
             [elements_db[element]['Physical_properties']['density (g/cm^3)'] for element in elements])
@@ -220,19 +220,18 @@ def mass_absorption_coefficient_of_mixture_of_pure_elements(elements,
         raise ValueError(
             "Elements and weight_fraction should have the same lenght")
 
-            
     if hasattr(weight_fraction[0], '__iter__'):
-        
+
         weight_fraction = np.array(weight_fraction)
         mac_res = 0
         #mac_res = np.zeros_like(energies,dtype=float)
-        #mac_re = np.array([mass_absorption_coefficient(
+        # mac_re = np.array([mass_absorption_coefficient(
         #    el, energies) for el in elements])
         for element, weight in zip(elements, weight_fraction):
             mac_re = mass_absorption_coefficient(
                 element, energies)
-        #for weight in weight_fraction:
-            mac_res+=mac_re*weight
+        # for weight in weight_fraction:
+            mac_res += mac_re * weight
             #mac_res.append(np.dot(weight, mac_re))
         return np.array(mac_res)
     else:
@@ -240,8 +239,6 @@ def mass_absorption_coefficient_of_mixture_of_pure_elements(elements,
             el, energies) for el in elements])
         mac_res = np.dot(weight_fraction, mac_res)
         return mac_res
-
-
 
     # if hasattr(energies, '__iter__'):
         #is_iter = True
