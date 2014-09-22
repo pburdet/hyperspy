@@ -1,8 +1,3 @@
-import time
-a = time.time()
-1+2
-b = time.time()
-print b-a
 
 # useful Function
 
@@ -63,6 +58,11 @@ print b-a
 >> > set([0, 1, 0, 1, 4, 1, 1, 2, 3, 5, 6])
     {0, 1, 2, 3, 4, 5, 6}
 
+>>> a =np.array([0.,1.])
+>>> np.place(a,(a == 0.),1.)
+>>> a
+    array([1.,1.])
+
 .ravel()
 
 get_backend()
@@ -97,6 +97,13 @@ copy paste part of code
 
 #To configure lprune
 #http://pynash.org/2013/03/06/timing-and-profiling.html
+
+import time
+a = time.time()
+1+2
+b = time.time()
+print b-a
+
 
 %time or %%time
 
