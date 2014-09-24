@@ -28,8 +28,8 @@ for li, lws in zip(ax.lines, lw):
 
 # axes
 a = self_i.axes_manager[0]
-xticks(linspace(a.low_index,a.high_index,5),
-       linspace(a.low_value,a.high_value,5))
+xticks(linspace(a.low_index, a.high_index, 5),
+       linspace(a.low_value, a.high_value, 5))
 ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
 xlabel('')
 ylabel('')
@@ -63,8 +63,6 @@ ax2.set_ylim(0, 1)
 ax2.set_ylabel('SE Contrast')
 ax2.set_position(
     matplotlib.transforms.Bbox(array([[0.125, 0.17], [0.9, 0.975]])))
-    
-
 
 
 # subplot()
