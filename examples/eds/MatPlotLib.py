@@ -27,7 +27,9 @@ for li, lws in zip(ax.lines, lw):
     li.set_linewidth(lws)
 
 # axes
-xticks(frange(0, 1001, 200. / n), frange(0, 11, 2. / n))
+a = self_i.axes_manager[0]
+xticks(linspace(a.low_index,a.high_index,5),
+       linspace(a.low_value,a.high_value,5))
 ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
 xlabel('')
 ylabel('')

@@ -62,6 +62,14 @@
 >> > np.place(a, (a == 0.), 1.)
 >> > a
     array([1., 1.])
+    
+>>> a = np.array(['po', 'apoa','piop'])
+>>> filter(lambda x: 'po' in x, a)
+['po', 'apoa']
+
+>>> a = np.array([0., 1.,3.])
+>>> a.argmax()
+2
 
 .ravel()
 

@@ -33,18 +33,38 @@ def complex_plot(fun='sin',
 
 
 #threshold and binary
+import IPython.html.widgets as widgets
 from scipy import ndimage
-figure()
+from IPython.html.widgets import interact, interactive, fixed
+im2 = database.image2D()
+im = im2.deepcopy()
+im = ndimage.gaussian_filter(im.data,2)
+im2=im2.data
 min_i, max_i = float(im.min()), float(im.max())
 
 
-@interact(thr=(min_i, max_i),
+figure()
+@interact(thr=(0.,1.,0.0001))
+def thr_plot(thr=0.5):
+    data = (im > (max_i-min_i)*thr+min_i)
+    subplot(211)
+    plt.imshow(data,interpolation='nearest');
+    subplot(212)
+    plt.imshow(data*im2,interpolation='nearest',vmin=min_i, vmax=max_i);
+    
+figure()
+@interact(thr=(0.,1.,0.0001),
           mor=('binary_opening', 'binary_closing'),
           shape={'No': [[1]],
                  'cross': [[0, 1, 0], [1, 1, 1], [0, 1, 0]],
                  'square': [[1, 1, 1], [1, 1, 1], [1, 1, 1]]})
-def complex_plot(thr=(min_i + max_i) / 2., mor='binary_opening', shape=[[1]]):
+def complex_plot(thr=0.5, mor='binary_opening', shape=[[1]]):
 
-    f = getattr(ndimage, mor)
-
-    plt.imshow(f((im > thr), shape), interpolation='nearest')
+    f = getattr(ndimage,mor)
+    data = f((im > (max_i-min_i)*thr+min_i), shape)
+    subplot(211)
+    plt.imshow(data,
+        interpolation='nearest');
+    subplot(212)
+    plt.imshow(data*im2,
+        interpolation='nearest',vmin=min_i, vmax=max_i);
