@@ -161,123 +161,122 @@ def detetector_efficiency_from_layers(energies,
 
     return absorption
 
+
 def absorption_correction_matrix(weight_fraction,
                                  xray_lines,
-                                elements,
-                                thickness,
-                                density, 
-                                azimuth_angle,
-                                elevation_angle,
-                                mask_el):
+                                 elements,
+                                 thickness,
+                                 density,
+                                 azimuth_angle,
+                                 elevation_angle,
+                                 mask_el):
     """
     Matrix of absorption for an isotropic 3D data cube of composition
-    
+
     Parameters
     ----------
-    
+
     weight_fraction: np.array
         dim = {el,z,y,x} The sample composition
     xray_lines: list of str
-         The X-ray lines eg ['Al_Ka']        
+         The X-ray lines eg ['Al_Ka']
     elements: list of str
         The elements of the sample
     thickness: float
             Set the thickness in nm
     density: array
-        dim = {z,y,x} The density to correct of the sample. 
+        dim = {z,y,x} The density to correct of the sample.
         If 'auto' use the weight_fraction
         to calculate it. in gm/cm^3
     azimuth_angle: float
         the azimuth_angle in degree
     elevation_angle: float
-        the elevation_angle in degree 
-        
+        the elevation_angle in degree
+
     Return
     ------
-    
+
     The absorption matrix: np.array
         {xray_lines,z,y,x}
     """
     from hyperspy import utils
-    
-    x_ax,y_ax,z_ax = 3,2,1
+
+    x_ax, y_ax, z_ax = 3, 2, 1
     order = 3
     weight_fraction_r = ndimage.rotate(weight_fraction,
-                                         angle=-azimuth_angle,
-                                         axes=(x_ax ,y_ax ),
-                              order=order,mode='reflect')
+                                       angle=-azimuth_angle,
+                                       axes=(x_ax, y_ax),
+                                       order=order, mode='reflect')
     weight_fraction_r = ndimage.rotate(weight_fraction_r,
-                                angle=-elevation_angle,
-                                axes=(x_ax ,z_ax ),order=order,mode='reflect')
+                                       angle=-elevation_angle,
+                                       axes=(x_ax, z_ax), order=order, mode='reflect')
 
     elements = np.array(elements)
     if density == 'auto':
         density_r = utils.material.density_of_mixture_of_pure_elements(
             elements,
-             weight_fraction_r*100.)
+            weight_fraction_r * 100.)
     else:
         density_r = ndimage.rotate(density,
-                                         angle=-azimuth_angle,
-                                         axes=(x_ax-1 ,y_ax-1 ),
-                                      order=order,mode='nearest')
+                                   angle=-azimuth_angle,
+                                   axes=(x_ax - 1, y_ax - 1),
+                                   order=order, mode='nearest')
         density_r = ndimage.rotate(density_r,
-                                    angle=-elevation_angle,
-                                      axes=(x_ax-1 ,z_ax-1 ),
-                                      order=order,mode='nearest')
-    if mask_el == None:
-        mask_el_r = [1.]*len(xray_lines)
+                                   angle=-elevation_angle,
+                                   axes=(x_ax - 1, z_ax - 1),
+                                   order=order, mode='nearest')
+    if mask_el is None:
+        mask_el_r = [1.] * len(xray_lines)
     else:
         mask_el_r = ndimage.rotate(mask_el,
-                                         angle=-azimuth_angle,
-                                         axes=(x_ax ,y_ax ),
-                                      order=0,mode='reflect')
+                                   angle=-azimuth_angle,
+                                   axes=(x_ax, y_ax),
+                                   order=0, mode='reflect')
         mask_el_r = ndimage.rotate(mask_el_r,
-                                    angle=-elevation_angle,
-                                      axes=(x_ax ,z_ax ),
-                                      order=0,mode='reflect')
+                                   angle=-elevation_angle,
+                                   axes=(x_ax, z_ax),
+                                   order=0, mode='reflect')
 
     abs_corr = []
     for i, xray_line in enumerate(xray_lines):
         mac = utils.material.\
             mass_absorption_coefficient_of_mixture_of_pure_elements(
-            elements,weight_fraction_r,xray_line)
-        fact=np.nan_to_num(density_r*mac*thickness*mask_el_r[i])
+                elements, weight_fraction_r, xray_line)
+        fact = np.nan_to_num(density_r * mac * thickness * mask_el_r[i])
 
         fact_sum = np.zeros_like(fact)
-        fact_sum[:,:,-1]=fact[:,:,-1]
-        for i in range(len(fact[0,0])-2,-1,-1):
-             fact_sum[:,:,i] = fact_sum[:,:,i+1] + fact[:,:,i]
+        fact_sum[:,:, -1] = fact[:,:, -1]
+        for i in range(len(fact[0, 0]) - 2, -1, -1):
+            fact_sum[:,:, i] = fact_sum[:,:, i+1] + fact[:,:, i]
 
-        #One is enough, outside loop
+        # One is enough, outside loop
         abs_co = np.exp(-(fact_sum))
-        interv = (abs_co.max()-abs_co.min())
+        interv = (abs_co.max() - abs_co.min())
         n = 6
-        ln = [None]+range(1,n)
-        mask = abs_co[:,:,:-n+1] < interv*0.9+abs_co.min()        
-        for i in range(n-1):
-            mask = np.bitwise_and(mask,abs(abs_co[:,:,n-1:]-
-                    abs_co[:,:,ln[i]:-ln[n-i-1]]) <interv*0.01)
-        for i in range(n-1):
-            mask=np.insert(mask,-1,False,axis=2)
-        np.place(abs_co,mask,1.0)        
-        abs_corr.append(abs_co)       
-        
-    abs_corr = np.array(abs_corr)   
-    #signals.Image(density_r).plot()
-    #signals.Image(mac).plot()
-    #signals.Image(abs_corr).plot()
-    #return abs_corr
-    abs_corr = ndimage.rotate(abs_corr,angle=elevation_angle,
-                                    axes=(x_ax ,z_ax )
-                             ,reshape=False,order=0)
-    abs_corr = ndimage.rotate(abs_corr,angle=azimuth_angle,
-                                    axes=(x_ax,y_ax )
-                             ,reshape=False,order=0)
+        ln = [None] + range(1, n)
+        mask = abs_co[:,:, :-n+1] < interv*0.9+abs_co.min()        
+        for i in range(n - 1):
+            mask = np.bitwise_and(mask, abs(abs_co[:,:, n-1:] -
+                    abs_co[:,:, ln[i]:-ln[n-i-1]]) < interv*0.01)
+        for i in range(n - 1):
+            mask = np.insert(mask, -1, False, axis=2)
+        np.place(abs_co, mask, 1.0)
+        abs_corr.append(abs_co)
+
+    abs_corr = np.array(abs_corr)
+    # signals.Image(density_r).plot()
+    # signals.Image(mac).plot()
+    # signals.Image(abs_corr).plot()
+    # return abs_corr
+    abs_corr = ndimage.rotate(abs_corr, angle=elevation_angle,
+                              axes=(x_ax, z_ax), reshape=False, order=0)
+    abs_corr = ndimage.rotate(abs_corr, angle=azimuth_angle,
+                              axes=(x_ax, y_ax), reshape=False, order=0)
     dim = np.array(weight_fraction.shape[1:])
     dim2 = np.array(abs_corr.shape[1:])
-    diff = (dim2-dim)/2
-    abs_corr = abs_corr[:,diff[0]:diff[0]+dim[0],
-                        diff[1]:diff[1]+dim[1],diff[2]:diff[2]+dim[2]]
-    np.place(abs_corr,(abs_corr == 0.),1.)
-    abs_corr[:,0] = np.ones_like(abs_corr[:,0])
+    diff = (dim2 - dim) / 2
+    abs_corr = abs_corr[:, diff[0]:diff[0] + dim[0],
+                        diff[1]:diff[1] + dim[1], diff[2]:diff[2] + dim[2]]
+    np.place(abs_corr, (abs_corr == 0.), 1.)
+    abs_corr[:, 0] = np.ones_like(abs_corr[:, 0])
     return abs_corr
