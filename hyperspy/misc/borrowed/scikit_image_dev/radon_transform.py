@@ -17,7 +17,7 @@ from __future__ import division
 import numpy as np
 #import cython
 #import pyximport
-#pyximport.install()
+# pyximport.install()
 from scipy.fftpack import fft, ifft, fftfreq
 from scipy.interpolate import interp1d
 #import _warps
@@ -66,8 +66,8 @@ def radon(image, theta=None, circle=False):
     if circle:
         radius = min(image.shape) // 2
         c0, c1 = np.ogrid[0:image.shape[0], 0:image.shape[1]]
-        reconstruction_circle = ((c0 - image.shape[0] // 2)**2
-                                 + (c1 - image.shape[1] // 2)**2) <= radius**2
+        reconstruction_circle = ((c0 - image.shape[0] // 2) ** 2
+                                 + (c1 - image.shape[1] // 2) ** 2) <= radius ** 2
         if not np.all(reconstruction_circle | (image == 0)):
             raise ValueError('Image must be zero outside the reconstruction'
                              ' circle')
@@ -115,7 +115,8 @@ def radon(image, theta=None, circle=False):
         rotated = _warp_fast(padded_image, build_rotation(theta[i]))
         radon_image[:, i] = rotated.sum(0)
     return radon_image
-    
+
+
 def _sinogram_circle_to_square(sinogram):
     diagonal = int(np.ceil(np.sqrt(2) * sinogram.shape[0]))
     pad = diagonal - sinogram.shape[0]
@@ -191,7 +192,7 @@ def iradon(radon_image, theta=None, output_size=None,
         if circle:
             output_size = radon_image.shape[0]
         else:
-            output_size = int(np.floor(np.sqrt((radon_image.shape[0])**2
+            output_size = int(np.floor(np.sqrt((radon_image.shape[0]) ** 2
                                                / 2.0)))
     if circle:
         radon_image = _sinogram_circle_to_square(radon_image)
@@ -200,7 +201,7 @@ def iradon(radon_image, theta=None, output_size=None,
     # resize image to next power of two (but no less than 64) for
     # Fourier analysis; speeds up Fourier and lessens artifacts
     projection_size_padded = \
-        max(64, int(2**np.ceil(np.log2(2 * radon_image.shape[0]))))
+        max(64, int(2 ** np.ceil(np.log2(2 * radon_image.shape[0]))))
     pad_width = ((0, projection_size_padded - radon_image.shape[0]), (0, 0))
     img = util_pad(radon_image, pad_width, mode='constant', constant_values=0)
 
@@ -251,10 +252,11 @@ def iradon(radon_image, theta=None, output_size=None,
         reconstructed += backprojected
     if circle:
         radius = output_size // 2
-        reconstruction_circle = (xpr**2 + ypr**2) <= radius**2
+        reconstruction_circle = (xpr ** 2 + ypr ** 2) <= radius ** 2
         reconstructed[~reconstruction_circle] = 0.
 
     return reconstructed * np.pi / (2 * len(th))
+
 
 def order_angles_golden_ratio(theta):
     """

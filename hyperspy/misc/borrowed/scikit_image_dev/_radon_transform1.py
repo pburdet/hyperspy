@@ -1,17 +1,17 @@
-#cython: cdivision=True
-#cython: boundscheck=False
-#cython: nonecheck=False
-#cython: wraparound=False
+# cython: cdivision=True
+# cython: boundscheck=False
+# cython: nonecheck=False
+# cython: wraparound=False
 import numpy as np
 import math
 
-#cimport numpy as cnp
-#cimport cython
-#from libc.math cimport cos, sin, floor, ceil, sqrt, abs, M_PI
+# cimport numpy as cnp
+# cimport cython
+# from libc.math cimport cos, sin, floor, ceil, sqrt, abs, M_PI
 
 
 def bilinear_ray_sum(image, theta,
-                       ray_position):
+                     ray_position):
     """
     Compute the projection of an image along a ray.
 
@@ -40,7 +40,7 @@ def bilinear_ray_sum(image, theta,
     t = ray_position - projection_center
     # s0 is the half-length of the ray's path in the reconstruction circle
 
-    s0 = np.sqrt(radius**2 - t**2) if radius**2 >= t**2 else 0.
+    s0 = np.sqrt(radius ** 2 - t ** 2) if radius ** 2 >= t ** 2 else 0.
     Ns = int(2 * (np.ceil(2 * s0)))  # number of steps along the ray
     ray_sum = 0.
     weight_norm = 0.
@@ -52,7 +52,7 @@ def bilinear_ray_sum(image, theta,
         # point of entry of the ray into the reconstruction circle
         x0 = s0 * np.cos(theta) - t * np.sin(theta)
         y0 = s0 * np.sin(theta) + t * np.cos(theta)
-        for k in range(Ns+1):
+        for k in range(Ns + 1):
             x = x0 + k * dx
             y = y0 + k * dy
             index_i = x + rotation_center
@@ -66,26 +66,26 @@ def bilinear_ray_sum(image, theta,
             if i > 0 and j > 0:
                 weight = (1. - di) * (1. - dj) * ds
                 ray_sum += weight * image[i, j]
-                weight_norm += weight**2
+                weight_norm += weight ** 2
             if i > 0 and j < image.shape[1] - 1:
                 weight = (1. - di) * dj * ds
-                ray_sum += weight * image[i, j+1]
-                weight_norm += weight**2
+                ray_sum += weight * image[i, j + 1]
+                weight_norm += weight ** 2
             if i < image.shape[0] - 1 and j > 0:
                 weight = di * (1 - dj) * ds
-                ray_sum += weight * image[i+1, j]
-                weight_norm += weight**2
+                ray_sum += weight * image[i + 1, j]
+                weight_norm += weight ** 2
             if i < image.shape[0] - 1 and j < image.shape[1] - 1:
                 weight = di * dj * ds
-                ray_sum += weight * image[i+1, j+1]
-                weight_norm += weight**2
+                ray_sum += weight * image[i + 1, j + 1]
+                weight_norm += weight ** 2
     return ray_sum, weight_norm
 
 
 def bilinear_ray_update(image,
-                         image_update,
-                          theta, ray_position,
-                          projected_value):
+                        image_update,
+                        theta, ray_position,
+                        projected_value):
     """
     Compute the update along a ray using bilinear interpolation.
 
@@ -121,10 +121,9 @@ def bilinear_ray_update(image,
     t = ray_position - projection_center
     # s0 is the half-length of the ray's path in the reconstruction circle
 
-    s0 = np.sqrt(radius*radius - t*t) if radius**2 >= t**2 else 0.
+    s0 = np.sqrt(radius * radius - t * t) if radius ** 2 >= t ** 2 else 0.
     Ns = int(2 * (np.ceil(2 * s0)))
     hamming_beta = 0.46164    # beta for equiripple Hamming window
-
 
     if Ns > 0:
         # Step length between samples
@@ -134,7 +133,7 @@ def bilinear_ray_update(image,
         # Point of entry of the ray into the reconstruction circle
         x0 = s0 * np.cos(theta) - t * np.sin(theta)
         y0 = s0 * np.sin(theta) + t * np.cos(theta)
-        for k in range(Ns+1):
+        for k in range(Ns + 1):
             x = x0 + k * dx
             y = y0 + k * dy
             index_i = x + rotation_center
@@ -149,14 +148,14 @@ def bilinear_ray_update(image,
                 image_update[i, j] += (deviation * (1. - di) * (1. - dj)
                                        * ds * hamming_window)
             if i > 0 and j < image.shape[1] - 1:
-                image_update[i, j+1] += (deviation * (1. - di) * dj
-                                         * ds * hamming_window)
-            if i < image.shape[0] - 1 and j > 0:
-                image_update[i+1, j] += (deviation * di * (1 - dj)
-                                         * ds * hamming_window)
-            if i < image.shape[0] - 1 and j < image.shape[1] - 1:
-                image_update[i+1, j+1] += (deviation * di * dj
+                image_update[i, j + 1] += (deviation * (1. - di) * dj
                                            * ds * hamming_window)
+            if i < image.shape[0] - 1 and j > 0:
+                image_update[i + 1, j] += (deviation * di * (1 - dj)
+                                           * ds * hamming_window)
+            if i < image.shape[0] - 1 and j < image.shape[1] - 1:
+                image_update[i + 1, j + 1] += (deviation * di * dj
+                                               * ds * hamming_window)
     return deviation
 
 
@@ -188,8 +187,8 @@ def sart_projection_update(image,
         added to ``image`` to improve the reconstruction estimate
     """
     image_update = np.zeros_like(image)
-    #cdef cnp.double_t ray_position
-    #cdef Py_ssize_t i
+    # cdef cnp.double_t ray_position
+    # cdef Py_ssize_t i
     for i in range(projection.shape[0]):
         ray_position = i + projection_shift
         bilinear_ray_update(image, image_update, theta, ray_position,

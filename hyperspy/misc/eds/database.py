@@ -94,6 +94,8 @@ def image2D(which_spec='SEM'):
     """
     load 2D image
 
+    Parameters
+    ----------
     which_spec: {'SEM','Ti_SEM','lena'}
         if SEM, RR SE 46 (TLD SE)
         if Ti_SEM, jonas1h SE image (inLens, bck corrected, croped)
@@ -109,11 +111,20 @@ def image2D(which_spec='SEM'):
         return Image(scipy.misc.lena())
 
 
-def image3D():
+def image3D(which_spec='SEM'):
     """
-    load RR SE (10:20)
+    load 3D image
+
+    Parameters
+    ----------
+    which_spec: {'SEM','tilt_TEM'}
+        if 'SEM': RR SE (10:20)
+        if 'tilt_TEM' : nico tilt series 1 NP sample
     """
-    return _load_in_database('SEM/3Dim_2img3DA.hdf5')
+    if which_spec == 'SEM':
+        return _load_in_database('SEM/3Dim_2img3DA.hdf5')
+    elif which_spec == 'tilt_TEM':
+        return _load_in_database('TEM/3Dim_tilt_nico_adf.hdf5')
 
 
 def result3D():
