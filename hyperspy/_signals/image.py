@@ -18,8 +18,6 @@
 
 import numpy as np
 
-import numpy as np
-
 from hyperspy.signal import Signal
 
 
@@ -158,3 +156,62 @@ class Image(Signal):
             return img_data
         else:
             return src
+
+    def tomographic_reconstruction(self,
+                                   algorithm='FBP',
+                                   tilt_stages='auto',
+                                   iteration=1,
+                                   **kwargs):
+        """
+        Reconstruct a 3D tomogram from a sinogram
+
+        Parameters
+        ----------
+        algorithm: {'FBP'}
+            FBP, filtered back projection
+        tilt_stages: list or 'auto'
+            the angles of the sinogram. If 'auto', takes the angles in
+            Acquisition_instrument.TEM.tilt_stage
+
+        Return
+        ------
+        The reconstruction as a 3D image
+
+        Examples
+        --------
+        >>> adf_tilt = hs.database.image3D('tilt_TEM')
+        >>> rec = adf_tilt.tomographic_reconstruction()
+        """
+        from hyperspy._signals.spectrum import Spectrum
+        sinogram = self.to_spectrum().data
+        if tilt_stages == 'auto':
+            tilt_stages = self.metadata.Acquisition_instrument.TEM.tilt_stage
+        if algorithm == 'FBP':
+            # from skimage.transform import iradon
+            from hyperspy.misc.borrowed.scikit_image_dev.radon_transform \
+                import iradon
+            rec = np.zeros([sinogram.shape[0], sinogram.shape[1],
+                           sinogram.shape[1]])
+            for i in range(sinogram.shape[0]):
+                rec[i] = iradon(sinogram[i], theta=tilt_stages,
+                                output_size=sinogram.shape[1], **kwargs)
+        elif algorithm == 'SART':
+            from hyperspy.misc.borrowed.scikit_image_dev.radon_transform\
+                import iradon_sart
+            rec = np.zeros([sinogram.shape[0], sinogram.shape[1],
+                           sinogram.shape[1]])
+            for i in range(sinogram.shape[0]):
+                rec[i] = iradon_sart(sinogram[i], theta=tilt_stages,
+                                     **kwargs)
+                for j in range(iteration-1):
+                    rec[i] = iradon_sart(sinogram[i], theta=tilt_stages,
+                                         image=rec[i], **kwargs)
+
+        rec = Spectrum(rec).as_image([2, 1])
+        rec.axes_manager = self.axes_manager.deepcopy()
+        rec.axes_manager[0].scale = rec.axes_manager[1].scale
+        rec.axes_manager[0].offset = rec.axes_manager[1].offset
+        rec.axes_manager[0].units = rec.axes_manager[1].units
+        rec.axes_manager[0].name = 'z'
+        rec.get_dimensions_from_data()
+        return rec

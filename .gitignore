@@ -3,6 +3,9 @@ syntax: glob
 /MANIFEST
 /*.rst
 *.pyc
+*.pyd
+*.pyx.md5
+*.c
 *.swp
 *~
 *.bak
