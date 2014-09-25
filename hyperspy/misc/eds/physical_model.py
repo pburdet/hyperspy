@@ -60,9 +60,9 @@ def xray_absorption_bulk(energy,
 
     coeff = 4.5e5  # keV^1.65
 
-    xi = np.array(utils.material.mass_absorption_coefficient_of_mixture_of_pure_elements(
+    xi = utils.material.mass_absorption_coefficient_of_mixture_of_pure_elements(
         energies=energy, elements=elements,
-        weight_fraction=weight_fraction)) / np.sin(np.radians(TOA))
+        weight_fraction=weight_fraction) / np.sin(np.radians(TOA))
     sig = coeff / (np.power(beam_energy, 1.65
                             ) - np.power(energy, 1.65))
     return 1. / ((1. + xi / sig) * (1. + h / (1. + h) * (xi / sig)))
@@ -109,9 +109,9 @@ def xray_absorption_thin_film(energy,
         the take of angle in degree
     """
     from hyperspy import utils
-    mac_sample = np.array(utils.material.mass_absorption_coefficient_of_mixture_of_pure_elements(
+    mac_sample = utils.material.mass_absorption_coefficient_of_mixture_of_pure_elements(
         energies=energy, elements=elements,
-        weight_fraction=weight_fraction))
+        weight_fraction=weight_fraction)
     rt = density * thickness * 1e-7 / np.sin(np.radians(TOA))
     fact = mac_sample * rt
     abs_corr = np.nan_to_num((1 - np.exp(-(fact))) / fact)
@@ -169,13 +169,13 @@ def absorption_correction_matrix(weight_fraction,
                                  density,
                                  azimuth_angle,
                                  elevation_angle,
-                                 mask_el):
+                                 mask_el,
+                                 tilt=0.):
     """
     Matrix of absorption for an isotropic 3D data cube of composition
 
     Parameters
     ----------
-
     weight_fraction: np.array
         dim = {el,z,y,x} The sample composition
     xray_lines: list of str
@@ -192,10 +192,13 @@ def absorption_correction_matrix(weight_fraction,
         the azimuth_angle in degree
     elevation_angle: float
         the elevation_angle in degree
+    mask: bool array
+        A mask to be applied to the correction absorption
+    tilt: float
+        The tilt of the sample.
 
     Return
     ------
-
     The absorption matrix: np.array
         {xray_lines,z,y,x}
     """
@@ -208,8 +211,9 @@ def absorption_correction_matrix(weight_fraction,
                                        axes=(x_ax, y_ax),
                                        order=order, mode='reflect')
     weight_fraction_r = ndimage.rotate(weight_fraction_r,
-                                       angle=-elevation_angle,
-                                       axes=(x_ax, z_ax), order=order, mode='reflect')
+                                       angle=-elevation_angle-tilt,
+                                       axes=(x_ax, z_ax), order=order,
+                                       mode='reflect')
 
     elements = np.array(elements)
     if density == 'auto':
@@ -222,7 +226,7 @@ def absorption_correction_matrix(weight_fraction,
                                    axes=(x_ax - 1, y_ax - 1),
                                    order=order, mode='nearest')
         density_r = ndimage.rotate(density_r,
-                                   angle=-elevation_angle,
+                                   angle=-elevation_angle-tilt,
                                    axes=(x_ax - 1, z_ax - 1),
                                    order=order, mode='nearest')
     if mask_el is None:
@@ -233,11 +237,11 @@ def absorption_correction_matrix(weight_fraction,
                                    axes=(x_ax, y_ax),
                                    order=0, mode='reflect')
         mask_el_r = ndimage.rotate(mask_el_r,
-                                   angle=-elevation_angle,
+                                   angle=-elevation_angle-tilt,
                                    axes=(x_ax, z_ax),
                                    order=0, mode='reflect')
 
-    abs_corr = []
+    abs_corr = np.zeros_like(weight_fraction_r)
     for i, xray_line in enumerate(xray_lines):
         mac = utils.material.\
             mass_absorption_coefficient_of_mixture_of_pure_elements(
@@ -245,29 +249,26 @@ def absorption_correction_matrix(weight_fraction,
         fact = np.nan_to_num(density_r * mac * thickness * mask_el_r[i])
 
         fact_sum = np.zeros_like(fact)
-        fact_sum[:,:, -1] = fact[:,:, -1]
-        for i in range(len(fact[0, 0]) - 2, -1, -1):
-            fact_sum[:,:, i] = fact_sum[:,:, i+1] + fact[:,:, i]
-
-        # One is enough, outside loop
+        fact_sum[:, :, -1] = fact[:, :, -1]
+        for j in range(len(fact[0, 0]) - 2, -1, -1):
+            fact_sum[:, :, j] = fact_sum[:, :, j+1] + fact[:, :, j]
         abs_co = np.exp(-(fact_sum))
-        interv = (abs_co.max() - abs_co.min())
-        n = 6
-        ln = [None] + range(1, n)
-        mask = abs_co[:,:, :-n+1] < interv*0.9+abs_co.min()        
-        for i in range(n - 1):
-            mask = np.bitwise_and(mask, abs(abs_co[:,:, n-1:] -
-                    abs_co[:,:, ln[i]:-ln[n-i-1]]) < interv*0.01)
-        for i in range(n - 1):
-            mask = np.insert(mask, -1, False, axis=2)
-        np.place(abs_co, mask, 1.0)
-        abs_corr.append(abs_co)
-
-    abs_corr = np.array(abs_corr)
-    # signals.Image(density_r).plot()
-    # signals.Image(mac).plot()
-    # signals.Image(abs_corr).plot()
-    # return abs_corr
+        abs_corr[i] = abs_co
+    interv = (abs_co.max() - abs_co.min())
+    nb_same_pix, max_corr, atol = (6, 0.9, 0.01)
+    index_same = [None] + range(1, nb_same_pix)
+    mask = abs_co[:, :, : -nb_same_pix + 1] < interv*max_corr + abs_co.min()
+    for i in range(nb_same_pix - 1):
+        mask = np.bitwise_and(mask,
+                              abs(abs_co[:, :, nb_same_pix-1:] -
+                                  abs_co[:, :, index_same[i]:
+                                         -index_same[nb_same_pix-i-1]])
+                              < interv*atol)
+    for i in range(nb_same_pix - 1):
+        mask = np.insert(mask, -1, False, axis=2)
+    for i, xray_line in enumerate(xray_lines):
+        # abs_corr[i] *= mask
+        np.place(abs_corr[i], mask, 1.0)
     abs_corr = ndimage.rotate(abs_corr, angle=elevation_angle,
                               axes=(x_ax, z_ax), reshape=False, order=0)
     abs_corr = ndimage.rotate(abs_corr, angle=azimuth_angle,
@@ -278,5 +279,6 @@ def absorption_correction_matrix(weight_fraction,
     abs_corr = abs_corr[:, diff[0]:diff[0] + dim[0],
                         diff[1]:diff[1] + dim[1], diff[2]:diff[2] + dim[2]]
     np.place(abs_corr, (abs_corr == 0.), 1.)
+    # abs_corr*=(abs_corr == 0.)
     abs_corr[:, 0] = np.ones_like(abs_corr[:, 0])
     return abs_corr

@@ -704,7 +704,7 @@ class EDSTEMSpectrum(EDSSpectrum):
             thickness = self.metadata.Sample.thickness
         else:
             raise ValueError("thickness needed")
-        #beam_energy = self._get_beam_energy()
+        # beam_energy = self._get_beam_energy()
         if intensities == 'integrate':
             intensities = self.get_lines_intensity(**kwargs)
         elif intensities == 'model':
@@ -824,41 +824,49 @@ class EDSTEMSpectrum(EDSSpectrum):
                                             tilt=None,
                                             thickness='auto',
                                             density='auto',
-                                            plot_result=False, store_result=False,
-                                            mask=None):
+                                            mask=None,
+                                            plot_result=False,
+                                            store_result=False):
         """
-        Correct the intensities from absorption knowing the composition
+        Correct the intensities from absorption knowing the composition in 3D
 
         Parameters
         ----------
         weight_fraction: list of image or array
-            The composition of the sample. If 'auto' look in quant
+            The fraction of elements in the sample by weigh.
+            If 'auto' look in quant
         intensities: list of image or array
-            The intensities to correct of the sample. If 'auto' look in intensites
+            The intensities to correct of the sample. If 'auto' look in
+            intensites
+        tilt: list of float
+            If not None, the weight_fraction is tilted
         thickness: float
-            The thickness of each indiviual thickness. If 'auto' axes manager
+            The thickness of each indiviual voxel (square). If 'auto' axes
+            manager
         density: array
-            The density to correct of the sample. If 'auto' use the weight_fraction
-            to calculate it. in gm/cm^3
+            The density to correct of the sample. If 'auto' use the
+            weight_fraction to calculate it. in gm/cm^3
+        mask: bool array
+            A mask to be applied to the correction absorption
         plot_resut: bool
             plot the result
 
         Return
         -------
-            If store_result True store the result in quant_enh. Else return an array
+        If store_result True store the result in quant_enh.
+        Elif tilt = None return an array of abs_corr
+        Else return an array of abs_corr adn an array of tilted intensities
         """
-
         xray_lines = self.metadata.Sample.xray_lines
         elements = self.metadata.Sample.elements
-        elevation_angle = \
-            self.metadata.Acquisition_instrument.TEM.Detector.EDS.elevation_angle
+        elevation_angle = self.metadata.Acquisition_instrument.\
+            TEM.Detector.EDS.elevation_angle
         azimuth_angle = \
             self.metadata.Acquisition_instrument.TEM.Detector.EDS.azimuth_angle
         elements = self.metadata.Sample.elements
         xray_lines = self.metadata.Sample.xray_lines
         if weight_fraction == 'auto':
             weight_fraction = self.metadata.Sample.quant
-
             weight_fraction = utils.stack(weight_fraction)
             weight_fraction = weight_fraction.data
         if intensities == 'auto':
@@ -872,45 +880,28 @@ class EDSTEMSpectrum(EDSSpectrum):
             thickness = thickness * 1e-7
         if hasattr(tilt, '__iter__'):
             x_ax, z_ax = 3, 1
-            tilt_intensities = []
-            abs_corr = []
+            dim = intensities.shape
+            tilt_intensities = np.zeros([dim[0]] + [len(tilt)] + list(dim[1:]))
+            abs_corr = np.zeros([dim[0]] + [len(tilt)] + list(dim[1:]))
             azim = azimuth_angle
-            density_r = 'auto'
-            mask_r = None
             for i, ti in enumerate(tilt):
-                print tilt
-                # tilt of weight and density and mask can gor in ph model
+                print ti
                 if hasattr(azimuth_angle, '__iter__'):
                     azim = azimuth_angle[i]
-                weight_r = ndimage.rotate(weight_fraction, angle=-ti,
-                                          axes=(x_ax, z_ax),
-                                          order=3, reshape=False, mode='reflect')
-                intensities_r = ndimage.rotate(intensities, angle=-ti,
-                                               axes=(x_ax, z_ax),
-                                               order=3, reshape=False, mode='reflect')
-
-                if density != 'auto':
-                    density_r = ndimage.rotate(density, angle=-ti,
-                                               axes=(x_ax - 1, z_ax - 1),
-                                               order=3, reshape=False, mode='reflect')
-                if mask is not None:
-                    mask_r = ndimage.rotate(mask, angle=-ti, axes=(x_ax, z_ax),
-                                            order=0, reshape=False, mode='reflect')
-                abs_co = physical_model.absorption_correction_matrix(
-                    weight_fraction=weight_r,
+                tilt_intensities[:, i] = ndimage.rotate(intensities, angle=-ti,
+                                                        axes=(x_ax, z_ax),
+                                                        order=3, reshape=False,
+                                                        mode='reflect')
+                abs_corr[:, i] = physical_model.absorption_correction_matrix(
+                    weight_fraction=weight_fraction,
                     xray_lines=xray_lines,
                     elements=elements,
                     thickness=thickness,
-                    density=density_r,
+                    density=density,
                     azimuth_angle=azim,
                     elevation_angle=elevation_angle,
-                    mask_el=mask_r)
-                abs_corr.append(abs_co)
-                tilt_intensities.append(intensities_r)
-            abs_corr = np.array(abs_corr)
-            tilt_intensities = np.array(tilt_intensities)
-            abs_corr = np.rollaxis(abs_corr, 0, 2)
-            tilt_intensities = np.rollaxis(tilt_intensities, 0, 2)
+                    mask_el=mask,
+                    tilt=ti)
             return abs_corr, tilt_intensities
         elif tilt is None:
             abs_corr = physical_model.absorption_correction_matrix(
