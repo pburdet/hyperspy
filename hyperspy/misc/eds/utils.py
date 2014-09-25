@@ -197,7 +197,7 @@ def get_index_from_names(self, axis_names, index_name, axis_name_in_mp=True):
         if axis_name is in metadata.Sample.
 
     """
-    if axis_name_in_mp == True:
+    if axis_name_in_mp:
         axis_names = self.metadata.Sample[axis_names]
 
     for i, name in enumerate(axis_names):

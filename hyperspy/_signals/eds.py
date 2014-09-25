@@ -19,14 +19,14 @@ from __future__ import division
 
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.mlab as mlab
+# import matplotlib.mlab as mlab
 import copy
 from scipy.interpolate import interp1d
 
 from hyperspy import utils
 from hyperspy._signals.spectrum import Spectrum
 from hyperspy.signal import Signal
-from hyperspy._signals.image import Image
+# from hyperspy._signals.image import Image
 from hyperspy.misc.elements import elements as elements_db
 from hyperspy.misc.eds import utils as utils_eds
 from hyperspy.misc.eds import image_eds

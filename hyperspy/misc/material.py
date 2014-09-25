@@ -84,12 +84,11 @@ def density_of_mixture_of_pure_elements(elements, weight_percent):
     """
     if hasattr(weight_percent[0], '__iter__'):
         weight_percent = np.array(weight_percent)
-        densities = []
-        for element, weight in zip(elements, weight_percent):
+        densities = np.zeros(weight_percent.shape)
+        for i, (element, weight) in enumerate(zip(elements, weight_percent)):
             density = elements_db[element]['Physical_properties']\
                 ['density (g/cm^3)']
-            densities.append(weight / density)
-        densities = np.array(densities)
+            densities[i] = weight / density
         return weight_percent.sum(0) / densities.sum(0)
         #weight_percent = np.array(weight_percent)
         # density = np.array(
@@ -180,10 +179,10 @@ def mass_absorption_coefficient(element, energies):
 
     index = np.searchsorted(energies_db, energies)
 
-    mac_res = np.exp(np.log(macs[index - 1]
-                            ) + np.log(macs[index] / macs[index - 1]
-                                       ) * (np.log(energies / energies_db[index - 1]
-                                                   ) / np.log(energies_db[index] / energies_db[index - 1])))
+    mac_res = np.exp(np.log(macs[index - 1])
+                     + np.log(macs[index] / macs[index - 1])
+                     * (np.log(energies / energies_db[index - 1])
+                     / np.log(energies_db[index] / energies_db[index - 1])))
     return np.nan_to_num(mac_res)
 
 
@@ -198,8 +197,8 @@ def mass_absorption_coefficient_of_mixture_of_pure_elements(elements,
     ----------
     elements: list of str
         The list of element symbol of the absorber, e.g. ['Al','Zn'].
-    weight_fraction: {list of float or list of list or list of signals.Signal}
-        the fraction of elements in the sample by weight
+    weight_fraction: np.array
+        dim = {el,z,y,x} The fraction of elements in the sample by weight
     energies: {float or list of float or str or list of str}
         The energy or energies of the Xray in keV, or the name eg 'Al_Ka'
 
@@ -223,7 +222,8 @@ def mass_absorption_coefficient_of_mixture_of_pure_elements(elements,
     if hasattr(weight_fraction[0], '__iter__'):
 
         weight_fraction = np.array(weight_fraction)
-        mac_res = 0
+        # mac_res = 0
+        mac_res = np.zeros(weight_fraction.shape[1:])
         #mac_res = np.zeros_like(energies,dtype=float)
         # mac_re = np.array([mass_absorption_coefficient(
         #    el, energies) for el in elements])
@@ -233,7 +233,7 @@ def mass_absorption_coefficient_of_mixture_of_pure_elements(elements,
         # for weight in weight_fraction:
             mac_res += mac_re * weight
             #mac_res.append(np.dot(weight, mac_re))
-        return np.array(mac_res)
+        return mac_res
     else:
         mac_res = np.array([mass_absorption_coefficient(
             el, energies) for el in elements])
