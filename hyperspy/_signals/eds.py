@@ -591,6 +591,11 @@ class EDSSpectrum(Spectrum):
                                                            FWHM_MnKa='auto')
             element, line = utils_eds._get_element_and_line(xray_line)
             det = integration_window_factor * line_FWHM / 2.
+            ax = self.axes_manager.signal_axes[0]
+            if line_energy - det < ax.low_value or \
+                    line_energy + det > ax.high_value:
+                raise ValueError(
+                    "%s is outside the energy range." % (xray_line))
             if lines_deconvolution is None:
                 intensities[i] = self[..., line_energy - det:line_energy +
                                       det].integrate1D(-1).data
