@@ -105,7 +105,6 @@ def slugify(value, valid_variable_name=False):
     Adapted from Django's "django/template/defaultfilters.py".
 
     """
-    
     if not isinstance(value, unicode):
         try:
             # Convert to unicode using the default encoding
