@@ -924,3 +924,93 @@ class EDSTEMSpectrum(EDSSpectrum):
             else:
 
                 return abs_corr
+
+    def tomographic_reconstruction_result(self, result,
+                                          algorithm='SART',
+                                          tilt_stages='auto',
+                                          iteration=1,
+                                          parallel=None,
+                                          **kwargs):
+        """
+        Reconstruct all the 3D tomograms from the elements sinogram
+
+        Parameters
+        ----------
+        result: str
+            The result in metadata.Sample to be reconstructed
+        algorithm: {'SART','FBP'}
+            FBP, filtered back projection
+            SART, Simultaneous Algebraic Reconstruction Technique
+        tilt_stages: list or 'auto'
+            the angles of the sinogram. If 'auto', takes the angles in
+            Acquisition_instrument.TEM.tilt_stage
+        iteration: int
+            The numebr of iteration used for SART
+        parallel : {None, int}
+            If None or 1, does not parallelise multifit. If >1, will look for
+            ipython clusters. If no ipython clusters are running, it will
+            create multiprocessing cluster.
+
+        Return
+        ------
+        The reconstructions as a 3D image
+
+        Examples
+        --------
+        >>> adf_tilt = database.image3D('tilt_TEM')
+        >>> adf_tilt.change_dtype('float')
+        >>> rec = adf_tilt.tomographic_reconstruction()
+        """
+        from hyperspy._signals.spectrum import Spectrum
+        # import time
+        # a = time.time()
+        if hasattr(self.metadata.Sample[result], 'metadata'):
+            self.change_dtype('float')
+            sinograms = self.metadata.Sample[result].split()
+        else:
+            sinograms = self.metadata.Sample[result]
+            for i in range(len(sinograms)):
+                sinograms[i].change_dtype('float')
+        if tilt_stages == 'auto':
+            tilt_stages = sinograms[0].axes_manager[0].axis
+
+        if parallel is None:
+            rec = []
+            for sinogram in sinograms:
+                rec.append(sinogram.tomographic_reconstruction(
+                           algorithm=algorithm,
+                           tilt_stages=tilt_stages,
+                           iteration=iteration,
+                           parallel=parallel))
+        else:
+            from hyperspy._signals.image import isart_multi
+            from IPython.parallel import Client, error
+            ipython_timeout = 1.
+            try:
+                c = Client(profile='hyperspy', timeout=ipython_timeout)
+                pool = c[:]
+                pool_type = 'iypthon'
+            except (error.TimeoutError, IOError):
+                print "Problem with multiprocessing"
+                from multiprocessing import Pool
+                pool_type = 'mp'
+                pool = Pool(processes=parallel)
+            dic = [{'data': sinogram.to_spectrum().data, 'tilt': tilt_stages,
+                    'iteration': iteration} for sinogram in sinograms]
+            [di.update(kwargs) for di in dic]
+            rec = pool.map_async(isart_multi, dic)
+            if pool_type == 'mp':
+                pool.close()
+                pool.join()
+            rec = rec.get()
+            rec = Spectrum(rec).as_image([0, 1])
+            # print time.time() - a
+            rec.axes_manager = self.metadata.Sample[result]\
+                .axes_manager.deepcopy()
+            rec.axes_manager[0].scale = rec.axes_manager[2].scale
+            rec.axes_manager[0].offset = rec.axes_manager[2].offset
+            rec.axes_manager[0].units = rec.axes_manager[2].units
+            rec.axes_manager[0].name = 'z'
+            rec.get_dimensions_from_data()
+
+        return rec

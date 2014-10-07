@@ -1,6 +1,4 @@
 import numpy as np
-import math
-import matplotlib.mlab as mlab
 from scipy import ndimage
 
 
