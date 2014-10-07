@@ -161,17 +161,25 @@ class Image(Signal):
                                    algorithm='FBP',
                                    tilt_stages='auto',
                                    iteration=1,
+                                   parallel=None,
                                    **kwargs):
         """
         Reconstruct a 3D tomogram from a sinogram
 
         Parameters
         ----------
-        algorithm: {'FBP'}
+        algorithm: {'FBP','SART'}
             FBP, filtered back projection
+            SART, Simultaneous Algebraic Reconstruction Technique
         tilt_stages: list or 'auto'
             the angles of the sinogram. If 'auto', takes the angles in
             Acquisition_instrument.TEM.tilt_stage
+        iteration: int
+            The numebr of iteration used for SART
+        parallel : {None, int}
+            If None or 1, does not parallelise multifit. If >1, will look for
+            ipython clusters. If no ipython clusters are running, it will
+            create multiprocessing cluster.
 
         Return
         ------
@@ -179,13 +187,17 @@ class Image(Signal):
 
         Examples
         --------
-        >>> adf_tilt = hs.database.image3D('tilt_TEM')
+        >>> adf_tilt = database.image3D('tilt_TEM')
+        >>> adf_tilt.change_dtype('float')
         >>> rec = adf_tilt.tomographic_reconstruction()
         """
         from hyperspy._signals.spectrum import Spectrum
-        sinogram = self.to_spectrum().data
+        # import time
+        if parallel is None:
+            sinogram = self.to_spectrum().data
         if tilt_stages == 'auto':
-            tilt_stages = self.metadata.Acquisition_instrument.TEM.tilt_stage
+            tilt_stages = self.axes_manager[0].axis
+        # a = time.time()
         if algorithm == 'FBP':
             # from skimage.transform import iradon
             from hyperspy.misc.borrowed.scikit_image_dev.radon_transform \
@@ -195,7 +207,7 @@ class Image(Signal):
             for i in range(sinogram.shape[0]):
                 rec[i] = iradon(sinogram[i], theta=tilt_stages,
                                 output_size=sinogram.shape[1], **kwargs)
-        elif algorithm == 'SART':
+        elif algorithm == 'SART' and parallel is None:
             from hyperspy.misc.borrowed.scikit_image_dev.radon_transform\
                 import iradon_sart
             rec = np.zeros([sinogram.shape[0], sinogram.shape[1],
@@ -206,6 +218,39 @@ class Image(Signal):
                 for j in range(iteration - 1):
                     rec[i] = iradon_sart(sinogram[i], theta=tilt_stages,
                                          image=rec[i], **kwargs)
+        elif algorithm == 'SART':
+            from hyperspy._signals.image import isart_multi
+            from IPython.parallel import Client, error
+            ipython_timeout = 1.
+            try:
+                c = Client(profile='hyperspy', timeout=ipython_timeout)
+                pool = c[:]
+                pool_type = 'iypthon'
+            except (error.TimeoutError, IOError):
+                print "Problem with multiprocessing"
+                from multiprocessing import Pool
+                pool_type = 'mp'
+                pool = Pool(processes=parallel)
+            sinogram = self.deepcopy().to_spectrum()
+            dim_split = sinogram.axes_manager.shape[1]
+            step_sizes = [dim_split / parallel] * parallel
+            # step_sizes[-1] = step_sizes[-1] + dim_split % parallel
+            for i in range(dim_split % parallel):
+                step_sizes[i] += 1
+            sino = sinogram.split(axis=1, step_sizes=step_sizes)
+            dic = [{'data': si.data, 'tilt': tilt_stages,
+                    'iteration': iteration} for si in sino]
+            [di.update(kwargs) for di in dic]
+            res = pool.map_async(isart_multi, dic)
+            if pool_type == 'mp':
+                pool.close()
+                pool.join()
+            res = res.get()
+            rec = res[0]
+            for i in range(len(res)-1):
+                rec = np.append(rec, res[i+1], axis=0)
+
+        # print time.time() - a
 
         rec = Spectrum(rec).as_image([2, 1])
         rec.axes_manager = self.axes_manager.deepcopy()
@@ -215,3 +260,25 @@ class Image(Signal):
         rec.axes_manager[0].name = 'z'
         rec.get_dimensions_from_data()
         return rec
+
+
+def isart_multi(dic):
+    from hyperspy.misc.borrowed.scikit_image_dev.radon_transform\
+        import iradon_sart
+    import numpy as np
+    import inspect
+    tilt_stages = dic['tilt']
+    iteration = dic['iteration']
+    kwargs = {}
+    for item, i in dic.items():
+        if item in inspect.getargspec(iradon_sart).args:
+            kwargs.update({item: i})
+    sinogram = dic['data']
+    rec = np.zeros([sinogram.shape[0], sinogram.shape[1],
+                    sinogram.shape[1]])
+    for i in range(sinogram.shape[0]):
+        rec[i] = iradon_sart(sinogram[i], theta=tilt_stages, **kwargs)
+        for j in range(iteration - 1):
+            rec[i] = iradon_sart(sinogram[i], theta=tilt_stages,
+                                 image=rec[i], **kwargs)
+    return rec
