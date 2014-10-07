@@ -70,6 +70,11 @@ plt.subplots_adjust(bottom=0.14)
 for l, norm in enumerate([True, False]):
     for k, el in enumerate(['Ni', 'Co', 'all']):
         subplot(range(231, 237)[k + l * 3])
+        
+# or 
+for j, im_ind in enumerate(range(0,12,3)):    
+    for i in range(3):
+        subplot(4,3,im_ind+i+1)
 
 # inset
 a = axes([.57, .62, .4, .33], axisbg='w')

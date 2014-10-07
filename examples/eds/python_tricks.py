@@ -71,6 +71,9 @@
 >> > a.argmax()
 2
 
+#save 2D data as csv
+np.savetxt('a.csv',s.data)
+
 .ravel()
 
 get_backend()
@@ -126,3 +129,12 @@ from hyperspy.misc.material import mass_absorption_coefficient
     - f EDSSEMSpectrum.compute_continuous_xray_generation \
     - f slugify \
     EDSSEMSpectrum.compute_continuous_xray_absorption(s)
+    
+%%file mp.py
+if __name__ == "__main__":
+    print "Hello"
+
+%run mp.py
+
+%%cmd
+python mp.py
