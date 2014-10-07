@@ -463,6 +463,13 @@ def plot_orthoview_animated(image, isotropic_voxel=True):
 
     im_yz.axes_manager._axes = im_xy.axes_manager._axes[::-1]
 
+    im_xy.axes_manager[0].index = (im_xy.axes_manager[0].high_index -
+                                   im_xy.axes_manager[0].low_index)/2
+    im_xy.axes_manager[1].index = (im_xy.axes_manager[1].high_index -
+                                   im_xy.axes_manager[1].low_index)/2
+    im_xy.axes_manager[2].index = (im_xy.axes_manager[2].high_index -
+                                   im_xy.axes_manager[2].low_index)/2
+
     im_xz.axes_manager._update_attributes()
     im_yz.axes_manager._update_attributes()
     im_xy.plot()
