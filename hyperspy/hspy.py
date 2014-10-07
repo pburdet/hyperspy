@@ -44,7 +44,7 @@ For more details see their doctrings.
 # -*- coding: utf-8 -*-
 
 import matplotlib.pyplot as plt
-plt.rcParams['image.cmap'] = 'gray'
+plt.rcParams['image.cmap'] = 'RdYlBu_r'
 
 from hyperspy.Release import version as __version__
 from hyperspy import components
