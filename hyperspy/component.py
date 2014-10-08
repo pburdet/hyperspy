@@ -17,10 +17,12 @@
 # along with  HyperSpy.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+import copy
 
 import numpy as np
 import warnings
 
+from hyperspy.axes import AxesManager
 from hyperspy.defaults_parser import preferences
 from hyperspy.misc.utils import slugify
 from hyperspy.misc.io.tools import (incremental_filename,
@@ -96,6 +98,78 @@ class Parameter(object):
         self.units = ''
         self.map = None
         self.model = None
+        self._id_name = ''
+
+    def _load_dictionary(self, dict):
+        """Load data from dictionary
+
+        Parameters
+        ----------
+        dict : dictionary
+            A dictionary containing following items:
+            _id_name : string
+                _id_name of the original parameter, used to create the dictionary. Has to match with the
+                self._id_name
+            map : map
+                a map of saved values, standard deviations and booleans 'is_set' for every point of the model
+            value : float
+                current value of the parameter
+            std : float
+                current standard deviation fo the parameter
+            units : string
+                Units of the parameter
+            twin_function : function
+                Twin function for the parameter
+            twin_inverse_function : function
+                Inverse twin function for the parameter
+            _bounds : tuple
+                Tuple of (bmin, bmax), lower and upper bounds of the parameter values
+            free : boolean
+                Boolean if the parameter is free
+            active : boolean
+                Boolean if the parameter is active
+        Returns
+        -------
+        id_value : int
+            the ID value of the original parameter, to be later used for setting up the correct twins
+
+        """
+        if dict['_id_name'] == self._id_name:
+            try:
+                import dill
+                dill_avail = True
+            except ImportError:
+                dill_avail = False
+                import types
+                import marshal
+            self.map = copy.deepcopy(dict['map'])
+            self.value = dict['value']
+            self.name = dict['name']
+            self.std = copy.deepcopy(dict['std'])
+            self.free = copy.deepcopy(dict['free'])
+            self.units = copy.deepcopy(dict['units'])
+            self._bounds = copy.deepcopy(dict['_bounds'])
+            self.__ext_bounded = copy.deepcopy(dict['ext_bounded'])
+            self.__ext_force_positive = copy.deepcopy(dict['ext_force_positive'])
+
+            if hasattr(self, 'active') and 'active' in dict:
+                self.active = dict['active']
+            if 'dill_avail' in dict and dill_avail:
+                self.twin_function = dill.loads(dict['twin_function'])
+                self.twin_inverse_function = dill.loads(
+                    dict['twin_inverse_function'])
+            else:
+                self.twin_function = types.FunctionType(
+                    marshal.loads(
+                        dict['twin_function']),
+                    globals())
+                self.twin_inverse_function = types.FunctionType(marshal.loads(dict['twin_inverse_function']),
+                                                                globals())
+            return dict['id']
+        else:
+            raise ValueError(
+                "_id_name of parameter and dictionary do not match, \nparameter._id_name = %s \ndictionary['_id_name'] = %s" %
+                (self._id_name, dict['_id_name']))
 
     def __repr__(self):
         text = ''
@@ -440,6 +514,58 @@ class Parameter(object):
             self.as_signal(field='std').save(append2pathname(
                 filename, '_std'))
 
+    def as_dictionary(self, indices=None):
+        """Returns parameter as a dictionary
+
+        Parameters
+        ----------
+        indices : tuple
+            a tuple of indices in navigational space of the signal, to return only specific point of the model as a
+            dictionary
+
+        Returns
+        -------
+        dic : dictionary
+
+        """
+        import marshal
+        try:
+            import dill
+            dill_avail = True
+        except ImportError:
+            dill_avail = False
+        dic = {}
+        dic['name'] = self.name
+        dic['_id_name'] = self._id_name
+        if indices is not None:
+            dic['map'] = copy.deepcopy(
+                self.map[tuple([slice(i, i + 1, 1) for i in indices[::-1]])])
+            dic['value'] = dic['map']['values'][tuple([0 for i in indices])]
+            dic['std'] = dic['map']['std'][tuple([0 for i in indices])]
+        else:
+            dic['map'] = copy.deepcopy(self.map)
+            dic['value'] = self.value
+            dic['std'] = self.std
+        dic['free'] = self.free
+        dic['ext_bounded'] = self.ext_bounded
+        dic['units'] = self.units
+        dic['ext_force_positive'] = self.ext_force_positive
+        dic['id'] = id(self)
+        dic['_twins'] = [id(t) for t in self._twins]
+        dic['_bounds'] = self._bounds
+        if hasattr(self, 'active'):
+            dic['active'] = self.active
+        if dill_avail:
+            dic['twin_function'] = dill.dumps(self.twin_function)
+            dic['twin_inverse_function'] = dill.dumps(
+                self.twin_inverse_function)
+            dic['dill_avail'] = True
+        else:
+            dic['twin_function'] = marshal.dumps(self.twin_function.func_code)
+            dic['twin_inverse_function'] = marshal.dumps(
+                self.twin_inverse_function.func_code)
+        return dic
+
 
 class Component(object):
     __axes_manager = None
@@ -559,6 +685,7 @@ class Component(object):
             parameter = Parameter()
             self.parameters.append(parameter)
             parameter.name = name
+            parameter._id_name = name
             setattr(self, name, parameter)
             if hasattr(self, 'grad_' + name):
                 parameter.grad = getattr(self, 'grad_' + name)
@@ -830,3 +957,76 @@ class Component(object):
 
         for _parameter in parameter_list:
             _parameter.free = False
+
+    def as_dictionary(self, indices=None):
+        """Returns component as a dictionary
+
+        All items are copies.
+
+        Returns
+        -------
+        dic : dictionary
+
+        """
+        dic = {}
+        dic['name'] = self.name
+        dic['_id_name'] = self._id_name
+        dic['active_is_multidimensional'] = self.active_is_multidimensional
+        if self.active_is_multidimensional:
+            if indices is not None:
+                dic['active_array'] = self._active_array[
+                    tuple([slice(i, i + 1, 1) for i in indices[::-1]])].copy()
+                dic['active'] = dic['active_array'][
+                    tuple([0 for i in indices])]
+            else:
+                dic['active'] = self.active
+                dic['active_array'] = self._active_array.copy()
+        else:
+            dic['active'] = self.active
+        dic['parameters'] = [p.as_dictionary(indices) for p in self.parameters]
+        if hasattr(self, '_init_par'):
+            from hyperspy.signal import Signal
+            dic['_init_par'] = self._init_par
+            for i in self._init_par:
+                if isinstance(getattr(self, i), Signal):
+                    dic[i] = getattr(self, i)._to_dictionary()
+                else:
+                    dic[i] = getattr(self, i)
+        return dic
+
+    def _load_dictionary(self, dic):
+        """Load data from dictionary.
+
+        Parameters
+        ----------
+        dict : dictionary
+            A dictionary containing following items:
+            type : type
+                A type object that has been colled to initialise the component before loading the dictionary and running
+                this function
+            name : string
+                Name of the component
+            parameters : list
+                A list of dictionaries, one for a parameter of the component each (see parameter.as_dictionary()
+                documentation for more info)
+
+        Returns
+        -------
+        twin_dict : dictionary
+            Dictionary of 'id' values from input dictionary as keys with all of the parameters of the component, to be later used for
+            setting up correct twins.
+
+        """
+        self.name = copy.deepcopy(dic['name'])
+        self.active = dic['active']
+        if dic['active_is_multidimensional']:
+            self.active_is_multidimensional = dic['active_is_multidimensional']
+        if self.active_is_multidimensional:
+            self._active_array = dic['active_array']
+        id_dict = {}
+        for p in dic['parameters']:
+            idname = p['_id_name']
+            par = getattr(self, idname)
+            t_id = par._load_dictionary(p)
+            id_dict[t_id] = par
+        return id_dict
