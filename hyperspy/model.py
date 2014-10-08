@@ -33,6 +33,7 @@ from scipy.optimize import (leastsq,
                             fmin_tnc,
                             fmin_powell)
 from traits.trait_errors import TraitError
+import inspect
 
 from hyperspy import components
 from hyperspy import messages
@@ -1339,7 +1340,8 @@ class Model(list):
             self.update_plot()
 
     def multifit(self, mask=None, fetch_only_fixed=False,
-                 autosave=False, autosave_every=10, parallel=None, ipython_timeout=1.,
+                 autosave=False, autosave_every=10, parallel=None, 
+                 ipython_timeout=1.,
                  show_progressbar=None, **kwargs):
         """Fit the data to the model at all the positions of the
         navigation dimensions.
@@ -1384,7 +1386,7 @@ class Model(list):
         """
         if show_progressbar is None:
             show_progressbar = preferences.General.show_progressbar
-
+            
         if "weights" in kwargs:
             warnings.warn(weights_deprecation_warning, DeprecationWarning)
             del kwargs["weights"]
@@ -1467,26 +1469,19 @@ class Model(list):
                         autosave_fn + 'npz'))
                 os.remove(autosave_fn + '.npz')
         else:
-            # look for cluster, if not (enougth) found, create multiprocessing
-            # pool
-            kwargs['parallel'] = 1
-            from IPython.parallel import Client, error
-            num = 0
+            # look for cluster
+            from IPython.parallel import Client, error          
             try:
                 c = Client(profile='hyperspy', timeout=ipython_timeout)
-                num = len(c.ids[:parallel])
-                ipyth = c.load_balanced_view()
-                # ipyth = c.direct_view()
-                ipyth.targets = c.ids[:parallel]
+                pool = c[:]
+                pool_type = 'iypthon'
             except (error.TimeoutError, IOError):
-                pass
-            if num != parallel:
+                print "Problem with multiprocessing"
                 from multiprocessing import Pool
-                multip = Pool(processes=int(parallel - num))
-
+                pool_type = 'mp'
+                pool = Pool(processes=parallel)
             # import function to pass to workers
             from hyperspy.model import multifit_kernel
-
             # split model and send to workers
             self.axes_manager.disconnect(self.fetch_stored_values)
             self.unfold()
@@ -1495,55 +1490,49 @@ class Model(list):
                     self.spectrum.axes_manager.navigation_size),
                 parallel)
             pass_slices = [(l[0], l[-1] + 1) for l in cuts]
-            models = [self.inav[l[0]:l[-1] + 1].as_dictionary() for l in cuts]
-            for m in models:
-                del m['spectrum']['metadata']['_HyperSpy']
-            res = []
-            print 'Sending chuncks: ',
-            for i in xrange(parallel):
-                if i < num:
-                    res.append(ipyth.apply_async(
-                        multifit_kernel,
-                        models[i],
-                        pass_slices[i],
-                        kwargs))
-                    print str(i),
-                else:
-                    res.append(multip.apply_async(
-                        multifit_kernel,
-                        [models[i],
-                         pass_slices[i],
-                         kwargs, ]))
+            # add all arguments to kwargs
+            [kwargs.update({arg: locals()[arg]})
+                for arg in inspect.getargspec(self.multifit).args]
 
-            # gather the results back
-            print ' receiving chunks: ',
-            results = []
-            result_q = np.arange(parallel)
-            while result_q.size:
-                for i in result_q:
-                    if res[i].ready():
-                        print str(i),
-                        results.append(res[i].get())
-                        result_q = np.delete(
-                            result_q,
-                            result_q.searchsorted(i))
-            print ' '
-            # for i in xrange(parallel):
-            #     results.append(res[i].get())
-            for r in results:
-                slices = r[0]
-                model_dict = r[1]
-                tm = self.inav[slices[0]:slices[1]]
+            # add default arguments from the specific model
+            m_fit_args = inspect.getargspec(self.fit)
+            for i in range(-len(m_fit_args.defaults),0):
+                arg = m_fit_args.args[i]
+                if arg not in kwargs.keys():
+                    kwargs.update({arg:m_fit_args.defaults[i]})
+            try:
+                del kwargs['kind']
+            except:
+                pass
+            del kwargs['self']            
+            kwargs['parallel'] = 1
+            kwargs['show_progressbar'] = False   
+            print kwargs
+            models = [(self.inav[l[0]: l[-1] + 1].as_dictionary(),
+                       kwargs) for l in cuts]
+            for m in models:
+                del m[0]['spectrum']['metadata']['_HyperSpy']
+
+            print pool_type
+            results = pool.map_async(multifit_kernel, models)
+            #results = map(multifit_kernel, models)           
+            if pool_type == 'mp':
+                pool.close()
+                pool.join()
+                
+            results = results.get()
+            #return results
+            for r, slices in zip(results,pass_slices):
+                model_dict = r
                 self.chisq.data[
-                    slices[0]:slices[1]] = model_dict['chisq']['data'].copy()
+                    slices[0]:slices[1]] = model_dict['chisq']['data'][
+                        :slices[1]-slices[0]].copy()
                 for ic, c in enumerate(self):
                     for p in c.parameters:
                         for p_d in model_dict['components'][ic]['parameters']:
                             if p_d['_id_name'] == p._id_name:
-                                p.map[slices[0]:slices[1]] = p_d['map'].copy()
-            if num != parallel:
-                multip.close()
-                multip.join()
+                                p.map[slices[0]:slices[1]] = p_d['map'][
+                                    :slices[1]-slices[0]].copy()
             self.fold()
             self.axes_manager.connect(self.fetch_stored_values)
 
@@ -2382,8 +2371,13 @@ class Model(list):
                 _model.dof.data = self.dof.data[array_slices[:-1]]
                 _model.chisq.data = self.chisq.data[array_slices[:-1]]
                 for ic, c in enumerate(_model):
+                    c.name = self[ic].name
                     for p_new, p_orig in zip(c.parameters, self[ic].parameters):
                         p_new.twin_function = p_orig.twin_function
+                        p_new.free = p_orig.free
+                        #p_new.std = p_orig.std
+                        p_new.ext_bounded = p_orig.ext_bounded
+                        p_new.ext_force_positive = p_orig.ext_force_positive
                         p_new.twin_inverse_function = p_orig.twin_inverse_function
                         p_new.map = p_orig.map[array_slices[:-1]]
                         #p_new.value = p_new.map['values'].ravel()[0]
@@ -2424,13 +2418,13 @@ class modelSpecialSlicers:
     def __getitem__(self, slices):
         return self.model.__getitem__(slices, True, self.isNavigation)
 
-
-def multifit_kernel(model_dict, slices, kwargs):
-    import hyperspy.hspy as hp
-    m = hp.create_model(model_dict)
+def multifit_kernel(args):
+    from hyperspy.model import Model
+    model_dict, kwargs = args
+    m = Model(model_dict)
     m.multifit(**kwargs)
     d = m.as_dictionary()
     del d['spectrum']
     # delete everything else that doesn't matter. Only maps of
     # parameters and chisq matter
-    return slices, d
+    return d

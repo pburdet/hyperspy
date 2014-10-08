@@ -149,6 +149,9 @@ class Parameter(object):
             self.free = copy.deepcopy(dict['free'])
             self.units = copy.deepcopy(dict['units'])
             self._bounds = copy.deepcopy(dict['_bounds'])
+            self.__ext_bounded = copy.deepcopy(dict['ext_bounded'])
+            self.__ext_force_positive = copy.deepcopy(dict['ext_force_positive'])
+
             if hasattr(self, 'active') and 'active' in dict:
                 self.active = dict['active']
             if 'dill_avail' in dict and dill_avail:
@@ -544,7 +547,9 @@ class Parameter(object):
             dic['value'] = self.value
             dic['std'] = self.std
         dic['free'] = self.free
+        dic['ext_bounded'] = self.ext_bounded
         dic['units'] = self.units
+        dic['ext_force_positive'] = self.ext_force_positive
         dic['id'] = id(self)
         dic['_twins'] = [id(t) for t in self._twins]
         dic['_bounds'] = self._bounds
