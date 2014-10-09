@@ -33,7 +33,6 @@ from scipy.optimize import (leastsq,
                             fmin_tnc,
                             fmin_powell)
 from traits.trait_errors import TraitError
-import inspect
 
 from hyperspy import components
 from hyperspy import messages
@@ -1470,12 +1469,13 @@ class Model(list):
                 os.remove(autosave_fn + '.npz')
         else:
             # look for cluster
-            from hyperspy.misc.eds import utils as utils_eds
-            pool, pool_type = utils_eds.get_multi_processing_pool(parallel)
+            from hyperspy.misc import multiprocessing
+            pool, pool_type = multiprocessing.pool(parallel,
+                                                   ipython_timeout=ipython_timeout)
+            import inspect
             # import function to pass to workers
-            from hyperspy.model import multifit_kernel
             # split model and send to workers
-            self.axes_manager.disconnect(self.fetch_stored_values)
+            # self.axes_manager.disconnect(self.fetch_stored_values)
             self.unfold()
             cuts = np.array_split(
                 np.arange(
@@ -1492,6 +1492,11 @@ class Model(list):
                 arg = m_fit_args.args[i]
                 if arg not in kwargs.keys():
                     kwargs.update({arg: m_fit_args.defaults[i]})
+            if mask is not None:
+                orig_mask = mask.copy()
+                unf_mask = orig_mask.ravel()
+                masks = [unf_mask[l[0]: l[-1] + 1] for l in cuts]
+                kwargs['mask'] = mask
             try:
                 del kwargs['kind']
             except:
@@ -1503,25 +1508,22 @@ class Model(list):
                        kwargs) for l in cuts]
             for m in models:
                 del m[0]['spectrum']['metadata']['_HyperSpy']
-            results = pool.map_async(multifit_kernel, models)
+            results = pool.map_async(multiprocessing.multifit, models)
             if pool_type == 'mp':
                 pool.close()
                 pool.join()
             results = results.get()
             # return results
-            for r, slices in zip(results, pass_slices):
-                model_dict = r
+            for model_dict, slices in zip(results, pass_slices):
                 self.chisq.data[
-                    slices[0]:slices[1]] = model_dict['chisq']['data'][
-                        :slices[1]-slices[0]].copy()
+                    slices[0]:slices[1]] = model_dict['chisq']['data'].copy()
                 for ic, c in enumerate(self):
                     for p in c.parameters:
                         for p_d in model_dict['components'][ic]['parameters']:
                             if p_d['_id_name'] == p._id_name:
-                                p.map[slices[0]:slices[1]] = p_d['map'][
-                                    :slices[1]-slices[0]].copy()
+                                p.map[slices[0]:slices[1]] = p_d['map'].copy()
             self.fold()
-            self.axes_manager.connect(self.fetch_stored_values)
+            # self.axes_manager.connect(self.fetch_stored_values)
 
     def save_parameters2file(self, filename):
         """Save the parameters array in binary format
@@ -2404,15 +2406,3 @@ class modelSpecialSlicers:
 
     def __getitem__(self, slices):
         return self.model.__getitem__(slices, True, self.isNavigation)
-
-
-def multifit_kernel(args):
-    from hyperspy.model import Model
-    model_dict, kwargs = args
-    m = Model(model_dict)
-    m.multifit(**kwargs)
-    d = m.as_dictionary()
-    del d['spectrum']
-    # delete everything else that doesn't matter. Only maps of
-    # parameters and chisq matter
-    return d
