@@ -3,19 +3,19 @@ from __future__ import division
 import numpy as np
 import math
 import execnet
-import os
+# import os
 import copy
 import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
 from functools import reduce
 
 
-#import hyperspy.utils
-from hyperspy.misc.config_dir import config_path
-import hyperspy.components as components
+# import hyperspy.utils
+# from hyperspy.misc.config_dir import config_path
+# import hyperspy.components as components
 from hyperspy.misc.elements import elements as elements_db
 from hyperspy.misc.eds import database
-#from hyperspy.misc.eds.MAC import MAC_db as MAC
+# from hyperspy.misc.eds.MAC import MAC_db as MAC
 from hyperspy.misc.eds import physical_model
 
 
@@ -2275,3 +2275,28 @@ def quantification_cliff_lorimer(intensities, kfactors):
         composition.append(composition[0] / ab1)
     composition = np.nan_to_num(composition)
     return composition
+    
+def get_multi_processing_pool(parallel,self=None):
+    
+    from IPython.parallel import Client, error
+    ipython_timeout = 1.
+    try:
+        c = Client(profile='hyperspy', timeout=ipython_timeout)
+        pool = c[:]
+        pool_type = 'iypthon'
+    except (error.TimeoutError, IOError):
+        print "Problem with multiprocessing"
+        from multiprocessing import Pool
+        pool_type = 'mp'
+        pool = Pool(processes=parallel)
+    if self is None:
+        return pool, pool_type
+    else:
+        #self = self.deepcopy()
+        dim_split = self.axes_manager.shape[1]
+        step_sizes = [dim_split / parallel] * parallel
+        for i in range(dim_split % parallel):
+            step_sizes[i] += 1
+        self_to_split = self.split(axis=1, step_sizes=step_sizes)
+        return self_to_split, pool, pool_type
+    

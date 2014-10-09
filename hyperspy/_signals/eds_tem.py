@@ -984,21 +984,11 @@ class EDSTEMSpectrum(EDSSpectrum):
                            parallel=parallel))
         else:
             from hyperspy._signals.image import isart_multi
-            from IPython.parallel import Client, error
-            ipython_timeout = 1.
-            try:
-                c = Client(profile='hyperspy', timeout=ipython_timeout)
-                pool = c[:]
-                pool_type = 'iypthon'
-            except (error.TimeoutError, IOError):
-                print "Problem with multiprocessing"
-                from multiprocessing import Pool
-                pool_type = 'mp'
-                pool = Pool(processes=parallel)
-            dic = [{'data': sinogram.to_spectrum().data, 'tilt': tilt_stages,
-                    'iteration': iteration} for sinogram in sinograms]
-            [di.update(kwargs) for di in dic]
-            rec = pool.map_async(isart_multi, dic)
+            pool, pool_type = utils_eds.get_multi_processing_pool(parallel)
+            kwargs.update({'theta': tilt_stages})
+            data = [[sino.to_spectrum().data,
+                     iteration, kwargs] for sino in sinograms]
+            rec = pool.map_async(isart_multi, data)
             if pool_type == 'mp':
                 pool.close()
                 pool.join()

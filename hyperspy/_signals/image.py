@@ -19,6 +19,7 @@
 import numpy as np
 
 from hyperspy.signal import Signal
+from hyperspy.misc.eds import utils as utils_eds
 
 
 class Image(Signal):
@@ -220,28 +221,13 @@ class Image(Signal):
                                          image=rec[i], **kwargs)
         elif algorithm == 'SART':
             from hyperspy._signals.image import isart_multi
-            from IPython.parallel import Client, error
-            ipython_timeout = 1.
-            try:
-                c = Client(profile='hyperspy', timeout=ipython_timeout)
-                pool = c[:]
-                pool_type = 'iypthon'
-            except (error.TimeoutError, IOError):
-                print "Problem with multiprocessing"
-                from multiprocessing import Pool
-                pool_type = 'mp'
-                pool = Pool(processes=parallel)
-            sinogram = self.deepcopy().to_spectrum()
-            dim_split = sinogram.axes_manager.shape[1]
-            step_sizes = [dim_split / parallel] * parallel
-            # step_sizes[-1] = step_sizes[-1] + dim_split % parallel
-            for i in range(dim_split % parallel):
-                step_sizes[i] += 1
-            sino = sinogram.split(axis=1, step_sizes=step_sizes)
-            dic = [{'data': si.data, 'tilt': tilt_stages,
-                    'iteration': iteration} for si in sino]
-            [di.update(kwargs) for di in dic]
-            res = pool.map_async(isart_multi, dic)
+            sino, pool, pool_type = \
+                utils_eds.get_multi_processing_pool(parallel,
+                                                    self.to_spectrum())
+
+            kwargs.update({'theta': tilt_stages})
+            data = [[si.data, iteration, kwargs] for si in sino]
+            res = pool.map_async(isart_multi, data)
             if pool_type == 'mp':
                 pool.close()
                 pool.join()
@@ -262,23 +248,16 @@ class Image(Signal):
         return rec
 
 
-def isart_multi(dic):
+def isart_multi(args):
     from hyperspy.misc.borrowed.scikit_image_dev.radon_transform\
         import iradon_sart
     import numpy as np
-    import inspect
-    tilt_stages = dic['tilt']
-    iteration = dic['iteration']
-    kwargs = {}
-    for item, i in dic.items():
-        if item in inspect.getargspec(iradon_sart).args:
-            kwargs.update({item: i})
-    sinogram = dic['data']
+    sinogram, iteration, kwargs = args
     rec = np.zeros([sinogram.shape[0], sinogram.shape[1],
                     sinogram.shape[1]])
     for i in range(sinogram.shape[0]):
-        rec[i] = iradon_sart(sinogram[i], theta=tilt_stages, **kwargs)
+        rec[i] = iradon_sart(sinogram[i], **kwargs)
         for j in range(iteration - 1):
-            rec[i] = iradon_sart(sinogram[i], theta=tilt_stages,
+            rec[i] = iradon_sart(sinogram[i],
                                  image=rec[i], **kwargs)
     return rec

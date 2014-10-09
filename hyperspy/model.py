@@ -1386,7 +1386,7 @@ class Model(list):
         """
         if show_progressbar is None:
             show_progressbar = preferences.General.show_progressbar
-            
+
         if "weights" in kwargs:
             warnings.warn(weights_deprecation_warning, DeprecationWarning)
             del kwargs["weights"]
@@ -1470,16 +1470,8 @@ class Model(list):
                 os.remove(autosave_fn + '.npz')
         else:
             # look for cluster
-            from IPython.parallel import Client, error          
-            try:
-                c = Client(profile='hyperspy', timeout=ipython_timeout)
-                pool = c[:]
-                pool_type = 'iypthon'
-            except (error.TimeoutError, IOError):
-                print "Problem with multiprocessing"
-                from multiprocessing import Pool
-                pool_type = 'mp'
-                pool = Pool(processes=parallel)
+            from hyperspy.misc.eds import utils as utils_eds
+            pool, pool_type = utils_eds.get_multi_processing_pool(parallel)
             # import function to pass to workers
             from hyperspy.model import multifit_kernel
             # split model and send to workers
@@ -1496,33 +1488,28 @@ class Model(list):
 
             # add default arguments from the specific model
             m_fit_args = inspect.getargspec(self.fit)
-            for i in range(-len(m_fit_args.defaults),0):
+            for i in range(-len(m_fit_args.defaults), 0):
                 arg = m_fit_args.args[i]
                 if arg not in kwargs.keys():
-                    kwargs.update({arg:m_fit_args.defaults[i]})
+                    kwargs.update({arg: m_fit_args.defaults[i]})
             try:
                 del kwargs['kind']
             except:
                 pass
-            del kwargs['self']            
+            del kwargs['self']
             kwargs['parallel'] = 1
-            kwargs['show_progressbar'] = False   
-            print kwargs
+            kwargs['show_progressbar'] = False
             models = [(self.inav[l[0]: l[-1] + 1].as_dictionary(),
                        kwargs) for l in cuts]
             for m in models:
                 del m[0]['spectrum']['metadata']['_HyperSpy']
-
-            print pool_type
             results = pool.map_async(multifit_kernel, models)
-            #results = map(multifit_kernel, models)           
             if pool_type == 'mp':
                 pool.close()
                 pool.join()
-                
             results = results.get()
-            #return results
-            for r, slices in zip(results,pass_slices):
+            # return results
+            for r, slices in zip(results, pass_slices):
                 model_dict = r
                 self.chisq.data[
                     slices[0]:slices[1]] = model_dict['chisq']['data'][
@@ -2417,6 +2404,7 @@ class modelSpecialSlicers:
 
     def __getitem__(self, slices):
         return self.model.__getitem__(slices, True, self.isNavigation)
+
 
 def multifit_kernel(args):
     from hyperspy.model import Model
