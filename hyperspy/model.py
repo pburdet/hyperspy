@@ -1391,62 +1391,40 @@ class Model(list):
         if "weights" in kwargs:
             warnings.warn(weights_deprecation_warning, DeprecationWarning)
             del kwargs["weights"]
-
-        if autosave is not False:
-            fd, autosave_fn = tempfile.mkstemp(
-                prefix='hyperspy_autosave-',
-                dir='.', suffix='.npz')
-            os.close(fd)
-            autosave_fn = autosave_fn[:-4]
-            messages.information(
-                "Autosaving each %s pixels to %s.npz" % (autosave_every,
-                                                         autosave_fn))
-            messages.information(
-                "When multifit finishes its job the file will be deleted")
         if mask is not None and \
                 (mask.shape != tuple(self.axes_manager._navigation_shape_in_array)):
             messages.warning_exit(
                 "The mask must be a numpy array of boolen type with "
                 " shape: %s" +
                 str(self.axes_manager._navigation_shape_in_array))
-        masked_elements = 0 if mask is None else mask.sum()
-        maxval = self.axes_manager.navigation_size - masked_elements
-        if 'bounded' in kwargs and kwargs['bounded'] is True:
-            if kwargs['fitter'] == 'mpfit':
-                self.set_mpfit_parameters_info()
-                kwargs['bounded'] = None
-            elif kwargs['fitter'] in ("tnc", "l_bfgs_b"):
-                self.set_boundaries()
-                kwargs['bounded'] = None
-            else:
-                messages.information(
-                    "The chosen fitter does not suppport bounding."
-                    "If you require bounding please select one of the "
-                    "following fitters instead: mpfit, tnc, l_bfgs_b")
-                kwargs['bounded'] = False
 
-#                 ==============
-#         i = 0
-#         self.axes_manager.disconnect(self.fetch_stored_values)
-#         for index in self.axes_manager:
-#             if mask is None or not mask[index[::-1]]:
-#                 self.fetch_stored_values(only_fixed=fetch_only_fixed)
-#                 self.fit(**kwargs)
-#                 i += 1
-#                 if maxval > 0:
-#                     pbar.update(i)
-#             if autosave is True and i % autosave_every == 0:
-#                 self.save_parameters2file(autosave_fn)
-#         if maxval > 0:
-#             pbar.finish()
-#         self.axes_manager.connect(self.fetch_stored_values)
-#         if autosave is True:
-#             messages.information(
-#                 'Deleting the temporary file %s pixels' % (
-#                     autosave_fn + 'npz'))
-#             os.remove(autosave_fn + '.npz')
-#             ===================
         if parallel is None or parallel <= 1:
+            if autosave is not False:
+                fd, autosave_fn = tempfile.mkstemp(
+                    prefix='hyperspy_autosave-',
+                    dir='.', suffix='.npz')
+                os.close(fd)
+                autosave_fn = autosave_fn[:-4]
+                messages.information(
+                    "Autosaving each %s pixels to %s.npz" % (autosave_every,
+                                                             autosave_fn))
+                messages.information(
+                    "When multifit finishes its job the file will be deleted")
+            masked_elements = 0 if mask is None else mask.sum()
+            maxval = self.axes_manager.navigation_size - masked_elements
+            if 'bounded' in kwargs and kwargs['bounded'] is True:
+                if kwargs['fitter'] == 'mpfit':
+                    self.set_mpfit_parameters_info()
+                    kwargs['bounded'] = None
+                elif kwargs['fitter'] in ("tnc", "l_bfgs_b"):
+                    self.set_boundaries()
+                    kwargs['bounded'] = None
+                else:
+                    messages.information(
+                        "The chosen fitter does not suppport bounding."
+                        "If you require bounding please select one of the "
+                        "following fitters instead: mpfit, tnc, l_bfgs_b")
+                    kwargs['bounded'] = False
             if maxval > 0:
                 pbar = progressbar.progressbar(maxval=maxval,
                                                disabled=not show_progressbar)
@@ -1525,7 +1503,6 @@ class Model(list):
                             if p_d['_id_name'] == p._id_name:
                                 p.map[slices[0]:slices[1]] = p_d['map'].copy()
             self.fold()
-            # self.axes_manager.connect(self.fetch_stored_values)
 
     def save_parameters2file(self, filename):
         """Save the parameters array in binary format
@@ -2364,6 +2341,10 @@ class Model(list):
                 for ic, c in enumerate(_model):
                     c.name = self[ic].name
                     for p_new, p_orig in zip(c.parameters, self[ic].parameters):
+                        p_new.free = p_orig.free
+                        p_new.std = p_orig.std
+                        p_new.ext_bounded = p_orig.ext_bounded
+                        p_new.ext_force_positive = p_orig.ext_force_positive
                         p_new.twin_function = p_orig.twin_function
                         p_new.free = p_orig.free
                         #p_new.std = p_orig.std
