@@ -1343,7 +1343,7 @@ class Model(list):
                  fetch_only_fixed=False,
                  autosave=False,
                  autosave_every=10,
-                 parallel=None, 
+                 parallel=None,
                  max_chunk_size=100,
                  show_progressbar=None,
                  **kwargs):
@@ -1463,36 +1463,39 @@ class Model(list):
                 cuts = np.array_split(np.arange(size), parallel)
             pass_slices = [(l[0], l[-1] + 1) for l in cuts]
             # add all arguments to kwargs
-            [kwargs.update({arg: locals()[arg]})
+            kwargs_multi = kwargs.copy()
+            [kwargs_multi.update({arg: locals()[arg]})
                 for arg in inspect.getargspec(self.multifit).args]
 
             # add default arguments from the specific model
             m_fit_args = inspect.getargspec(self.fit)
             for i in range(-len(m_fit_args.defaults), 0):
                 arg = m_fit_args.args[i]
-                if arg not in kwargs.keys():
-                    kwargs.update({arg: m_fit_args.defaults[i]})
-            if mask is not None:
-                orig_mask = mask.copy()
-                unf_mask = orig_mask.ravel()
-                masks = [unf_mask[l[0]: l[-1] + 1] for l in cuts]
-                kwargs['mask'] = mask
+                if arg not in kwargs_multi.keys():
+                    kwargs_multi.update({arg: m_fit_args.defaults[i]})
+#            if mask is not None:
+#                unf_mask = mask.copy().ravel()
+#                masks = [unf_mask[l[0]: l[-1] + 1] for l in cuts]
             try:
-                del kwargs['kind']
+                del kwargs_multi['kind']
             except:
                 pass
-            del kwargs['self']
-            kwargs['parallel'] = 1
-            kwargs['show_progressbar'] = False
-            models = [(self.inav[l[0]: l[-1] + 1].as_dictionary(),
-                       kwargs) for l in cuts]
-            for m in models:
-                del m[0]['spectrum']['metadata']['_HyperSpy']
+            del kwargs_multi['self']
+            kwargs_multi['parallel'] = 1
+            kwargs_multi['show_progressbar'] = False
+            models = []
+            for i, l in enumerate(cuts):
+                if mask is not None:
+                    kwargs_multi['mask'] = mask.copy().ravel()[l[0]: l[-1] + 1]
+                models.append((self.inav[l[0]: l[-1] + 1].as_dictionary(),
+                               kwargs_multi.copy()))
+                del models[-1][0]['spectrum']['metadata']['_HyperSpy']
             results = pool.map_async(multiprocessing.multifit, models)
+            # results = map(multiprocessing.multifit, models)
             if pool_type == 'mp':
                 pool.close()
                 pool.join()
-            results = results.get()
+            results = results.get(timeout=36*36*24)
             # return results
             for model_dict, slices in zip(results, pass_slices):
                 self.chisq.data[
