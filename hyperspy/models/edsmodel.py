@@ -21,9 +21,7 @@
 # k-ratios
 from __future__ import division
 
-import copy
 import numpy as np
-#import traits.api as t
 import math
 
 from hyperspy.model import Model
@@ -81,7 +79,7 @@ class EDSModel(Model):
             self.units_factor = 1.
         else:
             raise ValueError("Energy units, %s, not supported" %
-                             str(unit_name))
+                             str(units_name))
         if auto_add_lines is True:
             self.add_family_lines()
 
@@ -124,12 +122,12 @@ class EDSModel(Model):
         only_lines = ("Ka", "La", "Ma")
 
         # if only_lines is not None:
-        #only_lines = list(only_lines)
+        # only_lines = list(only_lines)
         # for only_line in only_lines:
         # if only_line == 'a':
-        #only_lines.extend(['Ka', 'La', 'Ma'])
+        # only_lines.extend(['Ka', 'La', 'Ma'])
         # elif only_line == 'b':
-        #only_lines.extend(['Kb', 'Lb1', 'Mb'])
+        # only_lines.extend(['Kb', 'Lb1', 'Mb'])
 
         if xray_lines is None or xray_lines == 'from_elements':
             if 'Sample.xray_lines' in self.spectrum.metadata \
@@ -149,13 +147,14 @@ class EDSModel(Model):
 
         for i, xray_line in enumerate(xray_lines):
             element, line = utils_eds._get_element_and_line(xray_line)
-            line_energy, line_FWHM = self.spectrum._get_line_energy(xray_line,
-                                                                    FWHM_MnKa='auto')
+            line_energy, line_FWHM = self.spectrum._get_line_energy(
+                xray_line,
+                FWHM_MnKa='auto')
             component = create_component.Gaussian()
             component.centre.value = line_energy
-            #component.fwhm = line_FWHM
+            # component.fwhm = line_FWHM
             component.sigma.value = line_FWHM / 2.355
-            #component.A.value = self.spectrum[..., line_energy].data.flatten().mean()
+            # component.A.value = self.spectrum[..., line_energy].data.flatten().mean()
 
             component.centre.free = False
             component.sigma.free = False
@@ -181,9 +180,9 @@ class EDSModel(Model):
                     component_sub = create_component.Gaussian()
                     component_sub.centre.value = line_energy
                     component_sub.name = xray_sub
-                    #component_sub.fwhm = line_FWHM
+                    # component_sub.fwhm = line_FWHM
                     component_sub.sigma.value = line_FWHM / 2.355
-                    #component.A.ext_force_positive = True
+                    # component.A.ext_force_positive = True
                     component_sub.centre.free = False
                     component_sub.sigma.free = False
                     component_sub.A.twin_function = _get_weight(element, li)
@@ -250,91 +249,6 @@ class EDSModel(Model):
             utils.plot.plot_signals(intensities, **kwargs)
         if store_in_mp is False:
             return intensities
-
-    # def add_background(self,
-            #generation_factors=[1, 2],
-            # detector_name=4,
-            # weight_fraction='auto',
-            # thickness=100,
-            # density='auto',
-            # gateway='auto'):
-        #"""
-        # Add a backround to the model in the form of several
-        # scalable fixed patterns.
-
-        # Each pattern is the muliplication of the detector efficiency,
-        # the absorption in the sample (PDH equation for SEM, constant
-        # X-ray pdouction for TEM) and a continuous X-ray
-        # generation.
-
-        # Parameters
-        #----------
-        # generation_factors: list of int
-            # For each number n, add (E0-E)^n/E
-            #[1] is equivalent to Kramer equation.
-            #[1,2] is equivalent to Lisfhisn modification of Kramer equation.
-        # det_name: int, str, None
-            # If None, no det_efficiency
-            # If {0,1,2,3,4}, INCA efficiency database
-            # If str, model from DTSAII
-        # weight_fraction: list of float
-            # The sample composition used for the sample absorption.
-            # If 'auto', takes value in metadata. If not there,
-            #use and equ-composition
-        # thickness : float
-            # Thickness of thin film.
-            # Option only relevant for EDSTEMSpectrum.
-        # density: float or 'auto'
-            # Set the density. in g/cm^3
-            # if 'auto', calculated from weight_fraction
-            # Option only relevant for EDSTEMSpectrum.
-        # gateway: execnet Gateway
-            # If 'auto', generate automatically the connection to jython.
-
-        # See also
-        #--------
-        # database.detector_efficiency_INCA,
-        # utils_eds.get_detector_properties
-        #"""
-        #generation = []
-        # for exp_factor in generation_factors:
-            # generation.append(self.spectrum.compute_continuous_xray_generation(
-            # exp_factor))
-            #generation[-1].metadata.General.title = 'generation'\
-            #+ str(exp_factor)
-
-        # if 'SEM' in self.spectrum.metadata.Signal.signal_type:
-            # absorption = self.spectrum.compute_continuous_xray_absorption(
-            # weight_fraction=weight_fraction)
-        # elif thickness == 0.:
-            #absorption = generation[0].deepcopy()
-            #absorption.data = np.ones_like(generation[0].data)
-        # else :
-            # absorption = self.spectrum.compute_continuous_xray_absorption(
-            #thickness=thickness, density=density,
-            # weight_fraction=weight_fraction)
-
-        # if detector_name is None:
-            #det_efficiency = generation[0].deepcopy()
-            #det_efficiency.data = np.ones_like(generation[0].data)
-        # else :
-            # det_efficiency = self.spectrum.get_detector_efficiency(
-            # detector_name, gateway=gateway)
-
-        # for gen, gen_fact in zip(generation, generation_factors):
-            #bck = det_efficiency * gen * absorption
-            # bck.plot()
-            #bck = bck[self.axes_manager[-1].scale:]
-            #bck.metadata.General.title = 'bck_' + str(gen_fact)
-            #component = create_component.ScalableFixedPattern(bck)
-            #component.set_parameters_not_free(['xscale', 'shift'])
-            #component.name = bck.metadata.General.title
-            ##component.yscale.ext_bounded = True
-            ##component.yscale.bmin = 0
-            #component.yscale.ext_force_positive = True
-            #component.isbackground = True
-            # self.append(component)
-            # self.background_components.append(component)
 
     @property
     def _active_xray_lines(self):
@@ -411,9 +325,11 @@ class EDSModel(Model):
         for component in self:
             if component.isbackground is False:
                 try:
-                    self.remove_signal_range(component.centre.value -
-                                             windows_sigma[0] * component.sigma.value, component.centre.value +
-                                             windows_sigma[1] * component.sigma.value)
+                    self.remove_signal_range(
+                        component.centre.value -
+                        windows_sigma[0] * component.sigma.value,
+                        component.centre.value +
+                        windows_sigma[1] * component.sigma.value)
                 except:
                     pass
 
@@ -526,7 +442,7 @@ class EDSModel(Model):
                     bound * component.A.value
             component.A.bmax = component.A.value + \
                 bound * component.A.value
-            #component.A.ext_force_positive = True
+            # component.A.ext_force_positive = True
         xray_families = [
             utils_eds._get_xray_lines_family(line) for line in xray_lines]
         for component in self:
@@ -642,8 +558,8 @@ class EDSModel(Model):
         if xray_lines == 'all_alpha':
             xray_lines = [compo.name for compo in self.xray_lines]
         energy_Mn_Ka = self.spectrum._get_line_energy('Mn_Ka')
-        get_sigma_Mn_Ka = _get_sigma(energy_Mn_Ka,
-                                     self[xray_lines[0]].centre.value, self.units_factor)
+        get_sigma_Mn_Ka = _get_sigma(
+            energy_Mn_Ka, self[xray_lines[0]].centre.value, self.units_factor)
         FWHM_MnKa = get_sigma_Mn_Ka(self[xray_lines[0]].sigma.value
                                     ) * 1000. / self.units_factor * 2.355
         if FWHM_MnKa < 110:
@@ -702,9 +618,9 @@ class EDSModel(Model):
         The chi-squared, reduced chi-squared and the degrees of freedom are
         computed automatically when fitting. They are stored as signals, in the
         `chisq`, `red_chisq`  and `dof`. Note that,
-        unless ``metadata.Signal.Noise_properties.variance`` contains an accurate
-        estimation of the variance of the data, the chi-squared and reduced
-        chi-squared cannot be computed correctly. This is also true for
+        unless ``metadata.Signal.Noise_properties.variance`` contains an
+        accurate estimation of the variance of the data, the chi-squared and
+        reduced chi-squared cannot be computed correctly. This is also true for
         homocedastic noise.
 
         Parameters

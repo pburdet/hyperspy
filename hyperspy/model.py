@@ -1338,10 +1338,15 @@ class Model(list):
             self._connect_parameters2update_plot()
             self.update_plot()
 
-    def multifit(self, mask=None, fetch_only_fixed=False,
-                 autosave=False, autosave_every=10, parallel=None, 
-                 ipython_timeout=1.,
-                 show_progressbar=None, **kwargs):
+    def multifit(self,
+                 mask=None,
+                 fetch_only_fixed=False,
+                 autosave=False,
+                 autosave_every=10,
+                 parallel=None, 
+                 max_chunk_size=100,
+                 show_progressbar=None,
+                 **kwargs):
         """Fit the data to the model at all the positions of the
         navigation dimensions.
 
@@ -1362,13 +1367,10 @@ class Model(list):
             Save the result of fitting every given number of spectra.
         parallel : {None, int}
             If None or 1, does not parallelise multifit. If >1, will look for
-            ipython clusters with the required number of workers. If none or not enougth
-            are found, it will create multiprocessing cluster with the required number
-            of workers, so that the model is always calculated on the specified number
-            of cores.
-        ipython_timeout : float
-            Timeout to be passed for ipython parallel Client.
-
+            ipython clusters. If no ipython clusters are running, it will
+            create multiprocessing cluster.
+        max_chunk_size: int
+            The maximum number of spectra send to a cluster.
         show_progressbar : None or bool
             If True, display a progress bar. If None the default is set in
             `preferences`.
@@ -1470,17 +1472,17 @@ class Model(list):
         else:
             # look for cluster
             from hyperspy.misc import multiprocessing
-            pool, pool_type = multiprocessing.pool(parallel,
-                                                   ipython_timeout=ipython_timeout)
+            pool, pool_type = multiprocessing.pool(parallel)
             import inspect
             # import function to pass to workers
             # split model and send to workers
             # self.axes_manager.disconnect(self.fetch_stored_values)
             self.unfold()
-            cuts = np.array_split(
-                np.arange(
-                    self.spectrum.axes_manager.navigation_size),
-                parallel)
+            size = self.spectrum.axes_manager.navigation_size
+            if size / parallel > max_chunk_size:
+                cuts = np.array_split(np.arange(size), size / max_chunk_size)
+            else:
+                cuts = np.array_split(np.arange(size), parallel)
             pass_slices = [(l[0], l[-1] + 1) for l in cuts]
             # add all arguments to kwargs
             [kwargs.update({arg: locals()[arg]})

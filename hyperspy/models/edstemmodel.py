@@ -20,18 +20,11 @@
 # Calibrate on standard and transfer dictionnary
 # k-ratios
 
-import copy
 import numpy as np
-#import traits.api as t
-import math
 
-#from hyperspy.model import Model
 from hyperspy.models.edsmodel import EDSModel
-#from hyperspy._signals.eds import EDSSpectrum
-#from hyperspy.misc.elements import elements as elements_db
-#from hyperspy.misc.eds import utils as utils_eds
 import hyperspy.components as create_component
-#from hyperspy import utils
+
 
 class EDSTEMModel(EDSModel):
 
@@ -52,7 +45,7 @@ class EDSTEMModel(EDSModel):
                  *args, **kwargs):
         EDSModel.__init__(self, spectrum, auto_add_lines, *args, **kwargs)
 
-        self.background_components = list()        
+        self.background_components = list()
 
         if auto_background is True:
             self.add_background()
@@ -88,7 +81,7 @@ class EDSTEMModel(EDSModel):
              use and equ-composition
         thicknesses : list float
             Generated several model of byc in function of Thicknesses
-             of thin film. 
+             of thin film.
         density: float or 'auto'
             Set the density. in g/cm^3
             if 'auto', calculated from weight_fraction
@@ -102,27 +95,29 @@ class EDSTEMModel(EDSModel):
         """
 
         generation = self.spectrum.compute_continuous_xray_generation(
-            generation_factor)                 
+            generation_factor)
         absorptions = []
-        
-        background_names = [float(xr.name.split('_')[1]) for xr in self.background_components]
+        background_names = [float(xr.name.split('_')[1])
+                            for xr in self.background_components]
         thicknesses = filter(lambda x: x not in background_names, thicknesses)
-        
+
         for thickness in thicknesses:
             if thickness == 0.:
                 absorptions.append(generation.deepcopy())
                 absorptions[-1].data = np.ones_like(generation.data)
-            else :
-                absorptions.append(self.spectrum.compute_continuous_xray_absorption(
-                    thickness=thickness, density=density,
-                    weight_fraction=weight_fraction))
-        
+            else:
+                absorptions.append(
+                    self.spectrum.compute_continuous_xray_absorption(
+                        thickness=thickness, density=density,
+                        weight_fraction=weight_fraction))
         if detector_name is None:
             det_efficiency = generation.deepcopy()
             det_efficiency.data = np.ones_like(generation.data)
         elif detector_name == 'osiris':
-            det_efficiency = self.spectrum.compute_detector_efficiency_from_layers(microscope_name=detector_name)
-        else : 
+            det_efficiency = self.spectrum.\
+                compute_detector_efficiency_from_layers(
+                    microscope_name=detector_name)
+        else:
             det_efficiency = self.spectrum.get_detector_efficiency(
                 detector_name, gateway=gateway)
         sumspec = self.spectrum.sum(-1).data
@@ -134,8 +129,8 @@ class EDSTEMModel(EDSModel):
             component = create_component.ScalableFixedPattern(bck)
             component.set_parameters_not_free(['xscale', 'shift'])
             component.name = bck.metadata.General.title
-            #component.yscale.ext_bounded = True
-            #component.yscale.bmin = 0
+            # component.yscale.ext_bounded = True
+            # component.yscale.bmin = 0
             component.yscale.ext_force_positive = True
             component.isbackground = True
             self.append(component)
@@ -143,11 +138,8 @@ class EDSTEMModel(EDSModel):
             init = True
             if init:
                 self[bck.metadata.General.title].yscale.map[
-                    'values'] = sumspec / bck.sum(-1).data / len(absorptions) / 3 / self.spectrum.axes_manager[-1].scale
+                    'values'] = sumspec / bck.sum(-1).data / len(absorptions) \
+                    / 3 / self.spectrum.axes_manager[-1].scale
                 self[bck.metadata.General.title].yscale.map['is_set'] = (
                     np.ones(sumspec.shape) == 1)
         self.fetch_stored_values()
-
-   
-
-    

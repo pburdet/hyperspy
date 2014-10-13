@@ -983,12 +983,12 @@ class EDSTEMSpectrum(EDSSpectrum):
                            iteration=iteration,
                            parallel=parallel))
         else:
-            from hyperspy._signals.image import isart_multi
-            pool, pool_type = utils_eds.get_multi_processing_pool(parallel)
+            from hyperspy.misc import multiprocessing
+            pool, pool_type = multiprocessing.pool(parallel)
             kwargs.update({'theta': tilt_stages})
             data = [[sino.to_spectrum().data,
                      iteration, kwargs] for sino in sinograms]
-            rec = pool.map_async(isart_multi, data)
+            rec = pool.map_async(multiprocessing.isart, data)
             if pool_type == 'mp':
                 pool.close()
                 pool.join()

@@ -2229,10 +2229,10 @@ def quantification_absorption_corrections_thin_film(intensities,
     # print 'extrapolation'
     # print element
     # print energy
-    #mac = ffast_mac[element].mass_absorption_coefficient_cm2g[index]
-    #mac1 = ffast_mac[element].mass_absorption_coefficient_cm2g[index - 1]
-    #energy_db = ffast_mac[element].energies_keV[index]
-    #energy_db1 = ffast_mac[element].energies_keV[index - 1]
+    # mac = ffast_mac[element].mass_absorption_coefficient_cm2g[index]
+    # mac1 = ffast_mac[element].mass_absorption_coefficient_cm2g[index - 1]
+    # energy_db = ffast_mac[element].energies_keV[index]
+    # energy_db1 = ffast_mac[element].energies_keV[index - 1]
     # if energy == energy_db or energy_db1 == 0:
         # return mac
     # else:
@@ -2275,28 +2275,4 @@ def quantification_cliff_lorimer(intensities, kfactors):
         composition.append(composition[0] / ab1)
     composition = np.nan_to_num(composition)
     return composition
-    
-def get_multi_processing_pool(parallel,self=None):
-    
-    from IPython.parallel import Client, error
-    ipython_timeout = 1.
-    try:
-        c = Client(profile='hyperspy', timeout=ipython_timeout)
-        pool = c[:]
-        pool_type = 'iypthon'
-    except (error.TimeoutError, IOError):
-        print "Problem with multiprocessing"
-        from multiprocessing import Pool
-        pool_type = 'mp'
-        pool = Pool(processes=parallel)
-    if self is None:
-        return pool, pool_type
-    else:
-        #self = self.deepcopy()
-        dim_split = self.axes_manager.shape[1]
-        step_sizes = [dim_split / parallel] * parallel
-        for i in range(dim_split % parallel):
-            step_sizes[i] += 1
-        self_to_split = self.split(axis=1, step_sizes=step_sizes)
-        return self_to_split, pool, pool_type
-    
+

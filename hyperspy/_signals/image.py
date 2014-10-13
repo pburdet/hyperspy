@@ -19,7 +19,6 @@
 import numpy as np
 
 from hyperspy.signal import Signal
-from hyperspy.misc.eds import utils as utils_eds
 
 
 class Image(Signal):
@@ -123,7 +122,8 @@ class Image(Signal):
                                             contours=threshold, **kwargs)
         else:
             iso = mlab.pipeline.iso_surface(src,
-                                            contours=threshold, color=color, **kwargs)
+                                            contours=threshold,
+                                            color=color, **kwargs)
         iso.compute_normals = False
 
         if outline:
@@ -220,14 +220,12 @@ class Image(Signal):
                     rec[i] = iradon_sart(sinogram[i], theta=tilt_stages,
                                          image=rec[i], **kwargs)
         elif algorithm == 'SART':
-            from hyperspy._signals.image import isart_multi
-            sino, pool, pool_type = \
-                utils_eds.get_multi_processing_pool(parallel,
-                                                    self.to_spectrum())
-
+            from hyperspy.misc import multiprocessing
+            pool, pool_type = multiprocessing.pool(parallel)
+            sino = multiprocessing.split(self.to_spectrum(), parallel, axis=1)
             kwargs.update({'theta': tilt_stages})
             data = [[si.data, iteration, kwargs] for si in sino]
-            res = pool.map_async(isart_multi, data)
+            res = pool.map_async(multiprocessing.isart, data)
             if pool_type == 'mp':
                 pool.close()
                 pool.join()
@@ -246,18 +244,3 @@ class Image(Signal):
         rec.axes_manager[0].name = 'z'
         rec.get_dimensions_from_data()
         return rec
-
-
-def isart_multi(args):
-    from hyperspy.misc.borrowed.scikit_image_dev.radon_transform\
-        import iradon_sart
-    import numpy as np
-    sinogram, iteration, kwargs = args
-    rec = np.zeros([sinogram.shape[0], sinogram.shape[1],
-                    sinogram.shape[1]])
-    for i in range(sinogram.shape[0]):
-        rec[i] = iradon_sart(sinogram[i], **kwargs)
-        for j in range(iteration - 1):
-            rec[i] = iradon_sart(sinogram[i],
-                                 image=rec[i], **kwargs)
-    return rec
