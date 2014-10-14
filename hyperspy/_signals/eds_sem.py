@@ -1579,7 +1579,8 @@ class EDSSEMSpectrum(EDSSpectrum):
                 std_names = mp.Sample.elements
             else:
                 raise ValueError(
-                    "With std_names = 'all', the Sample.elements need to be set")
+                    "With std_names = 'all', " +
+                    "the Sample.elements need to be set")
 
         dim_nav = list(self.axes_manager.navigation_shape)
         mean_counts = self.data.mean() * self.axes_manager.signal_shape[0]
@@ -1601,7 +1602,7 @@ class EDSSEMSpectrum(EDSSpectrum):
         del spec_result.original_metadata.stack_elements
 
         return spec_result
-        
+
     def compute_continuous_xray_absorption(self,
                                            weight_fraction='auto'):
         """Contninous X-ray Absorption within sample
@@ -1621,9 +1622,9 @@ class EDSSEMSpectrum(EDSSpectrum):
         """
         spec = self._get_signal_signal()
         spec.metadata.General.title = 'Absorption model (PHD model)'
-        if spec.axes_manager.signal_axes[0].units == 'eV' : 
+        if spec.axes_manager.signal_axes[0].units == 'eV':
             units_factor = 1000.
-        else :
+        else:
             units_factor = 1.
         beam_energy = self._get_beam_energy() / units_factor
         elements = self.metadata.Sample.elements
@@ -1635,20 +1636,16 @@ class EDSSEMSpectrum(EDSSpectrum):
                 weight_fraction = []
                 for elm in elements:
                     weight_fraction.append(1. / len(elements))
-                
 
-        #energy_axis = spec.axes_manager.signal_axes[0]
         eng = spec.axes_manager.signal_axes[0].axis / units_factor
-        #eng = np.linspace(energy_axis.low_value,
-                          #energy_axis.high_value,
-                          #energy_axis.size) / units_factor
-        eng = eng[np.searchsorted(eng, 0.0)+1:]
+        eng = eng[np.searchsorted(eng, 0.0):]
         spec.data = np.append(np.array([0.0] * (len(spec.data) - len(eng))),
-                              physical_model.xray_absorption_bulk(energy=eng,
-                                                                        weight_fraction=weight_fraction,
-                                                                        elements=elements,
-                                                                        beam_energy=beam_energy,
-                                                                        TOA=TOA))
+                              physical_model.xray_absorption_bulk(
+                                  energy=eng,
+                                  weight_fraction=weight_fraction,
+                                  elements=elements,
+                                  beam_energy=beam_energy,
+                                  TOA=TOA))
         return spec
 
     # def check_total(self):

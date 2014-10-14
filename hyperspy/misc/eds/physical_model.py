@@ -107,9 +107,10 @@ def xray_absorption_thin_film(energy,
         the take of angle in degree
     """
     from hyperspy import utils
-    mac_sample = utils.material.mass_absorption_coefficient_of_mixture_of_pure_elements(
-        energies=energy, elements=elements,
-        weight_fraction=weight_fraction)
+    mac_sample = utils.material.\
+        mass_absorption_coefficient_of_mixture_of_pure_elements(
+            energies=energy, elements=elements,
+            weight_fraction=weight_fraction)
     rt = density * thickness * 1e-7 / np.sin(np.radians(TOA))
     fact = mac_sample * rt
     abs_corr = np.nan_to_num((1 - np.exp(-(fact))) / fact)

@@ -1224,41 +1224,6 @@ class EDSSpectrum(Spectrum):
 
         return spec_th
 
-    def get_sample_density(self, weight_fraction='auto'):
-        """Return the density of the sample
-
-        Parameters
-        ----------
-        weight_fraction: {list of float| 'auto'}
-            the composition of the sample
-            if 'auto'. looks for the weight fraction in metadata
-            if not there take the iso concentration
-
-        Return
-        ------
-        density in g/cm^3
-        """
-        from hyperspy import signals
-        elements = self.metadata.Sample.elements
-        if weight_fraction == 'auto':
-            if 'weight_fraction' in self.metadata.Sample:
-                weight_fraction = self.metadata.Sample.weight_fraction
-            else:
-                weight_fraction = [1. / len(elements) for elm in elements] 
-                print 'Weight fraction is automatically set to ' + str(
-                    weight_fraction)
-        if isinstance(weight_fraction[0], signals.Signal):
-            weight_frac = []
-            for weight in weight_fraction:
-                weight_frac.append(weight.data)
-            density = utils.material.density_of_mixture_of_pure_elements(
-                elements, weight_frac)
-        else:
-            density = utils.material.density_of_mixture_of_pure_elements(
-                elements, weight_fraction)
-        self.metadata.Sample.density = density
-        return density
-
     def save(self, filename=None, overwrite=None, extension=None,
              **kwds):
         """Saves the signal in the specified format.
@@ -1363,9 +1328,9 @@ class EDSSpectrum(Spectrum):
                           #energy_axis.high_value,
                           #energy_axis.size)
         spec.data = physical_model.xray_generation(
-                    energy=spec.axes_manager.signal_axes[0].axis,
-                                                              generation_factor=generation_factor,
-                                                              beam_energy=beam_energy)
+            energy=spec.axes_manager.signal_axes[0].axis,
+            generation_factor=generation_factor,
+            beam_energy=beam_energy)
         return spec
         
     def compute_detector_efficiency_from_layers(self,
@@ -1421,12 +1386,11 @@ class EDSSpectrum(Spectrum):
         """
         from hyperspy import signals
         elements = self.metadata.Sample.elements
-
         if weight_fraction == 'auto':
             if 'weight_fraction' in self.metadata.Sample:
                 weight_fraction = self.metadata.Sample.weight_fraction
             else:
-                weight_fraction = [1. / len(elements) for elm in elements] 
+                weight_fraction = [1. / len(elements) for elm in elements]
                 print 'Weight fraction is automatically set to ' + str(
                     weight_fraction)
         if isinstance(weight_fraction[0], signals.Signal):
@@ -1440,6 +1404,42 @@ class EDSSpectrum(Spectrum):
                 elements, weight_fraction)
         self.metadata.Sample.density = density
         return density
+
+#    def get_sample_density(self, weight_fraction='auto'):
+#        """Return the density of the sample
+#
+#        Parameters
+#        ----------
+#        weight_fraction: {list of float| 'auto'}
+#            the composition of the sample
+#            if 'auto'. looks for the weight fraction in metadata
+#            if not there take the iso concentration
+#
+#        Return
+#        ------
+#        density in g/cm^3
+#        """
+#        from hyperspy import signals
+#        elements = self.metadata.Sample.elements
+#
+#        if weight_fraction == 'auto':
+#            if 'weight_fraction' in self.metadata.Sample:
+#                weight_fraction = self.metadata.Sample.weight_fraction
+#            else:
+#                weight_fraction = [1. / len(elements) for elm in elements] 
+#                print 'Weight fraction is automatically set to ' + str(
+#                    weight_fraction)
+#        if isinstance(weight_fraction[0], signals.Signal):
+#            weight_frac = []
+#            for weight in weight_fraction:
+#                weight_frac.append(weight.data)
+#            density = utils.material.density_of_mixture_of_pure_elements(
+#                elements, weight_frac)
+#        else:
+#            density = utils.material.density_of_mixture_of_pure_elements(
+#                elements, weight_fraction)
+#        self.metadata.Sample.density = density
+#        return density
 
     def get_sample_mass_absorption_coefficient(self,
                                                elements='auto',

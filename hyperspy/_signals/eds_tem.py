@@ -804,19 +804,20 @@ class EDSTEMSpectrum(EDSSpectrum):
         if density == 'auto':
             density = self.get_sample_density(weight_fraction=weight_fraction)
 
-        #energy_axis = spec.axes_manager.signal_axes[0]
+        # energy_axis = spec.axes_manager.signal_axes[0]
         # eng = np.linspace(energy_axis.low_value,
             # energy_axis.high_value,
             # energy_axis.size) / units_factor
         eng = spec.axes_manager.signal_axes[0].axis / units_factor
-        eng = eng[np.searchsorted(eng, 0.0) + 1:]
+        eng = eng[np.searchsorted(eng, 0.0):]
         spec.data = np.append(np.array([0.0] * (len(spec.data) - len(eng))),
-                              physical_model.xray_absorption_thin_film(energy=eng,
-                                                                       weight_fraction=weight_fraction,
-                                                                       elements=elements,
-                                                                       density=density,
-                                                                       thickness=thickness,
-                                                                       TOA=TOA))
+                              physical_model.xray_absorption_thin_film(
+                                  energy=eng,
+                                  weight_fraction=weight_fraction,
+                                  elements=elements,
+                                  density=density,
+                                  thickness=thickness,
+                                  TOA=TOA))
         return spec
 
     def correct_intensities_from_absorption(self, weight_fraction='auto',
