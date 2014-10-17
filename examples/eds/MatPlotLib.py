@@ -36,6 +36,8 @@ ylabel('')
 xlabel(r'tilt [$^\circ$]')
 xlabel(r'tilt [$\alpha$]')
 
+yscale('log')
+
 ax.get_xaxis().tick_bottom()
 ax.get_yaxis().tick_left()
 setp(ax.lines, linewidth=0.6)
