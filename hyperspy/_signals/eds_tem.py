@@ -989,11 +989,11 @@ class EDSTEMSpectrum(EDSSpectrum):
             kwargs.update({'theta': tilt_stages})
             data = [[sino.to_spectrum().data,
                      iteration, kwargs] for sino in sinograms]
-            rec = pool.map_async(multiprocessing.isart, data)
+            rec = pool.map_sync(multiprocessing.isart, data)
             if pool_type == 'mp':
                 pool.close()
                 pool.join()
-            rec = rec.get()
+            # rec = rec.get()
             rec = Spectrum(rec).as_image([0, 1])
             # print time.time() - a
             rec.axes_manager = self.metadata.Sample[result]\

@@ -225,11 +225,11 @@ class Image(Signal):
             sino = multiprocessing.split(self.to_spectrum(), parallel, axis=1)
             kwargs.update({'theta': tilt_stages})
             data = [[si.data, iteration, kwargs] for si in sino]
-            res = pool.map_async(multiprocessing.isart, data)
+            res = pool.map_sync(multiprocessing.isart, data)
             if pool_type == 'mp':
                 pool.close()
                 pool.join()
-            res = res.get()
+            # res = res.get()
             rec = res[0]
             for i in range(len(res)-1):
                 rec = np.append(rec, res[i+1], axis=0)

@@ -1490,12 +1490,12 @@ class Model(list):
                 models.append((self.inav[l[0]: l[-1] + 1].as_dictionary(),
                                kwargs_multi.copy()))
                 del models[-1][0]['spectrum']['metadata']['_HyperSpy']
-            results = pool.map_async(multiprocessing.multifit, models)
+            results = pool.map_sync(multiprocessing.multifit, models)
             # results = map(multiprocessing.multifit, models)
             if pool_type == 'mp':
                 pool.close()
                 pool.join()
-            results = results.get(timeout=36*36*24)
+            #results = results.get(timeout=36*36*24*1000)
             # return results
             for model_dict, slices in zip(results, pass_slices):
                 self.chisq.data[
@@ -2274,9 +2274,9 @@ class Model(list):
             _orig_slices = slices
 
             # Create a deepcopy of self.spectrum that contains a view of
-            # self.spectrum.data
             _spectrum = self.spectrum._deepcopy_with_new_data(
                 self.spectrum.data)
+            #_spectrum = self.spectrum
 
             if isNavigation:
                 idx = [el.index_in_array for el in
@@ -2319,6 +2319,7 @@ class Model(list):
                     _spectrum._remove_axis(axis.index_in_axes_manager)
 
             _spectrum.data = _spectrum.data[array_slices]
+            # _spectrum = self.spectrum.__getitem__(value, isNavigation)
             if self.spectrum.metadata.has_item('Signal.Noise_properties.variance'):
                 if isinstance(self.spectrum.metadata.Signal.Noise_properties.variance, Signal):
                     _spectrum.metadata.Signal.Noise_properties.variance = self.spectrum.metadata.Signal.Noise_properties.variance.__getitem__(
@@ -2339,8 +2340,8 @@ class Model(list):
                         tmp.append(getattr(c, i))
                     _model.append(getattr(components, c._id_name)(*tmp))
             if isNavigation:
-                _model.dof.data = self.dof.data[tuple(array_slices[:-1])]
-                _model.chisq.data = self.chisq.data[tuple(array_slices[:-1])]
+                _model.dof.data = self.dof.data[array_slices[:-1]]
+                _model.chisq.data = self.chisq.data[array_slices[:-1]]
                 for ic, c in enumerate(_model):
                     c.name = self[ic].name
                     for p_new, p_orig in zip(c.parameters, self[ic].parameters):
@@ -2354,7 +2355,7 @@ class Model(list):
                         p_new.ext_bounded = p_orig.ext_bounded
                         p_new.ext_force_positive = p_orig.ext_force_positive
                         p_new.twin_inverse_function = p_orig.twin_inverse_function
-                        p_new.map = p_orig.map[tuple(array_slices[:-1])]
+                        p_new.map = p_orig.map[array_slices[:-1]]
                         #p_new.value = p_new.map['values'].ravel()[0]
                         p_new.value = p_orig.value
                         twin_dict[id(p_orig)] = ([id(i)
