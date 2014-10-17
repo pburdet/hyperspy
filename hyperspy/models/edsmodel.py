@@ -453,7 +453,7 @@ class EDSModel(Model):
                     bound * component.A.value
             component.A.bmax = component.A.value + \
                 bound * component.A.value
-            # component.A.ext_force_positive = True
+            component.A.ext_force_positive = True
         xray_families = [
             utils_eds._get_xray_lines_family(line) for line in xray_lines]
         for component in self:
