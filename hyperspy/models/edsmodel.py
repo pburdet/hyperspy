@@ -381,7 +381,7 @@ class EDSModel(Model):
 
     def fit_xray_lines_energy(self, xray_lines='all',
                               bound=5.,
-                              kind='single',
+                              kind='single',fitter="mpfit",
                               **kwargs):
         """
         Fit the X-ray line energy (shift of centre of the Gaussian)
@@ -407,14 +407,14 @@ class EDSModel(Model):
                 energy_before = []
                 for xray_line in xray_lines:
                     energy_before.append(self[xray_line].centre.value)
-            self.fit(fitter="mpfit", bounded=True, **kwargs)
+            self.fit(fitter=fitter, bounded=True, **kwargs)
             if xray_lines != 'all':
                 for i, xray_line in enumerate(xray_lines):
                     print xray_line + ' shift of ' + str(
                         self[xray_line].centre.value - energy_before[i])
 
         if kind == 'multi':
-            self.multifit(fitter="mpfit", bounded=True, **kwargs)
+            self.multifit(fitter=fitter, bounded=True, **kwargs)
         self.fix_xray_lines_energy(xray_lines=xray_lines)
 
     def free_sub_xray_lines_weight(self, xray_lines='all', bound=0.01):
@@ -483,7 +483,7 @@ class EDSModel(Model):
         self.fetch_stored_values()
 
     def fit_sub_xray_lines_weight(self, xray_lines='all', bound=0.01,
-                                  kind='single',
+                                  kind='single',fitter="mpfit",
                                   **kwargs):
         """
         Fit the weight of the sub X-ray lines
@@ -508,9 +508,9 @@ class EDSModel(Model):
         """
         self.free_sub_xray_lines_weight(xray_lines=xray_lines, bound=bound)
         if kind == 'single':
-            self.fit(fitter="mpfit", bounded=True, **kwargs)
+            self.fit(fitter=fitter, bounded=True, **kwargs)
         elif kind == 'multi':
-            self.multifit(fitter="mpfit", bounded=True, **kwargs)
+            self.multifit(fitter=fitter, bounded=True, **kwargs)
         self.fix_sub_xray_lines_weight(xray_lines=xray_lines)
 
     def free_energy_resolution(self, xray_lines):
