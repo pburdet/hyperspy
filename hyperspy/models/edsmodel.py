@@ -392,7 +392,7 @@ class EDSModel(Model):
 
     def fit_xray_lines_energy(self, xray_lines='all',
                               bound=5.,
-                              kind='single',fitter="mpfit",
+                              kind='single', fitter="mpfit",
                               **kwargs):
         """
         Fit the X-ray line energy (shift of centre of the Gaussian)
@@ -494,7 +494,7 @@ class EDSModel(Model):
         self.fetch_stored_values()
 
     def fit_sub_xray_lines_weight(self, xray_lines='all', bound=0.01,
-                                  kind='single',fitter="mpfit",
+                                  kind='single', fitter="mpfit",
                                   **kwargs):
         """
         Fit the weight of the sub X-ray lines
