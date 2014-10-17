@@ -72,6 +72,12 @@ class EDSModel(Model):
         Model.__init__(self, spectrum, *args, **kwargs)
         self.xray_lines = list()
         self.background_components = list()
+        end_energy = self.axes_manager.signal_axes[0].high_value
+        if self.spectrum._get_beam_energy() < end_energy:
+            self.end_energy = self.spectrum._get_beam_energy()
+        else:
+            self.end_energy = end_energy
+        self.start_energy = self.axes_manager.signal_axes[0].low_value
         units_name = self.axes_manager.signal_axes[0].units
         if units_name == 'eV':
             self.units_factor = 1000.
@@ -144,6 +150,12 @@ class EDSModel(Model):
 
         components_names = [xr.name for xr in self.xray_lines]
         xray_lines = filter(lambda x: x not in components_names, xray_lines)
+        xray_lines = [xray_line for xray_line in xray_lines if
+                      self.start_energy <
+                      self.spectrum._get_line_energy(xray_line)]
+        xray_lines = [xray_line for xray_line in xray_lines if
+                      self.end_energy >
+                      self.spectrum._get_line_energy(xray_line)]
 
         for i, xray_line in enumerate(xray_lines):
             element, line = utils_eds._get_element_and_line(xray_line)
@@ -154,7 +166,8 @@ class EDSModel(Model):
             component.centre.value = line_energy
             # component.fwhm = line_FWHM
             component.sigma.value = line_FWHM / 2.355
-            # component.A.value = self.spectrum[..., line_energy].data.flatten().mean()
+            # component.A.value = self.spectrum[..., line_energy].
+            # data.flatten().mean()
 
             component.centre.free = False
             component.sigma.free = False
@@ -310,12 +323,10 @@ class EDSModel(Model):
         # If there is no active background component do nothing
         # if not self._active_background_components:
         #    return
-        if end_energy is None and \
-                self.spectrum._get_beam_energy() < \
-                self.axes_manager.signal_axes[0].high_value:
-            end_energy = self.spectrum._get_beam_energy()
-        else:
-            end_energy = self.axes_manager.signal_axes[0].high_value
+        if end_energy is None:
+            end_energy = self.end_energy
+        if start_energy is None:
+            start_energy = self.start_energy
 
         # desactivate line
         self.free_background()
