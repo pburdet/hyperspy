@@ -925,6 +925,16 @@ class EDSSEMSpectrum(EDSSpectrum):
         ----------
         elemental_map: {'random',None, signals.Image}
             map
+            
+        Example
+        -------
+        >>> s = signals.EDSSEMSpectrum(range(1024))
+        >>> s.axes_manager[-1].scale = 0.01
+        >>> s.axes_manager[-1].units = "keV"
+        >>> s.axes_manager[-1].offset = -0.1
+        >>> s.set_microscope_parameters(beam_energy=15, live_time=10)
+        >>> s.set_elements(['Al', 'Zn'])
+        >>> s.simulate_model()
         """
         from hyperspy._signals.image import Image
         from hyperspy.hspy import create_model
