@@ -22,6 +22,17 @@ else:
     elif others == 'model':
         s = utils_eds.simulate_model(['Al', 'Zn'], shape_spectrum=[2, 3, 1024])
         s_1_pixel = utils_eds.simulate_model(['Al', 'Zn'])
+    elif others == 'model2':
+        s = signals.EDSSEMSpectrum(range(1024))
+        s.axes_manager[-1].scale = 0.01
+        s.axes_manager[-1].units = "keV"
+        s.axes_manager[-1].offset = -0.1
+        s.metadata.Acquisition_instrument.SEM.Detector.EDS.counts_rate = 10
+        s.set_microscope_parameters(beam_energy=15, live_time=10)
+        s.set_elements(['Al', 'Zn'])
+        s = utils.stack([s.simulate_model()+0.5 for i in range(3)])
+        s = signals.EDSTEMSpectrum([list(s.data)*10]*10)
+        s.add_poissonian_noise()
     else:
         # Build a spectrum
         data = range(1024 / 2) + range(1024 / 2, 0, -1)
