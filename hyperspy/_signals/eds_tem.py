@@ -930,6 +930,7 @@ class EDSTEMSpectrum(EDSSpectrum):
                                           algorithm='SART',
                                           tilt_stages='auto',
                                           iteration=1,
+                                          relaxation=0.15,
                                           parallel=None,
                                           **kwargs):
         """
@@ -962,9 +963,7 @@ class EDSTEMSpectrum(EDSSpectrum):
         >>> adf_tilt.change_dtype('float')
         >>> rec = adf_tilt.tomographic_reconstruction()
         """
-        from hyperspy._signals.spectrum import Spectrum
-        # import time
-        # a = time.time()
+
         if hasattr(self.metadata.Sample[result], 'metadata'):
             self.change_dtype('float')
             sinograms = self.metadata.Sample[result].split()
@@ -974,34 +973,38 @@ class EDSTEMSpectrum(EDSSpectrum):
                 sinograms[i].change_dtype('float')
         if tilt_stages == 'auto':
             tilt_stages = sinograms[0].axes_manager[0].axis
-
+        if hasattr(relaxation, '__iter__') is False:
+            relaxation = [relaxation] * len(sinograms)
+        if hasattr(iteration, '__iter__') is False:
+            iteration = [iteration] * len(sinograms)
         if parallel is None:
             rec = []
-            for sinogram in sinograms:
+            for i, sinogram in enumerate(sinograms):
                 rec.append(sinogram.tomographic_reconstruction(
                            algorithm=algorithm,
                            tilt_stages=tilt_stages,
-                           iteration=iteration,
+                           iteration=iteration[i],
+                           relaxation=relaxation[i],
                            parallel=parallel))
         else:
+            rec = utils.stack(sinograms)
             from hyperspy.misc import multiprocessing
             pool, pool_type = multiprocessing.pool(parallel)
             kwargs.update({'theta': tilt_stages})
-            data = [[sino.to_spectrum().data,
-                     iteration, kwargs] for sino in sinograms]
-            rec = pool.map_sync(multiprocessing.isart, data)
+            data = []
+            for i, sinogram in enumerate(sinograms):
+                kwargs['relaxation'] = relaxation[i]
+                data.append([sinogram.to_spectrum().data, iteration[i],
+                             kwargs.copy()])
+            res = pool.map_sync(multiprocessing.isart, data)
             if pool_type == 'mp':
                 pool.close()
                 pool.join()
-            # rec = rec.get()
-            rec = Spectrum(rec).as_image([0, 1])
-            # print time.time() - a
-            rec.axes_manager = self.metadata.Sample[result]\
-                .axes_manager.deepcopy()
+            rec.data = np.rollaxis(np.array(res), 2, 1)
             rec.axes_manager[0].scale = rec.axes_manager[2].scale
             rec.axes_manager[0].offset = rec.axes_manager[2].offset
             rec.axes_manager[0].units = rec.axes_manager[2].units
             rec.axes_manager[0].name = 'z'
             rec.get_dimensions_from_data()
-
+            rec = rec.split()
         return rec
