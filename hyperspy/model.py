@@ -2330,6 +2330,7 @@ class Model(list):
             from hyperspy import components
             _model = self.__class__(_spectrum)
             for c in [compo.name for compo in _model]:
+            #for c in  _model:
                 _model.remove(c)
             # create components:
             twin_dict = {}
