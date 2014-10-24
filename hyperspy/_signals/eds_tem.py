@@ -298,14 +298,13 @@ class EDSTEMSpectrum(EDSSpectrum):
                             self.metadata.Sample.xray_lines):
             el_binary = [el] + [common_element]
             xray_binary = [xray] + [common_xray]
-            atomic_percent = np.array(utils.material.weight_to_atomic(
-                el_binary, [0.5, 0.5]))
+            # atomic_percent = np.array(utils.material.weight_to_atomic(
+            #    el_binary, [0.5, 0.5]))
             std_met.set_elements(el_binary)
             std_met.set_lines(xray_binary)
-            std.append(utils_eds.simulate_one_spectrum_TEM(nTraj,
-                                                           dose=dose, mp=std_met.metadata,
-                                                           detector=detector, compo_at=atomic_percent,
-                                                           gateway=gateway))
+            std.append(utils_eds.simulate_one_spectrum_TEM(
+                nTraj, dose=dose, mp=std_met.metadata, detector=detector,
+                weight_fraction=[0.5, 0.5], gateway=gateway))
             std[-1].metadata.General.title = el + '_'\
                 + common_element + '_comon'
             std[-1].metadata.Sample.weight_percent = [0.5, 0.5]
