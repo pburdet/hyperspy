@@ -19,7 +19,7 @@
 import numpy as np
 from nose.tools import assert_true, assert_equal, assert_not_equal
 from matplotlib.testing.decorators import cleanup
-#from matplotlib.testing.decorators import image_comparison
+# from matplotlib.testing.decorators import image_comparison
 import nose.tools
 
 
@@ -118,22 +118,24 @@ class Test_metadata:
     def test_default_param(self):
         s = self.signal
         mp = s.metadata
-        nose.tools.assert_equal(mp.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa,
-                                preferences.EDS.eds_mn_ka)
+        nose.tools.assert_equal(
+            mp.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa,
+            preferences.EDS.eds_mn_ka)
 
     def test_SEM_to_TEM(self):
         s = self.signal[0, 0]
         signal_type = 'EDS_TEM'
         mp = s.metadata
-        mp.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa = 125.3
+        mp.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa =\
+            125.3
         sTEM = s.deepcopy()
         sTEM.set_signal_type(signal_type)
         mpTEM = sTEM.metadata
         results = [
             mp.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa]
         results.append(signal_type)
-        resultsTEM = [
-            mpTEM.Acquisition_instrument.TEM.Detector.EDS.energy_resolution_MnKa]
+        resultsTEM = [mpTEM.Acquisition_instrument.TEM.Detector.
+                      EDS.energy_resolution_MnKa]
         resultsTEM.append(mpTEM.Signal.signal_type)
         nose.tools.assert_equal(results, resultsTEM)
 
@@ -178,7 +180,8 @@ class Test_get_lines_intentisity:
         sAl = s.get_lines_intensity(["Al_Ka"],
                                     plot_result=False,
                                     integration_window_factor=5)[0]
-        nose.tools.assert_true(np.allclose(24.99516, sAl.data[0, 0, 0], atol=1e-3))
+        nose.tools.assert_true(np.allclose(24.99516, sAl.data[0, 0, 0],
+                                           atol=1e-3))
 
     def test(self):
         s = self.signal
@@ -207,19 +210,20 @@ class Test_get_lines_intentisity:
         sAl = s[0].get_lines_intensity(["Al_Ka"],
                                        plot_result=False,
                                        lines_deconvolution='model')[0]
-        nose.tools.assert_true(np.allclose(19.22613, sAl.data[0, 0], atol=1e-3))
+        nose.tools.assert_true(np.allclose(19.22613, sAl.data[0, 0],
+                                           atol=1e-3))
         # Why?
-        #assert_true(np.allclose(0.75061671, sAl.data[0, 0], atol=1e-3))
+        # assert_true(np.allclose(0.75061671, sAl.data[0, 0], atol=1e-3))
         sAl = s[0, 0].get_lines_intensity(["Al_Ka"],
                                           plot_result=False,
                                           lines_deconvolution='model')[0]
         nose.tools.assert_true(np.allclose(19.22613, sAl.data[0], atol=1e-3))
-        #assert_true(np.allclose(0.75061671, sAl.data[0], atol=1e-3))
+        # assert_true(np.allclose(0.75061671, sAl.data[0], atol=1e-3))
         sAl = s[0, 0, 0].get_lines_intensity(["Al_Ka"],
                                              plot_result=False,
                                              lines_deconvolution='model')[0]
         nose.tools.assert_true(np.allclose(19.22613, sAl.data, atol=1e-3))
-        #assert_true(np.allclose(0.75061671, sAl.data, atol=1e-3))
+        # assert_true(np.allclose(0.75061671, sAl.data, atol=1e-3))
 
     def test_model_deconvolution_std(self):
         s = self.signal
@@ -229,15 +233,18 @@ class Test_get_lines_intentisity:
         sAl = s[0].get_lines_intensity(["Al_Ka"],
                                        plot_result=False,
                                        lines_deconvolution='standard')[0]
-        nose.tools.assert_true(np.allclose(25.252525252525249, sAl.data[0, 0], atol=1e-3))
+        nose.tools.assert_true(np.allclose(25.252525252525249, sAl.data[0, 0],
+                                           atol=1e-3))
         sAl = s[0, 0].get_lines_intensity(["Al_Ka"],
                                           plot_result=False,
                                           lines_deconvolution='standard')[0]
-        nose.tools.assert_true(np.allclose(25.252525252525249, sAl.data[0], atol=1e-3))
+        nose.tools.assert_true(np.allclose(25.252525252525249, sAl.data[0],
+                                           atol=1e-3))
         sAl = s[0, 0, 0].get_lines_intensity(["Al_Ka"],
                                              plot_result=False,
                                              lines_deconvolution='standard')[0]
-        nose.tools.assert_true(np.allclose(25.252525252525249, sAl.data, atol=1e-3))
+        nose.tools.assert_true(np.allclose(25.252525252525249, sAl.data,
+                                           atol=1e-3))
 
 
 class Test_quantification:
@@ -492,14 +499,13 @@ class Test_plot_Xray_lines:
     def test_plot_Xray_lines(self):
         s = self.signal
 
-        s.plot_Xray_lines()
+        s.plot_xray_lines()
         # s.plot_Xray_lines(only_lines=('a'))
         # s.plot_Xray_lines(only_lines=('a,Kb'))
 
-    #@image_comparison(baseline_images=['plot_Xray_lines2'])
+    # @image_comparison(baseline_images=['plot_Xray_lines2'])
     # def test_plot_Xray_lines2(self):
         #s = self.signal
-
         # s.plot_Xray_lines()
 
 
@@ -533,8 +539,8 @@ class Test_tools_bulk:
             mp.Acquisition_instrument.SEM.beam_energy,
             density=4.37499648818)
         nose.tools.assert_true(np.allclose(xr_range, 0.1900207, atol=1e-3))
-        #assert_equal(xr_range, 0.1900368800933955)
-        #assert_equal(xr_range, 0.1900207, atol=1e-3)
+        # assert_equal(xr_range, 0.1900368800933955)
+        # assert_equal(xr_range, 0.1900207, atol=1e-3)
 
 
 class Test_decomposition_model_from:
@@ -576,18 +582,18 @@ class Test_add_standards_to_signal:
         dim = s.axes_manager.shape
         elements = ['Hf', 'Ta']
         s.add_elements(elements)
-        s.link_standard(config_path + '/database/std_RR')
+        s.link_standard(config_path + '/database/SEM/std_RR')
         res = s.add_standards_to_signal('all')
         dim = np.array(s.axes_manager.navigation_shape)
         dim_res = np.array(res.axes_manager.navigation_shape)
         nose.tools.assert_true(np.all(dim_res == dim + [len(elements), 0, 0]))
 
-    def test_add_standards_to_signal_3D(self):
+    def test_add_standards_to_signal_2D(self):
         s = self.signal[0]
         dim = s.axes_manager.shape
         elements = ['Hf', 'Ta']
         s.add_elements(elements)
-        s.link_standard(config_path + '/database/std_RR')
+        s.link_standard(config_path + '/database/SEM/std_RR')
         res = s.add_standards_to_signal('all')
         dim = np.array(s.axes_manager.navigation_shape)
         dim_res = np.array(res.axes_manager.navigation_shape)
@@ -618,9 +624,9 @@ class Test_energy_units:
         s.axes_manager.signal_axes[0].units = 'keV'
 
         nose.tools.assert_equal(s._get_line_energy('Al_Ka', FWHM_MnKa='auto'),
-                     (1.4865, 0.07661266213883969))
+                                (1.4865, 0.07661266213883969))
         nose.tools.assert_equal(s._get_line_energy('Al_Ka', FWHM_MnKa=128),
-                     (1.4865, 0.073167615787314))
+                                (1.4865, 0.073167615787314))
 
 
 class Test_MAC:
@@ -637,6 +643,8 @@ class Test_MAC:
 
     def test_MAC_sample(self):
         s = self.signal
-        #assert_true(np.allclose(xr_range, 0.1900207, atol=1e-3))
-        nose.tools.assert_equal(s.get_MAC_sample(weight_fraction=[0.5, 0.5]),
-                     [2587.4161643905127, 1239.4598146508552])
+        # assert_true(np.allclose(xr_range, 0.1900207, atol=1e-3))
+        assert_true(np.allclose(
+            s.get_sample_mass_absorption_coefficient(
+                weight_fraction=[0.5, 0.5]),
+                [2587.4161643905127, 1239.4598146508552]))

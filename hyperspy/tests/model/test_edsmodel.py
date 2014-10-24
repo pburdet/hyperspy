@@ -1,4 +1,3 @@
-import numpy as np
 import nose.tools
 
 import hyperspy.hspy as hs
@@ -17,7 +16,7 @@ class TestlineFit:
     def test_param(self):
         m = self.m
         nose.tools.assert_equal(len(m), 9)
-        nose.tools.assert_equal(m.xray_lines, 3)
+        nose.tools.assert_equal(len(m.xray_lines), 3)
 
     def test_fit(self):
         m = self.m
