@@ -412,6 +412,7 @@ class EDSTEMSpectrum(EDSSpectrum):
     def quant_cliff_lorimer(self,
                             intensities='integrate',
                             kfactors='auto',
+                            reference_line='auto',
                             plot_result=True,
                             store_in_mp=True,
                             **kwargs):
@@ -432,6 +433,11 @@ class EDSTEMSpectrum(EDSSpectrum):
             for kfactors_name = ['Cr_Ka/Al_Ka', 'Ni_Ka/Al_Ka']
             with kfactors_name in alphabetical order
             if 'auto', take the kfactors stored in metadata
+        reference_line: 'auto' or str
+            The reference line. If 'auto', the first line in the alphabetic
+            order is chosen ('Al_Ka' in the previous example.)
+            If reference_line = 'Cr_Ka', then
+            kfactors should be ['Al_Ka/Cr_Ka', 'Ni_Ka/Cr_Ka']
         plot_result: bool
           If true (default option), plot the result.
         kwargs
@@ -452,10 +458,11 @@ class EDSTEMSpectrum(EDSSpectrum):
             get_lines_intensity
 
         """
-        #from hyperspy import signals
+        # from hyperspy import signals
 
         xray_lines = self.metadata.Sample.xray_lines
-        #beam_energy = self._get_beam_energy()
+
+        # beam_energy = self._get_beam_energy()
         if intensities == 'integrate':
             intensities = self.get_lines_intensity(**kwargs)
         elif intensities == 'model':
@@ -466,13 +473,28 @@ class EDSTEMSpectrum(EDSSpectrum):
                                                  store_in_mp=False)
         if kfactors == 'auto':
             kfactors = self.metadata.Sample.kfactors
+        indexes = range(len(xray_lines))
+        indexes_f = range(len(xray_lines)-1)
+        if reference_line != 'auto':
+            index = [indexes.pop(xray_lines.index(reference_line))]
+            indexes = index + indexes
+            index = [indexes_f.pop(xray_lines.index(reference_line)-1)]
+            indexes_f = index + indexes_f
+            kfactors_s = [kfactors[i] for i in indexes_f]
+            kfactors_s[0] = 1/kfactors_s[0]
+            for i, index in enumerate(indexes_f):
+                if i != 0:
+                    kfactors_s[i] *= kfactors_s[0]
+        else:
+            kfactors_s = kfactors
+        print kfactors_s
         data_res = utils_eds.quantification_cliff_lorimer(
-            kfactors=kfactors,
-            intensities=[intensity.data for intensity in intensities])
+            kfactors=kfactors_s,
+            intensities=[intensities[i].data for i in indexes])
         res = []
-        for xray_line, data in zip(xray_lines, data_res):
+        for xray_line, index in zip(xray_lines, indexes):
             res.append(self._set_result(xray_line=xray_line, result='quant',
-                                        data_res=data,
+                                        data_res=data_res[index],
                                         plot_result=plot_result,
                                         store_in_mp=store_in_mp))
         if store_in_mp is False:
@@ -584,7 +606,8 @@ class EDSTEMSpectrum(EDSSpectrum):
 
     def quantification_cliff_lorimer(self,
                                      intensities,
-                                     kfactors):
+                                     kfactors,
+                                     reference_line='auto'):
         """
         Quantification using Cliff-Lorimer
 
@@ -594,9 +617,14 @@ class EDSTEMSpectrum(EDSSpectrum):
             the list of kfactor, compared to the first
             elements. eg. kfactors = [1.47,1.72]
             for kfactors_name = ['Cr_Ka/Al_Ka', 'Ni_Ka/Al_Ka']
-            with kfactors_name in alphabetical order
+            with kfactors_name in alphabetical order.
         intensities: list of signal.Signals
-            the intensities for each X-ray lines.
+            the intensities for each X-ray lines in the alphabetical order.
+        reference_line: 'auto' or str
+            The reference line. If 'auto', the first line in the alphabetic
+            order is chosen ('Al_Ka' in the previous example.)
+            If reference_line = 'Cr_Ka', then
+            kfactors should be ['Al_Ka/Cr_Ka', 'Ni_Ka/Cr_Ka']
 
         Examples
         ---------
@@ -610,16 +638,20 @@ class EDSTEMSpectrum(EDSSpectrum):
         """
 
         xray_lines = self.metadata.Sample.xray_lines
+        indexes = range(len(xray_lines))
+        if reference_line != 'auto':
+            index = [indexes.pop(xray_lines.index(reference_line))]
+            indexes = index + indexes
         data_res = utils_eds.quantification_cliff_lorimer(
             kfactors=kfactors,
-            intensities=[intensity.data for intensity in intensities])
+            intensities=[intensities[i].data for i in indexes])
         spec_res = []
-        for xray_line, data, intensity in zip(
-                xray_lines, data_res, intensities):
+        for xray_line, index, intensity in zip(
+                xray_lines, indexes, intensities):
             element, line = utils_eds._get_element_and_line(xray_line)
             spec_res.append(intensity.deepcopy())
-            spec_res[-1].data = data
-            spec_res[-1].metadata.General.title = 'Weight fraction of ' + \
+            spec_res[-1].data = data_res[index]
+            spec_res[-1].metadata.General.title = 'Weight fraction of ' +\
                 element
         return spec_res
 

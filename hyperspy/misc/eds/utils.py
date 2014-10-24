@@ -2275,4 +2275,3 @@ def quantification_cliff_lorimer(intensities, kfactors):
         composition.append(composition[0] / ab1)
     composition = np.nan_to_num(composition)
     return composition
-
