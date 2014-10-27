@@ -1041,9 +1041,8 @@ class EDSSpectrum(Spectrum):
         --------
 
         >>> s = database.spec3D('Ti_SEM')
-        >>> s.plot_Xray_lines()
-
-        >>> s.plot_Xray_lines('from_elements')
+        >>> s.plot_xray_lines()
+        >>> s.plot_xray_lines('from_elements')
 
         See also
         --------
