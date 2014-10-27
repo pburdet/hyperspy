@@ -458,7 +458,7 @@ class Signal1DTools(object):
                 self.crop(axis.index_in_axes_manager,
                           imaximum)
 
-    def interpolate_in_between(self, start, end, delta=3,
+    def interpolate_in_between(self, start, end, delta=3, deg=1, kind='poly',
                                show_progressbar=None, **kwargs):
         """Replace the data in a given range by interpolation.
 
@@ -469,6 +469,11 @@ class Signal1DTools(object):
         start, end : {int | float}
             The limits of the interval. If int they are taken as the
             axis index. If float they are taken as the axis value.
+        delta: int
+            the width use to integrate around.
+        deg: int
+            The order of the oplynomial
+        kind: {'ploy','spline'}
 
         All extra keyword arguments are passed to
         scipy.interpolate.interp1d. See the function documentation
@@ -493,11 +498,29 @@ class Signal1DTools(object):
         pbar = progressbar(
             maxval=self.axes_manager.navigation_size,
             disabled=not show_progressbar)
+#        for i, dat in enumerate(self._iterate_signal()):
+#            dat_int = sp.interpolate.interp1d(
+#                range(i0, i1) + range(i2, i3),
+#                dat[i0:i1].tolist() + dat[i2:i3].tolist(),
+#                **kwargs)
+#            dat[i1:i2] = dat_int(range(i1, i2))
+#            pbar.update(i + 1)
+        from scipy.interpolate import UnivariateSpline
         for i, dat in enumerate(self._iterate_signal()):
-            dat_int = sp.interpolate.interp1d(
-                range(i0, i1) + range(i2, i3),
-                dat[i0:i1].tolist() + dat[i2:i3].tolist(),
-                **kwargs)
+            if kind == 'poly':
+                dat_int = np.poly1d(np.polyfit(range(i0, i1) + range(i2, i3),
+                                    dat[i0:i1].tolist() + dat[i2:i3].tolist(),
+                                    deg, **kwargs))
+            elif kind == 'spline':
+                dat_int = UnivariateSpline(
+                    range(i0, i1) + range(i2, i3),
+                    dat[i0:i1].tolist() + dat[i2:i3].tolist(), **kwargs)
+            elif kind == 'spline+':
+                dat_int = UnivariateSpline(
+                    range(i0, i1) + [int(np.mean([i1, i2]))] + range(i2, i3),
+                    dat[i0:i1].tolist() + [np.mean([dat[i0:i1].tolist() +
+                                           dat[i2:i3].tolist()])]
+                    + dat[i2:i3].tolist(), **kwargs)
             dat[i1:i2] = dat_int(range(i1, i2))
             pbar.update(i + 1)
 
