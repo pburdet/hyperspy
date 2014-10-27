@@ -150,12 +150,9 @@ class EDSModel(Model):
 
         components_names = [xr.name for xr in self.xray_lines]
         xray_lines = filter(lambda x: x not in components_names, xray_lines)
-        xray_lines = [xray_line for xray_line in xray_lines if
-                      self.start_energy <
-                      self.spectrum._get_line_energy(xray_line)]
-        xray_lines = [xray_line for xray_line in xray_lines if
-                      self.end_energy >
-                      self.spectrum._get_line_energy(xray_line)]
+        xray_lines, xray_not_here = self._xray_lines_in_range(xray_lines)
+        for xray in xray_not_here:
+            print("Warning: %s is not in the data energy range." % (xray))
 
         for i, xray_line in enumerate(xray_lines):
             element, line = utils_eds._get_element_and_line(xray_line)

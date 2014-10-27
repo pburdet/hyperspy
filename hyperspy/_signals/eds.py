@@ -145,6 +145,34 @@ class EDSSpectrum(Spectrum):
             beam_energy = beam_energy * 1000
         return beam_energy
 
+    def _xray_lines_in_range(self, xray_lines):
+        """
+        Return the lines in the energy range
+
+        Parameters
+        ----------
+        xray_lines: List of string
+            The xray_lines
+
+        Return
+        ------
+        The list of xray_lines in the energy range
+        """
+        ax = self.axes_manager.signal_axes[0]
+        low_value = ax.low_value
+        high_value = ax.high_value
+        if self._get_beam_energy() < high_value:
+            high_value = self._get_beam_energy()
+        xray_lines_in_range = []
+        xray_lines_not_in_range = []
+        for xray_line in xray_lines:
+            line_energy = self._get_line_energy(xray_line)
+            if line_energy > low_value and line_energy < high_value:
+                xray_lines_in_range.append(xray_line)
+            else:
+                xray_lines_not_in_range.append(xray_line)
+        return xray_lines_in_range, xray_lines_not_in_range
+
     def sum(self, axis):
         """Sum the data over the given axis.
 
@@ -357,7 +385,6 @@ class EDSSpectrum(Spectrum):
         elements = set()
         for line in xray_lines:
             elements.add(line.split("_")[0])
-        end_energy = self.axes_manager.signal_axes[0].high_value
         for line in lines:
             try:
                 element, subshell = line.split("_")
@@ -375,16 +402,19 @@ class EDSSpectrum(Spectrum):
                     #    print("%s line added," % line)
                     # else:
                     #    print("%s line already in." % line)
-                    if (self._get_line_energy(element + '_' +
-                                              subshell) > end_energy):
-                        print("Warning: %s %s is above the data energy range."
-                              % (element, subshell))
+                    if lines_len != len(xray_lines):
+                        print("%s line added," % line)
+                    else:
+                        print("%s line already in." % line)
                 else:
                     raise ValueError(
                         "%s is not a valid line of %s." % (line, element))
             else:
                 raise ValueError(
                     "%s is not a valid symbol of an element." % element)
+        xray_not_here = self._xray_lines_in_range(xray_lines)[1]
+        for xray in xray_not_here:
+            print("Warning: %s is not in the data energy range." % (xray))
         if "Sample.elements" in self.metadata:
             extra_elements = (set(self.metadata.Sample.elements) -
                               elements)
@@ -428,11 +458,6 @@ class EDSSpectrum(Spectrum):
         """
 
         beam_energy = self._get_beam_energy()
-
-        #end_energy = self.axes_manager.signal_axes[0].high_value
-        end_energy = self.axes_manager[-1].high_value
-        if beam_energy < end_energy:
-            end_energy = beam_energy
         lines = []
         for element in elements:
             # Possible line (existing and excited by electron)
@@ -441,9 +466,8 @@ class EDSSpectrum(Spectrum):
                                                  ]['Xray_lines'].keys():
                 if only_lines and subshell not in only_lines:
                     continue
-                if (self._get_line_energy(element + '_' +
-                                          subshell) < end_energy):
-                    element_lines.append(element + "_" + subshell)
+                element_lines.append(element + "_" + subshell)
+            element_lines = self._xray_lines_in_range(element_lines)[0]
             if only_one and element_lines:
                 # Choose the best line
                 select_this = -1
@@ -584,7 +608,9 @@ class EDSSpectrum(Spectrum):
             else:
                 raise ValueError(
                     "Not X-ray line, set them with `add_elements`")
-
+        xray_lines, xray_not_here = self._xray_lines_in_range(xray_lines)
+        for xray in xray_not_here:
+            print("Warning: %s is not in the data energy range." % (xray))   
         intensities = [0] * len(xray_lines)
         if lines_deconvolution == 'standard':
             m = create_model(self, auto_background=False,
@@ -599,11 +625,11 @@ class EDSSpectrum(Spectrum):
                                                            FWHM_MnKa='auto')
             element, line = utils_eds._get_element_and_line(xray_line)
             det = integration_window_factor * line_FWHM / 2.
-            ax = self.axes_manager.signal_axes[0]
-            if line_energy - det < ax.low_value or \
-                    line_energy + det > ax.high_value:
-                raise ValueError(
-                    "%s is outside the energy range." % (xray_line))
+#            ax = self.axes_manager.signal_axes[0]
+#            if line_energy - det < ax.low_value or \
+#                    line_energy + det > ax.high_value:
+#                raise ValueError(
+#                    "%s is outside the energy range." % (xray_line))
             if lines_deconvolution is None:
                 intensities[i] = self[..., line_energy - det:line_energy +
                                       det].integrate1D(-1).data
@@ -1046,12 +1072,9 @@ class EDSSpectrum(Spectrum):
                 raise ValueError(
                     "No elements defined, set them with `add_elements`")
 
-        end_energy = self.axes_manager.signal_axes[0].high_value
-        start_energy = self.axes_manager.signal_axes[0].low_value
-        xray_lines = [xray_line for xray_line in xray_lines if
-                      start_energy < self._get_line_energy(xray_line)]
-        xray_lines = [xray_line for xray_line in xray_lines if
-                      end_energy > self._get_line_energy(xray_line)]
+        xray_lines, xray_not_here = self._xray_lines_in_range(xray_lines)
+        for xray in xray_not_here:
+            print("Warning: %s is not in the data energy range." % (xray))
 
         line_energy = []
         intensity = []
