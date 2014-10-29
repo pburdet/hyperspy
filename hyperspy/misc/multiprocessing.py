@@ -66,3 +66,15 @@ def isart(args):
             rec[i] = iradon_sart(sinogram[i],
                                  image=rec[i], **kwargs)
     return rec
+
+
+def rotate(args):
+    from scipy.ndimage import rotate
+    d = rotate(**args)
+    return d
+
+
+def absorption_correction_matrix(args):
+    from hyperspy.misc.eds import physical_model
+    d = physical_model.absorption_correction_matrix(**args)
+    return d

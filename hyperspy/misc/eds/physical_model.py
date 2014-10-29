@@ -240,7 +240,8 @@ def absorption_correction_matrix(weight_fraction,
                                    axes=(x_ax, z_ax),
                                    order=0, mode='reflect')
 
-    abs_corr = np.zeros_like(weight_fraction_r)
+    # abs_corr = np.zeros_like(weight_fraction_r)
+    abs_corr = np.zeros([len(xray_lines)]+list(weight_fraction_r.shape[1:]))
     for i, xray_line in enumerate(xray_lines):
         mac = utils.material.\
             mass_absorption_coefficient_of_mixture_of_pure_elements(

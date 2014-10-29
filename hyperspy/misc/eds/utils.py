@@ -2257,12 +2257,16 @@ def quantification_cliff_lorimer(intensities, kfactors):
     A list of list of float containing the weight fraction with the same
     shape as intensities.
     """
+    import copy
+    intensities = np.array(copy.copy(intensities))
+    intensities[intensities < 0] = 1e-15
     ab = []
     composition = []
     # ab = Ia/Ib / kab
     for i, kba in enumerate(kfactors):
         ab.append(intensities[0] / intensities[i + 1] / kba)
     # Ca = ab /(1 + ab + ab/ac + ab/ad + ...)
+    # ab = np.nan_to_num(ab)
     composition.append(np.ones_like(ab[0]))
     for i, ab1 in enumerate(ab):
         if i == 0:

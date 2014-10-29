@@ -459,7 +459,7 @@ class EDSTEMSpectrum(EDSSpectrum):
         """
         # from hyperspy import signals
 
-        xray_lines = self.metadata.Sample.xray_lines
+        xray_lines = list(self.metadata.Sample.xray_lines)
 
         # beam_energy = self._get_beam_energy()
         if intensities == 'integrate':
@@ -486,14 +486,14 @@ class EDSTEMSpectrum(EDSSpectrum):
                     kfactors_s[i] *= kfactors_s[0]
         else:
             kfactors_s = kfactors
-        print kfactors_s
         data_res = utils_eds.quantification_cliff_lorimer(
             kfactors=kfactors_s,
             intensities=[intensities[i].data for i in indexes])
         res = []
-        for xray_line, index in zip(xray_lines, indexes):
-            res.append(self._set_result(xray_line=xray_line, result='quant',
-                                        data_res=data_res[index],
+        for data, index in zip(data_res, indexes):
+            res.append(self._set_result(xray_line=xray_lines[index],
+                                        result='quant',
+                                        data_res=data,
                                         plot_result=plot_result,
                                         store_in_mp=store_in_mp))
         if store_in_mp is False:
@@ -851,14 +851,15 @@ class EDSTEMSpectrum(EDSSpectrum):
                                   TOA=TOA))
         return spec
 
-    def correct_intensities_from_absorption(self, weight_fraction='auto',
-                                            intensities='auto',
-                                            tilt=None,
-                                            thickness='auto',
-                                            density='auto',
-                                            mask=None,
-                                            plot_result=False,
-                                            store_result=False):
+    def compute_3D_absorption_correction(self, weight_fraction='auto',
+                                         tilt=None,
+                                         xray_lines='auto',
+                                         thickness='auto',
+                                         density='auto',
+                                         mask=None,
+                                         plot_result=False,
+                                         store_result=False,
+                                         parallel=None):
         """
         Correct the intensities from absorption knowing the composition in 3D
 
@@ -867,9 +868,6 @@ class EDSTEMSpectrum(EDSSpectrum):
         weight_fraction: list of image or array
             The fraction of elements in the sample by weigh.
             If 'auto' look in quant
-        intensities: list of image or array
-            The intensities to correct of the sample. If 'auto' look in
-            intensites
         tilt: list of float
             If not None, the weight_fraction is tilted
         thickness: float
@@ -889,52 +887,54 @@ class EDSTEMSpectrum(EDSSpectrum):
         Elif tilt = None return an array of abs_corr
         Else return an array of abs_corr adn an array of tilted intensities
         """
-        xray_lines = self.metadata.Sample.xray_lines
+        if hasattr(xray_lines, '__iter__') is False:
+            xray_lines = self.metadata.Sample.xray_lines
         elements = self.metadata.Sample.elements
         elevation_angle = self.metadata.Acquisition_instrument.\
             TEM.Detector.EDS.elevation_angle
         azimuth_angle = \
             self.metadata.Acquisition_instrument.TEM.Detector.EDS.azimuth_angle
         elements = self.metadata.Sample.elements
-        xray_lines = self.metadata.Sample.xray_lines
         if weight_fraction == 'auto':
             weight_fraction = self.metadata.Sample.quant
             weight_fraction = utils.stack(weight_fraction)
             weight_fraction = weight_fraction.data
-        if intensities == 'auto':
-            intensities = self.metadata.Sample.intensities
-            intensities = utils.stack(intensities)
-            intensities = intensities.data
         ax = self.axes_manager
         if thickness == 'auto':
             thickness = ax.navigation_axes[0].scale * 1e-7
         else:
             thickness = thickness * 1e-7
         if hasattr(tilt, '__iter__'):
-            x_ax, z_ax = 3, 1
-            dim = intensities.shape
-            tilt_intensities = np.zeros([dim[0]] + [len(tilt)] + list(dim[1:]))
-            abs_corr = np.zeros([dim[0]] + [len(tilt)] + list(dim[1:]))
-            azim = azimuth_angle
-            for i, ti in enumerate(tilt):
-                print ti
-                if hasattr(azimuth_angle, '__iter__'):
-                    azim = azimuth_angle[i]
-                tilt_intensities[:, i] = ndimage.rotate(intensities, angle=-ti,
-                                                        axes=(x_ax, z_ax),
-                                                        order=3, reshape=False,
-                                                        mode='reflect')
-                abs_corr[:, i] = physical_model.absorption_correction_matrix(
-                    weight_fraction=weight_fraction,
-                    xray_lines=xray_lines,
-                    elements=elements,
-                    thickness=thickness,
-                    density=density,
-                    azimuth_angle=azim,
-                    elevation_angle=elevation_angle,
-                    mask_el=mask,
-                    tilt=ti)
-            return abs_corr, tilt_intensities
+            dim = weight_fraction.shape
+            arg = {"weight_fraction": weight_fraction,
+                   "xray_lines": xray_lines,
+                   "elements": elements,
+                   "thickness": thickness,
+                   "density": density,
+                   "elevation_angle": elevation_angle,
+                   "mask_el": mask}
+            if parallel is None:
+                abs_corr = np.zeros([len(xray_lines)] +
+                                    [len(tilt)] + list(dim[1:]))
+                for i, ti in enumerate(tilt):
+                    print ti
+                    if hasattr(azimuth_angle, '__iter__'):
+                        azim = azimuth_angle[i]
+                    abs_corr[:, i] = physical_model.\
+                        absorption_correction_matrix(
+                        azimuth_angle=azim, tilt=ti, **arg)
+                return abs_corr
+            else:
+                from hyperspy.misc import multiprocessing
+                pool, pool_type = multiprocessing.pool(parallel)
+                args = []
+                for ti, azim in zip(tilt, azimuth_angle):
+                    args.append({'tilt': ti, 'azimuth_angle': azim})
+                    args[-1].update(arg)
+                abs_corr = np.array(pool.map_sync(
+                    multiprocessing.absorption_correction_matrix, args))
+                abs_corr = np.rollaxis(abs_corr, 1, 0)
+                return abs_corr
         elif tilt is None:
             abs_corr = physical_model.absorption_correction_matrix(
                 weight_fraction=weight_fraction,
@@ -948,14 +948,50 @@ class EDSTEMSpectrum(EDSSpectrum):
 
             if store_result:
                 for i, xray_line in enumerate(xray_lines):
-                    data = intensities[i] / abs_corr[i]
-
-                    self._set_result(xray_line, "intensities_corr", data,
+                    self._set_result(xray_line, "intensities_corr",
+                                     abs_corr[i],
                                      plot_result=plot_result)
 
             else:
 
                 return abs_corr
+
+    def tilt_3D_results(self, tilt, intensities='auto',
+                        parallel=None):
+        """
+        Parameters
+        ----------
+        intensities: list of image or array
+            The intensities to correct of the sample. If 'auto' look in
+            intensites
+        tilt: list of float
+            If not None, the weight_fraction is tilted
+        """
+        if intensities == 'auto':
+            intensities = self.metadata.Sample.intensities
+            intensities = utils.stack(intensities)
+            intensities = intensities.data
+        x_ax, z_ax = 3, 1
+        dim = intensities.shape
+        arg = {"axes": (x_ax, z_ax), "order": 3,
+               "reshape": False, "mode": 'reflect'}
+        if parallel is None:
+            tilt_intensities = np.zeros([dim[0]] + [len(tilt)] + list(dim[1:]))
+            for i, ti in enumerate(tilt):
+                tilt_intensities[:, i] = ndimage.rotate(intensities, angle=-ti,
+                                                        **arg)
+        else:
+            from hyperspy.misc import multiprocessing
+            pool, pool_type = multiprocessing.pool(parallel)
+            args = []
+            arg['input'] = intensities
+            for ti in tilt:
+                args.append(arg.copy())
+                args[-1]['angle'] = ti
+            tilt_intensities = np.array(pool.map_sync(multiprocessing.rotate,
+                                                      args))
+            tilt_intensities = np.rollaxis(tilt_intensities, 1, 0)
+        return tilt_intensities
 
     def tomographic_reconstruction_result(self, result,
                                           algorithm='SART',
