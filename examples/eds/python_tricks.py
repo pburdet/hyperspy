@@ -71,6 +71,10 @@
 >> > a.argmax()
 2
 
+#map a function with some fix adn some variant argument
+>>> import functools
+>>> map(functools.partial(f,x=1,y=2),a)
+
 #save 2D data as csv
 np.savetxt('a.csv',s.data)
 

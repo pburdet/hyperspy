@@ -45,3 +45,20 @@ img._plot.signal_plot.auto_contrast = False
 img._plot.signal_plot.vmax = 0.45
 img._plot.signal_plot.vmin = 0.0
 img._plot.signal_plot.update()
+
+#Draw an area with marker
+splot =  database.image2D()
+pos = [10., 20., 10., 15.]
+splot.plot()
+m = utils.plot.marker()
+m.type = 'line'
+m.set_marker_properties(color='red')
+for r in [0,1]:
+    m.set_data(x1=pos[0],x2=pos[1],y1=pos[r+2],y2=pos[r+2])
+    splot._plot.signal_plot.add_marker(m)
+    m.plot()
+    m.set_data(x1=pos[r],x2=pos[r],y1=pos[2],y2=pos[3])
+    splot._plot.signal_plot.add_marker(m)
+    m.plot()
+fig = gcf()
+fig
