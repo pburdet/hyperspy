@@ -965,7 +965,10 @@ class EDSTEMSpectrum(EDSSpectrum):
             The intensities to correct of the sample. If 'auto' look in
             intensites
         tilt: list of float
-            If not None, the weight_fraction is tilted
+
+        Return
+        ------
+        np.array
         """
         if intensities == 'auto':
             intensities = self.metadata.Sample.intensities
@@ -992,6 +995,34 @@ class EDSTEMSpectrum(EDSSpectrum):
                                                       args))
             tilt_intensities = np.rollaxis(tilt_intensities, 1, 0)
         return tilt_intensities
+
+    def tilt_3D_result(self,
+                       result,
+                       tilt):
+        """
+        Tilt a 3D result
+
+        Parameters
+        -----------
+        result: 3D image
+            The result to tilt
+        tilt: list of float
+            the tilt angle
+
+        Return
+        ------
+        np.array
+
+        """
+        from scipy import ndimage
+        result = result.data.copy()
+        result = result.astype("float")
+        tilt_result = []
+        for i, tilt in enumerate(tilt):
+            tilt_result.append(ndimage.rotate(result, angle=-tilt, axes=(2, 0),
+                               order=0, reshape=False, mode='reflect'))
+        tilt_result = np.array(tilt_result) 
+        return tilt_result
 
     def tomographic_reconstruction_result(self, result,
                                           algorithm='SART',
@@ -1031,8 +1062,12 @@ class EDSTEMSpectrum(EDSSpectrum):
         >>> rec = adf_tilt.tomographic_reconstruction()
         """
 
-        if hasattr(self.metadata.Sample[result], 'metadata'):
-            self.change_dtype('float')
+        if isinstance(result, str) is False:   
+            sinograms = result
+            for i in range(len(sinograms)):
+                sinograms[i].change_dtype('float')
+        elif hasattr(self.metadata.Sample[result], 'metadata'):
+            self.metadata.Sample[result].change_dtype('float')
             sinograms = self.metadata.Sample[result].split()
         else:
             sinograms = self.metadata.Sample[result]
