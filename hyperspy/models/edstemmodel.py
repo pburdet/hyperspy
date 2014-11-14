@@ -113,7 +113,7 @@ class EDSTEMModel(EDSModel):
         if detector_name is None:
             det_efficiency = generation.deepcopy()
             det_efficiency.data = np.ones_like(generation.data)
-        elif detector_name == 'osiris':
+        elif detector_name == 'osiris' or detector_name == "from_p_buffat":
             det_efficiency = self.spectrum.\
                 compute_detector_efficiency_from_layers(
                     microscope_name=detector_name)

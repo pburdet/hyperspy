@@ -159,7 +159,8 @@ def detector_efficiency_INCA(index=4):
         'OINAXmax80ap4-FS 50SD41K']
 
     foldername = os.path.join(config_path,
-                              'database//det_efficiency_INCA\\' + det_name[index] + '.efy')
+                              'database/det_efficiency_INCA/' +
+                              det_name[index] + '.efy')
     data = np.memmap(foldername, dtype="float32")
 
     if index < 2:
@@ -197,7 +198,8 @@ def detector_layers_brucker(microscope_name='osiris'):
         from hyperspy import utils
 
         foldername = os.path.join(config_path,
-                                  'database//brucker\\SpectraList_' + microscope_name + '.xml')
+                                  'database/brucker/SpectraList_' +
+                                  microscope_name + '.xml')
 
         import base64
         import zlib
