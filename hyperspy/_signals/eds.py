@@ -22,6 +22,8 @@ import matplotlib.pyplot as plt
 # import matplotlib.mlab as mlab
 import copy
 from scipy.interpolate import interp1d
+import warnings
+
 
 from hyperspy import utils
 from hyperspy._signals.spectrum import Spectrum
@@ -145,7 +147,7 @@ class EDSSpectrum(Spectrum):
             beam_energy = beam_energy * 1000
         return beam_energy
 
-    def _xray_lines_in_range(self, xray_lines):
+    def _get_xray_lines_in_spectral_range(self, xray_lines):
         """
         Return the lines in the energy range
 
@@ -412,9 +414,9 @@ class EDSSpectrum(Spectrum):
             else:
                 raise ValueError(
                     "%s is not a valid symbol of an element." % element)
-        xray_not_here = self._xray_lines_in_range(xray_lines)[1]
+        xray_not_here = self._get_xray_lines_in_spectral_range(xray_lines)[1]
         for xray in xray_not_here:
-            print("Warning: %s is not in the data energy range." % (xray))
+            warnings.warn("%s is not in the data energy range." % (xray))
         if "Sample.elements" in self.metadata:
             extra_elements = (set(self.metadata.Sample.elements) -
                               elements)
@@ -467,7 +469,8 @@ class EDSSpectrum(Spectrum):
                 if only_lines and subshell not in only_lines:
                     continue
                 element_lines.append(element + "_" + subshell)
-            element_lines = self._xray_lines_in_range(element_lines)[0]
+            element_lines = self._get_xray_lines_in_spectral_range(
+                element_lines)[0]
             if only_one and element_lines:
                 # Choose the best line
                 select_this = -1
@@ -608,9 +611,13 @@ class EDSSpectrum(Spectrum):
             else:
                 raise ValueError(
                     "Not X-ray line, set them with `add_elements`")
-        xray_lines, xray_not_here = self._xray_lines_in_range(xray_lines)
+        xray_lines, xray_not_here = self._get_xray_lines_in_spectral_range(
+            xray_lines)
         for xray in xray_not_here:
-            print("Warning: %s is not in the data energy range." % (xray))   
+            warnings.warn("%s is not in the data energy range." % (xray) +
+                          "You can remove it with" +
+                          "s.metadata.Sample.xray_lines.remove('%s')"
+                          % (xray))
         intensities = [0] * len(xray_lines)
         if lines_deconvolution == 'standard':
             m = create_model(self, auto_background=False,
