@@ -78,3 +78,9 @@ def absorption_correction_matrix(args):
     from hyperspy.misc.eds import physical_model
     d = physical_model.absorption_correction_matrix(**args)
     return d
+
+
+def absorption_correction_matrix2(args):
+    from hyperspy.misc.eds import physical_model
+    d = physical_model.absorption_correction_matrix2(**args)
+    return d

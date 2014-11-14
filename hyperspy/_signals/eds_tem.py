@@ -920,9 +920,18 @@ class EDSTEMSpectrum(EDSSpectrum):
                     print ti
                     if hasattr(azimuth_angle, '__iter__'):
                         azim = azimuth_angle[i]
-                    abs_corr[:, i] = physical_model.\
-                        absorption_correction_matrix(
-                        azimuth_angle=azim, tilt=ti, **arg)
+                        if hasattr(azimuth_angle[i], '__iter__'):
+                            abs_corr[:, i] = physical_model.\
+                                absorption_correction_matrix2(
+                                azimuth_angle=azim, tilt=ti, **arg)
+                        else:
+                            abs_corr[:, i] = physical_model.\
+                                absorption_correction_matrix(
+                                azimuth_angle=azim, tilt=ti, **arg)
+                    else:
+                        abs_corr[:, i] = physical_model.\
+                            absorption_correction_matrix(
+                            azimuth_angle=azim, tilt=ti, **arg)
                 return abs_corr
             else:
                 from hyperspy.misc import multiprocessing
@@ -931,8 +940,12 @@ class EDSTEMSpectrum(EDSSpectrum):
                 for ti, azim in zip(tilt, azimuth_angle):
                     args.append({'tilt': ti, 'azimuth_angle': azim})
                     args[-1].update(arg)
-                abs_corr = np.array(pool.map_sync(
-                    multiprocessing.absorption_correction_matrix, args))
+                if hasattr(azimuth_angle[0], '__iter__'):
+                    abs_corr = np.array(pool.map_sync(
+                        multiprocessing.absorption_correction_matrix2, args))
+                else:
+                    abs_corr = np.array(pool.map_sync(
+                        multiprocessing.absorption_correction_matrix, args))
                 abs_corr = np.rollaxis(abs_corr, 1, 0)
                 return abs_corr
         elif tilt is None:
