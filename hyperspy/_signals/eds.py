@@ -727,6 +727,8 @@ class EDSSpectrum(Spectrum):
                          line_energy,
                          self.axes_manager.signal_axes[0].units,
                          img.data))
+            img.metadata.set_item("Sample.elements", ([element]))
+            img.metadata.set_item("Sample.xray_lines", ([Xray_line]))
             intensities[i] = img
         if plot_result and img.axes_manager.signal_dimension != 0:
             utils.plot.plot_signals(intensities, **kwargs)
