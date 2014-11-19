@@ -353,30 +353,22 @@ class EDSTEMSpectrum(EDSSpectrum):
             common_xray = str(common_element + '_' + common_line)
 
         kfactors = []
-        kfactors_name = []
-        for i, (std, el, xray) in enumerate(zip(self.metadata.Sample.standard_spec,
-                                                self.metadata.Sample.elements,
-                                                self.metadata.Sample.xray_lines)):
+        for i, (std, el, xray) in enumerate(
+                zip(self.metadata.Sample.standard_spec,
+                    self.metadata.Sample.elements,
+                    self.metadata.Sample.xray_lines)):
             intens = std.get_lines_intensity([xray] + [common_xray], **kwargs)
             kfactor = intens[1].data / intens[0].data
-            if i == 0:
-                kfactor0 = kfactor
-                kfactor0_name = xray
-            else:
-                kfactors.append(kfactor / kfactor0)
-                kfactors_name.append(xray + '/' + kfactor0_name)
+            kfactors.append(kfactor[0])
         self.metadata.Sample.kfactors = kfactors
-        self.metadata.Sample.kfactors_name = kfactors_name
 
-    def get_kfactors_from_brucker(self, common_line='first',
+    def get_kfactors_from_brucker(self,
                                   microscope_name='osiris_200'):
         """
         Get the kfactor from the brucker database
 
         Parameters
         ----------
-        common_line: str
-            The line for the common element to use ('Al_Ka').
         microscope_name: str
             name of the microscope
 
@@ -385,123 +377,17 @@ class EDSTEMSpectrum(EDSSpectrum):
         >>> s = database.spec1D('TEM')
         >>> s.set_elements(["Ni", "Cr",'Al'])
         >>> s.set_lines(["Ni_Ka", "Cr_Ka", "Al_Ka"])
-        >>> s.get_kfactors_from_osiris_database()
+        >>> s.get_kfactors_from_brucker()
         """
-        kfactors = []
-        kfactors_name = []
+
         xray_lines = self.metadata.Sample.xray_lines
-        kfactors_db = database.kfactors_brucker(xray_lines=xray_lines,
-                                                microscope_name=microscope_name)[0]
-        if common_line == 'first':
-            xray_line0 = xray_lines[0]
-            kfactor0 = kfactors_db[0]
-        else:
-
-            xray_line0 = xray_lines[xray_lines.index(common_line)]
-            kfactor0 = kfactors_db[xray_lines.index(common_line)]
-
-        for iline, xray_line in enumerate(xray_lines):
-            kfactor = kfactors_db[iline]
-            #kfactorer = kfactors_db[elem][line]['kfactor_error']
-            if xray_line != xray_line0:
-                kfactors.append(kfactor / kfactor0)
-                kfactors_name.append(xray_line + '/' + xray_line0)
-        self.metadata.Sample.kfactors = kfactors
-        self.metadata.Sample.kfactors_name = kfactors_name
-
-    def quant_cliff_lorimer(self,
-                            intensities='integrate',
-                            kfactors='auto',
-                            reference_line='auto',
-                            plot_result=True,
-                            store_in_mp=True,
-                            **kwargs):
-        """
-        Quantification using Cliff-Lorimer
-
-        Store the result in metadata.Sample.quant
-
-        Parameters
-        ----------
-        intensities: {'integrate','model',list of signal}
-            If 'integrate', integrate unde the peak using get_lines_intensity
-            if 'model', generate a model and fit it
-            Else a list of intensities (signal or image or spectrum)
-        kfactors: {list of float | 'auto'}
-            the list of kfactor, compared to the first
-            elements. eg. kfactors = [1.47,1.72]
-            for kfactors_name = ['Cr_Ka/Al_Ka', 'Ni_Ka/Al_Ka']
-            with kfactors_name in alphabetical order
-            if 'auto', take the kfactors stored in metadata
-        reference_line: 'auto' or str
-            The reference line. If 'auto', the first line in the alphabetic
-            order is chosen ('Al_Ka' in the previous example.)
-            If reference_line = 'Cr_Ka', then
-            kfactors should be ['Al_Ka/Cr_Ka', 'Ni_Ka/Cr_Ka']
-        plot_result: bool
-          If true (default option), plot the result.
-        kwargs
-            The extra keyword arguments for get_lines_intensity
-
-        Examples
-        ---------
-        >>> s = database.spec3D('TEM')
-        >>> s.set_elements(["Al", "Cr", "Ni"])
-        >>> s.set_lines(["Al_Ka","Cr_Ka", "Ni_Ka"])
-        >>> kfactors = [s.metadata.Sample.kfactors[2],
-        >>>         s.metadata.Sample.kfactors[6]]
-        >>> s.quant_cliff_lorimer(kfactors=kfactors)
-
-        See also
-        --------
-        get_kfactors_from_standard, simulate_two_elements_standard,
-            get_lines_intensity
-
-        """
-        # from hyperspy import signals
-
-        xray_lines = list(self.metadata.Sample.xray_lines)
-
-        # beam_energy = self._get_beam_energy()
-        if intensities == 'integrate':
-            intensities = self.get_lines_intensity(**kwargs)
-        elif intensities == 'model':
-            from hyperspy.hspy import create_model
-            m = create_model(self)
-            m.multifit()
-            intensities = m.get_line_intensities(plot_result=False,
-                                                 store_in_mp=False)
-        if kfactors == 'auto':
-            kfactors = self.metadata.Sample.kfactors
-        indexes = range(len(xray_lines))
-        indexes_f = range(len(xray_lines)-1)
-        if reference_line != 'auto':
-            index = [indexes.pop(xray_lines.index(reference_line))]
-            indexes = index + indexes
-            index = [indexes_f.pop(xray_lines.index(reference_line)-1)]
-            indexes_f = index + indexes_f
-            kfactors_s = [kfactors[i] for i in indexes_f]
-            kfactors_s[0] = 1/kfactors_s[0]
-            for i, index in enumerate(indexes_f):
-                if i != 0:
-                    kfactors_s[i] *= kfactors_s[0]
-        else:
-            kfactors_s = kfactors
-        data_res = utils_eds.quantification_cliff_lorimer(
-            kfactors=kfactors_s,
-            intensities=[intensities[i].data for i in indexes])
-        res = []
-        for data, index in zip(data_res, indexes):
-            res.append(self._set_result(xray_line=xray_lines[index],
-                                        result='quant',
-                                        data_res=data,
-                                        plot_result=plot_result,
-                                        store_in_mp=store_in_mp))
-        if store_in_mp is False:
-            return res
+        kfactors_db = database.kfactors_brucker(
+            xray_lines=xray_lines, microscope_name=microscope_name)[0]
+        self.metadata.Sample.kfactors = kfactors_db
 
     def get_kfactors_from_first_principles(self,
                                            detector_efficiency=None,
+                                           common_lines="Si_Ka",
                                            gateway='auto'):
         """
         Get the kfactors from first principles
@@ -511,7 +397,10 @@ class EDSTEMSpectrum(EDSSpectrum):
         Parameters
         ----------
         detector_efficiency: signals.Spectrum
-
+            The efficiency of the detector
+        common_lines: str
+            The X-ray lines that is the common denominator. The kfactors of
+            these value is one.
         gateway: execnet Gateway
             If 'auto', generate automatically the connection to jython.
 
@@ -528,7 +417,7 @@ class EDSTEMSpectrum(EDSSpectrum):
         get_link_to_jython
 
         """
-        xrays = self.metadata.Sample.xray_lines
+        xrays = ["Si_Ka"] + self.metadata.Sample.xray_lines
         beam_energy = self._get_beam_energy()
         kfactors = []
         kfactors_name = []
@@ -536,10 +425,9 @@ class EDSTEMSpectrum(EDSSpectrum):
             gateway = utils_eds.get_link_to_jython()
         for i, xray in enumerate(xrays):
             if i != 0:
-                kfactors.append(utils_eds.get_kfactors([xray, xrays[0]],
-                                                       beam_energy=beam_energy,
-                                                       detector_efficiency=detector_efficiency,
-                                                       gateway=gateway))
+                kfactors.append(utils_eds.get_kfactors(
+                    [xray, xrays[0]], beam_energy=beam_energy,
+                    detector_efficiency=detector_efficiency, gateway=gateway))
                 kfactors_name.append(xray + '/' + xrays[0])
         self.metadata.Sample.kfactors = kfactors
         self.metadata.Sample.kfactors_name = kfactors_name
@@ -604,13 +492,105 @@ class EDSTEMSpectrum(EDSSpectrum):
         #>>> res = s.quant_cliff_lorimer_simple(intensities,kfactors)
         #>>> utils.plot.plot_signals(res)
 
+#    def quant_cliff_lorimer(self,
+#                            intensities='integrate',
+#                            kfactors='auto',
+#                            reference_line='auto',
+#                            plot_result=True,
+#                            store_in_mp=True,
+#                            **kwargs):
+#        """
+#        Quantification using Cliff-Lorimer
+#
+#        Store the result in metadata.Sample.quant
+#
+#        Parameters
+#        ----------
+#        intensities: {'integrate','model',list of signal}
+#            If 'integrate', integrate unde the peak using get_lines_intensity
+#            if 'model', generate a model and fit it
+#            Else a list of intensities (signal or image or spectrum)
+#        kfactors: {list of float | 'auto'}
+#            the list of kfactor, compared to the first
+#            elements. eg. kfactors = [1.47,1.72]
+#            for kfactors_name = ['Cr_Ka/Al_Ka', 'Ni_Ka/Al_Ka']
+#            with kfactors_name in alphabetical order
+#            if 'auto', take the kfactors stored in metadata
+#        reference_line: 'auto' or str
+#            The reference line. If 'auto', the first line in the alphabetic
+#            order is chosen ('Al_Ka' in the previous example.)
+#            If reference_line = 'Cr_Ka', then
+#            kfactors should be ['Al_Ka/Cr_Ka', 'Ni_Ka/Cr_Ka']
+#        plot_result: bool
+#          If true (default option), plot the result.
+#        kwargs
+#            The extra keyword arguments for get_lines_intensity
+#
+#        Examples
+#        ---------
+#        >>> s = database.spec3D('TEM')
+#        >>> s.set_elements(["Al", "Cr", "Ni"])
+#        >>> s.set_lines(["Al_Ka","Cr_Ka", "Ni_Ka"])
+#        >>> kfactors = [s.metadata.Sample.kfactors[2],
+#        >>>         s.metadata.Sample.kfactors[6]]
+#        >>> s.quant_cliff_lorimer(kfactors=kfactors)
+#
+#        See also
+#        --------
+#        get_kfactors_from_standard, simulate_two_elements_standard,
+#            get_lines_intensity
+#
+#        """
+#        # from hyperspy import signals
+#
+#        xray_lines = list(self.metadata.Sample.xray_lines)
+#
+#        # beam_energy = self._get_beam_energy()
+#        if intensities == 'integrate':
+#            intensities = self.get_lines_intensity(**kwargs)
+#        elif intensities == 'model':
+#            from hyperspy.hspy import create_model
+#            m = create_model(self)
+#            m.multifit()
+#            intensities = m.get_line_intensities(plot_result=False,
+#                                                 store_in_mp=False)
+#        if kfactors == 'auto':
+#            kfactors = self.metadata.Sample.kfactors
+#        indexes = range(len(xray_lines))
+#        indexes_f = range(len(xray_lines)-1)
+#        if reference_line != 'auto':
+#            index = [indexes.pop(xray_lines.index(reference_line))]
+#            indexes = index + indexes
+#            index = [indexes_f.pop(xray_lines.index(reference_line)-1)]
+#            indexes_f = index + indexes_f
+#            kfactors_s = [kfactors[i] for i in indexes_f]
+#            kfactors_s[0] = 1/kfactors_s[0]
+#            for i, index in enumerate(indexes_f):
+#                if i != 0:
+#                    kfactors_s[i] *= kfactors_s[0]
+#        else:
+#            kfactors_s = kfactors
+#        data_res = utils_eds.quantification_cliff_lorimer(
+#            kfactors=kfactors_s,
+#            intensities=[intensities[i].data for i in indexes])
+#        res = []
+#        for data, index in zip(data_res, indexes):
+#            res.append(self._set_result(xray_line=xray_lines[index],
+#                                        result='quant',
+#                                        data_res=data,
+#                                        plot_result=plot_result,
+#                                        store_in_mp=store_in_mp))
+#        if store_in_mp is False:
+#            return res
+
     def quantification_cliff_lorimer(self,
-                                     intensities,
-                                     kfactors,
+                                     intensities='auto',
+                                     kfactors='auto',
                                      composition_units='weight',
                                      navigation_mask=1.0,
                                      closing=True,
                                      plot_result=False,
+                                     store_in_mp=True,
                                      **kwargs):
         """
         Quantification using Cliff-Lorimer
@@ -659,6 +639,10 @@ class EDSTEMSpectrum(EDSSpectrum):
         --------
         vacuum_mask
         """
+        if kfactors == 'auto':
+            kfactors = self.metadata.Sample.kfactors
+        if intensities == 'auto':
+            intensities = self.metadata.Sample.intensities
         if isinstance(navigation_mask, float):
             navigation_mask = self.vacuum_mask(navigation_mask, closing).data
         elif navigation_mask is not None:
@@ -685,7 +669,15 @@ class EDSTEMSpectrum(EDSSpectrum):
                          composition_units))
         if plot_result and composition[i].axes_manager.signal_dimension != 0:
             utils.plot.plot_signals(composition, **kwargs)
-        return composition
+
+        if store_in_mp:
+            for i, compo in enumerate(composition):
+                self._set_result(
+                    xray_line=xray_lines[i], result='quant',
+                    data_res=compo.data, plot_result=False,
+                    store_in_mp=store_in_mp)
+        else:
+            return composition
 
     def get_absorption_corrections(self, weight_fraction='auto',
                                    thickness='auto', density='auto'):

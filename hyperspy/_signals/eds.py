@@ -1654,7 +1654,11 @@ class EDSSpectrum(Spectrum):
         spec = self._get_signal_signal()   
         energy_axis = spec.axes_manager.signal_axes[0]
         
-        if isinstance(detector_name, str):
+        if detector_name == 'osiris' or detector_name == "from_p_buffat":
+            det_efficiency = self.\
+                compute_detector_efficiency_from_layers(
+                    microscope_name=detector_name)
+        elif isinstance(detector_name, str):
             if gateway == 'auto':
                 gateway = utils_eds.get_link_to_jython()
             det_efficiency = utils_eds.get_detector_properties(
