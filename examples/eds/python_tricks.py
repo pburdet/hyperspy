@@ -71,6 +71,10 @@
 >> > a.argmax()
 2
 
+>> > a = np.array([0., 1., 3.])
+>> > a[a>2] = 10.
+np.array([10., 10., 3.])
+
 #map a function with some fix adn some variant argument
 >>> import functools
 >>> map(functools.partial(f,x=1,y=2),a)
