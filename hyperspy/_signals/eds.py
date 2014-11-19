@@ -1535,7 +1535,7 @@ class EDSSpectrum(Spectrum):
         ------
         density in g/cm^3
         """
-        from hyperspy import signals
+        # from hyperspy import signals
         elements = self.metadata.Sample.elements
         if weight_fraction == 'auto':
             if 'weight_fraction' in self.metadata.Sample:
@@ -1544,15 +1544,8 @@ class EDSSpectrum(Spectrum):
                 weight_fraction = [1. / len(elements) for elm in elements]
                 print 'Weight fraction is automatically set to ' + str(
                     weight_fraction)
-        if isinstance(weight_fraction[0], signals.Signal):
-            weight_frac = []
-            for weight in weight_fraction:
-                weight_frac.append(weight.data)
-            density = utils.material.density_of_mixture_of_pure_elements(
-                elements, weight_frac)
-        else:
-            density = utils.material.density_of_mixture_of_pure_elements(
-                elements, weight_fraction)
+        density = utils.material.density_of_mixture_of_pure_elements(
+            weight_fraction, elements)
         self.metadata.Sample.density = density
         return density
 
@@ -2105,76 +2098,76 @@ class EDSSpectrum(Spectrum):
             # plt.text(line_energy[i], intensity[i] * 1.1, xray_lines[i],
                      # rotation=90)
             #plt.vlines(line_energy[i], 0, intensity[i] * 0.8, color='black')
-    def atomic_to_weigth(self, atomic_percent, elements='auto'):
-        """Convert the maps of composition from atomic percent to weight
-        percent.
-
-        Parameters
-        ----------
-        atomic_percent: list of signals or signals
-            The atomic fractions (composition) of the sample.
-        elements: list of str or 'auto'
-            A list of element abbreviations, e.g. ['Al','Zn']. If 'auto', take
-            `metadata.Sample.elements`
-
-        Returns
-        -------
-        weight_percent : same as atomic_percent
-            The maps of composition in weight percent.
-
-        See also
-        --------
-        utils.material.atomic_to_weight
-
-        """
-        if elements == 'auto':
-            elements = self.metadata.Sample.elements
-        if isinstance(atomic_percent, list):
-            weight_percent = utils.stack(atomic_percent)
-            weight_percent.data = utils.material.atomic_to_weight(
-                elements, weight_percent.data)
-            weight_percent.data = np.nan_to_num(weight_percent.data)
-            weight_percent = weight_percent.split()
-        else:
-            weight_percent = atomic_percent.deepcopy()
-            weight_percent.data = utils.material.atomic_to_weight(
-                elements, atomic_percent.data)
-            weight_percent.data = np.nan_to_num(weight_percent.data)
-        return weight_percent
-
-    def weight_to_atomic(self, weight_percent, elements='auto'):
-        """Convert the maps of composition from weight percent to weight
-        atomic.
-
-        Parameters
-        ----------
-        weight_percent: list of signals or signals
-            The weight fractions (composition) of the sample.
-        elements: list of str or 'auto'
-            A list of element abbreviations, e.g. ['Al','Zn']. If 'auto', take
-            `metadata.Sample.elements`
-
-        Returns
-        -------
-        atomic_percent : same as weight_percent
-            The maps of composition in atomic percent.
-
-        See also
-        --------
-        utils.material.weight_to_atomic
-
-        """
-        if elements == 'auto':
-            elements = self.metadata.Sample.elements
-        if isinstance(weight_percent, list):
-            atomic_percent = utils.stack(weight_percent)
-            atomic_percent.data = utils.material.weight_to_atomic(
-                elements, atomic_percent.data)
-            atomic_percent.data = np.nan_to_num(atomic_percent.data)
-            atomic_percent = atomic_percent.split()
-        else:
-            atomic_percent = weight_percent.deepcopy()
-            atomic_percent.data = utils.material.weight_to_atomic(
-                elements, atomic_percent.data)
-            atomic_percent.data = np.nan_to_num(atomic_percent.data)
-        return atomic_percent
+#    def atomic_to_weigth(self, atomic_percent, elements='auto'):
+#        """Convert the maps of composition from atomic percent to weight
+#        percent.
+#
+#        Parameters
+#        ----------
+#        atomic_percent: list of signals or signals
+#            The atomic fractions (composition) of the sample.
+#        elements: list of str or 'auto'
+#            A list of element abbreviations, e.g. ['Al','Zn']. If 'auto', take
+#            `metadata.Sample.elements`
+#
+#        Returns
+#        -------
+#        weight_percent : same as atomic_percent
+#            The maps of composition in weight percent.
+#
+#        See also
+#        --------
+#        utils.material.atomic_to_weight
+#
+#        """
+#        if elements == 'auto':
+#            elements = self.metadata.Sample.elements
+#        if isinstance(atomic_percent, list):
+#            weight_percent = utils.stack(atomic_percent)
+#            weight_percent.data = utils.material.atomic_to_weight(
+#                elements, weight_percent.data)
+#            weight_percent.data = np.nan_to_num(weight_percent.data)
+#            weight_percent = weight_percent.split()
+#        else:
+#            weight_percent = atomic_percent.deepcopy()
+#            weight_percent.data = utils.material.atomic_to_weight(
+#                elements, atomic_percent.data)
+#            weight_percent.data = np.nan_to_num(weight_percent.data)
+#        return weight_percent
+#
+#    def weight_to_atomic(self, weight_percent, elements='auto'):
+#        """Convert the maps of composition from weight percent to weight
+#        atomic.
+#
+#        Parameters
+#        ----------
+#        weight_percent: list of signals or signals
+#            The weight fractions (composition) of the sample.
+#        elements: list of str or 'auto'
+#            A list of element abbreviations, e.g. ['Al','Zn']. If 'auto', take
+#            `metadata.Sample.elements`
+#
+#        Returns
+#        -------
+#        atomic_percent : same as weight_percent
+#            The maps of composition in atomic percent.
+#
+#        See also
+#        --------
+#        utils.material.weight_to_atomic
+#
+#        """
+#        if elements == 'auto':
+#            elements = self.metadata.Sample.elements
+#        if isinstance(weight_percent, list):
+#            atomic_percent = utils.stack(weight_percent)
+#            atomic_percent.data = utils.material.weight_to_atomic(
+#                elements, atomic_percent.data)
+#            atomic_percent.data = np.nan_to_num(atomic_percent.data)
+#            atomic_percent = atomic_percent.split()
+#        else:
+#            atomic_percent = weight_percent.deepcopy()
+#            atomic_percent.data = utils.material.weight_to_atomic(
+#                elements, atomic_percent.data)
+#            atomic_percent.data = np.nan_to_num(atomic_percent.data)
+#        return atomic_percent

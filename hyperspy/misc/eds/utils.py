@@ -329,13 +329,11 @@ def simulate_one_spectrum(nTraj, dose=100, mp='gui',
 
     compo_wt = np.array(
         material.atomic_to_weight(
-            elements,
-            compo_at)) / 100
+            compo_at, elements)) / 100
     compo_wt = list(compo_wt)
     if density == 'auto':
         density = material.density_of_mixture_of_pure_elements(
-            elements,
-            compo_wt)
+            compo_wt, elements)
     mp.Sample.density = density
 
     e0 = mp.Acquisition_instrument.SEM.beam_energy
@@ -572,15 +570,11 @@ def simulate_Xray_depth_distribution(nTraj, bins=120, mp='gui',
         for elm in elements:
             compo_at.append(1. / len(elements))
 
-    compo_wt = np.array(
-        material.atomic_to_weight(
-            elements,
-            compo_at)) / 100
+    compo_wt = np.array(material.atomic_to_weight(compo_at, elements)) / 100
     compo_wt = list(compo_wt)
     if density == 'auto':
         density = material.density_of_mixture_of_pure_elements(
-            elements,
-            compo_wt)
+            compo_wt, elements)
 
     e0 = mp.Acquisition_instrument.SEM.beam_energy
     tilt = np.radians(mp.Acquisition_instrument.SEM.tilt_stage)
@@ -898,17 +892,14 @@ def simulate_linescan(nTraj,
     for compo_at in compos_at:
         compos_wt.append(list(np.array(
             material.atomic_to_weight(
-                elements,
-                compo_at)) /
-            100))
+                compo_at, elements)) / 100))
 
     if density == 'auto':
         density = []
         for compo_wt in compos_wt:
             density.append(
                 material.density_of_mixture_of_pure_elements(
-                    elements,
-                    compo_wt))
+                    compo_wt, elements))
 
     mp.Sample.compo_at = compo_at
     mp.Sample.density = density
@@ -1190,8 +1181,7 @@ def simulate_one_spectrum_TEM(nTraj, dose=100, mp='gui',
     compo_wt = list(weight_fraction)
     if density == 'auto':
         density = material.density_of_mixture_of_pure_elements(
-            elements,
-            compo_wt)
+            compo_wt, elements)
     mp.Sample.density = density
 
     if thickness == 'auto':
@@ -1872,7 +1862,7 @@ def quantification_absorption_corrections_thin_film(intensities,
     kfactors_abs = []
     for j in range(max_iter):
         density = material.density_of_mixture_of_pure_elements(
-            elements, weight_fractions[-1])
+             weight_fractions[-1], elements)
         # mac_sample = material.mass_absorption_coefficient_of_mixture_of_pure_elements(
         # energies=xray_lines,
         # weight_fraction=weight_fractions[-1],

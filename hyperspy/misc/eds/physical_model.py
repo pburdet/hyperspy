@@ -202,6 +202,7 @@ def absorption_correction_matrix(weight_fraction,
         {xray_lines,z,y,x}
     """
     from hyperspy import utils
+    from hyperspy.misc.eds import material
 
     x_ax, y_ax, z_ax = 3, 2, 1
     order = 3
@@ -216,9 +217,8 @@ def absorption_correction_matrix(weight_fraction,
 
     elements = np.array(elements)
     if density == 'auto':
-        density_r = utils.material.density_of_mixture_of_pure_elements(
-            elements,
-            weight_fraction_r * 100.)
+        density_r = material._density_of_mixture_of_pure_elements(
+            weight_fraction_r * 100., elements)
     else:
         density_r = ndimage.rotate(density,
                                    angle=-azimuth_angle,
@@ -326,6 +326,7 @@ def absorption_correction_matrix2(weight_fraction,
         {xray_lines,z,y,x}
     """
     from hyperspy import utils
+    from hyperspy.misc.eds import material
 
     x_ax, y_ax, z_ax = 3, 2, 1
     order = 3
@@ -347,9 +348,8 @@ def absorption_correction_matrix2(weight_fraction,
                                         mode='reflect')
     elements = np.array(elements)
     if density == 'auto':
-        density_r = utils.material.density_of_mixture_of_pure_elements(
-            elements,
-            weight_fraction_r * 100.)
+        density_r = material._density_of_mixture_of_pure_elements(
+            weight_fraction_r * 100., elements)
         density_r2 = density_r
     else:
         density_r = ndimage.rotate(density,
