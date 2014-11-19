@@ -19,7 +19,7 @@
 import numpy as np
 from nose.tools import assert_true, assert_equal
 
-from hyperspy.signals import EDSTEMSpectrum
+from hyperspy.signals import EDSTEMSpectrum, Simulation
 from hyperspy.defaults_parser import preferences
 from hyperspy.misc.eds import database
 from hyperspy.components import Gaussian
@@ -130,6 +130,20 @@ class Test_quantification:
         res = s.quantification_cliff_lorimer(intensities, kfactors)
         assert_true(np.allclose(res[0].data, np.array(
                     [0.2270779, 0.2270779]), atol=1e-3))
+
+
+class Test_vacum_mask:
+
+    def setUp(self):
+        s = Simulation(np.array([np.linspace(0.001,0.5,20)]*100).T)
+        s.add_poissonian_noise()
+        s = EDSTEMSpectrum(s.data)
+        self.signal = s
+
+    def test_vacuum_mask(self):
+        s = self.signal
+        assert_equal(s.vacuum_mask().data[0], True)
+        assert_equal(s.vacuum_mask().data[-1], False)
 
 # class Test_get_lines_intentisity:
 #    def setUp(self):
