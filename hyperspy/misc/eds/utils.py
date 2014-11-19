@@ -2229,43 +2229,111 @@ def quantification_absorption_corrections_thin_film(intensities,
         # return _mac_interpolation(mac, mac1, energy,
         # energy_db, energy_db1)
 
-def quantification_cliff_lorimer(intensities, kfactors):
+
+def quantification_cliff_lorimer(intensities,
+                                 kfactors,
+                                 mask=None):
     """
     Quantification using Cliff-Lorimer
 
     Parameters
     ----------
-    intensities: list of list of float
-        the intensities for each X-ray lines.
+    intensities: numpy.array
+        the intensities for each X-ray lines. The first axis should be the
+        elements axis.
     kfactors: list of float
-        the list of kfactor, compared to the first
-        elements. eg. kfactors = [1.47,1.72]
-        for kfactors_name = ['Cr_Ka/Al_Ka', 'Ni_Ka/Al_Ka']
+        The list of kfactor in same order as intensities eg. kfactors =
+        [1, 1.47, 1.72] for ['Al_Ka','Cr_Ka', 'Ni_Ka']
+    mask: array of bool
+        The mask with the dimension of intensities[0]. If a pixel is True,
+        the composition is set to zero.
 
     Return
     ------
-    A list of list of float containing the weight fraction with the same
+    numpy.array containing the weight fraction with the same
     shape as intensities.
     """
-    import copy
-    intensities = np.array(copy.copy(intensities))
-    intensities[intensities < 0] = 1e-15
-    ab = []
-    composition = []
-    # ab = Ia/Ib / kab
-    for i, kba in enumerate(kfactors):
-        ab.append(intensities[0] / intensities[i + 1] / kba)
-    # Ca = ab /(1 + ab + ab/ac + ab/ad + ...)
-    # ab = np.nan_to_num(ab)
-    composition.append(np.ones_like(ab[0]))
-    for i, ab1 in enumerate(ab):
-        if i == 0:
-            composition[0] += ab[0]
+    # Value used as an threshold to prevent using zeros as denominator
+    min_intensity = 0.1
+    dim = intensities.shape
+    if len(dim) > 1:
+        dim2 = reduce(lambda x, y: x*y, dim[1:])
+        intens = intensities.reshape(dim[0], dim2)
+        intens = intens.astype('float')
+        for i in range(dim2):
+            index = np.where(intens[:, i] > min_intensity)[0]
+            if len(index) > 1:
+                ref_index, ref_index2 = index[:2]
+                intens[:, i] = _quantification_cliff_lorimer(
+                    intens[:, i], kfactors, ref_index, ref_index2)
+            else:
+                intens[:, i] = np.zeros_like(intens[:, i])
+                if len(index) == 1:
+                    intens[index[0], i] = 1.
+        intens = intens.reshape(dim)
+        if mask is not None:
+            for i in range(dim[0]):
+                intens[i][mask] = 0
+        return intens
+    else:
+        # intens = intensities.copy()
+        # intens = intens.astype('float')
+        index = np.where(intensities > min_intensity)[0]
+        if len(index) > 1:
+            ref_index, ref_index2 = index[:2]
+            intens = _quantification_cliff_lorimer(
+                intensities, kfactors, ref_index, ref_index2)
         else:
-            composition[0] += (ab[0] / ab1)
-    composition[0] = ab[0] / composition[0]
+            intens = np.zeros_like(intensities)
+            if len(index) == 1:
+                intens[index[0]] = 1.
+        return intens
+
+
+def _quantification_cliff_lorimer(intensities,
+                                  kfactors,
+                                  ref_index=0,
+                                  ref_index2=1):
+    """
+    Quantification using Cliff-Lorimer
+
+    Parameters
+    ----------
+    intensities: numpy.array
+        the intensities for each X-ray lines. The first axis should be the
+        elements axis.
+    kfactors: list of float
+        The list of kfactor in same order as  intensities eg. kfactors =
+        [1, 1.47, 1.72] for ['Al_Ka','Cr_Ka', 'Ni_Ka']
+    ref_index, ref_index2: int
+        index of the elements that will be in the denominator. Should be non
+        zeros if possible.
+
+    Return
+    ------
+    numpy.array containing the weight fraction with the same
+    shape as intensities.
+    """
+    if len(intensities) != len(kfactors):
+        raise ValueError('The number of kfactors must match the size of the '
+                         'first axis of intensities.')
+    ab = np.zeros_like(intensities, dtype='float')
+    composition = np.ones_like(intensities, dtype='float')
+    # ab = Ia/Ib / kab
+
+    other_index = range(len(kfactors))
+    other_index.pop(ref_index)
+    for i in other_index:
+        ab[i] = intensities[ref_index] * kfactors[ref_index]  \
+            / intensities[i] / kfactors[i]
+    # Ca = ab /(1 + ab + ab/ac + ab/ad + ...)
+    for i in other_index:
+        if i == ref_index2:
+            composition[ref_index] += ab[ref_index2]
+        else:
+            composition[ref_index] += (ab[ref_index2] / ab[i])
+    composition[ref_index] = ab[ref_index2] / composition[ref_index]
     # Cb = Ca / ab
-    for ab1 in ab:
-        composition.append(composition[0] / ab1)
-    composition = np.nan_to_num(composition)
+    for i in other_index:
+        composition[i] = composition[ref_index] / ab[i]
     return composition

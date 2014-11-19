@@ -383,9 +383,28 @@ an interactive way to generate intensity map.
 Quantification
 --------------
 
-The obtained composition is in weight percent. It can be changed transformed into atomic percent with :py:func:`~.misc.material.weight_to_atomic`. The reverse method is :py:func:`~.misc.material.atomic_to_weigth`.
+For the moment, only one TEM quantification method (Cliff-Lorimer) is implemented.
+
+Quantification can be applied from the intensities (background subtracted) with the :py:meth:`~._signals.eds_tem.EDSTEMSpectrum.quantification_cliff_lorimer` method. The required kfactors can be usually found in the EDS manufacturer software.
 
 .. code-block:: python
 
+    >>> spec.set_elements(["Al", "Cr", "Ni"])
+    >>> spec.add_lines()
+    >>> kfactors = [0.982, 1.32, 1.60]
+    >>> weight_percent = spec.quantification_cliff_lorimer(intensities, kfactors)
+
+The obtained composition is in weight percent. It can be changed transformed into atomic percent either with the option :py:meth:`~._signals.eds_tem.EDSTEMSpectrum.quantification_cliff_lorimer`:
+
+.. code-block:: python
+
+    >>> weight_percent = spec.quantification_cliff_lorimer
+    >>> 	(intensities, kfactors, composition_units='atomic')
+
+either with :py:func:`~.misc.material.weight_to_atomic`. The reverse method is :py:func:`~.misc.material.atomic_to_weigth`.
+
+.. code-block:: python
+	
     >>> atomic_percent = utils.material.weight_to_atomic(weight_percent)
+
 

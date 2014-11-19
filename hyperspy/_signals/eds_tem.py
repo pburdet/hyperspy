@@ -21,6 +21,7 @@ import traits.api as t
 import numpy as np
 from scipy import ndimage
 
+from hyperspy import utils
 from hyperspy._signals.eds import EDSSpectrum
 from hyperspy.decorators import only_interactive
 from hyperspy.gui.eds import TEMParametersUI
@@ -606,53 +607,85 @@ class EDSTEMSpectrum(EDSSpectrum):
     def quantification_cliff_lorimer(self,
                                      intensities,
                                      kfactors,
-                                     reference_line='auto'):
+                                     composition_units='weight',
+                                     navigation_mask=1.0,
+                                     closing=True,
+                                     plot_result=False,
+                                     **kwargs):
         """
         Quantification using Cliff-Lorimer
 
         Parameters
         ----------
+        intensities: list of signal
+            the intensitiy for each X-ray lines.
         kfactors: list of float
-            the list of kfactor, compared to the first
-            elements. eg. kfactors = [1.47,1.72]
-            for kfactors_name = ['Cr_Ka/Al_Ka', 'Ni_Ka/Al_Ka']
-            with kfactors_name in alphabetical order.
-        intensities: list of signal.Signals
-            the intensities for each X-ray lines in the alphabetical order.
-        reference_line: 'auto' or str
-            The reference line. If 'auto', the first line in the alphabetic
-            order is chosen ('Al_Ka' in the previous example.)
-            If reference_line = 'Cr_Ka', then
-            kfactors should be ['Al_Ka/Cr_Ka', 'Ni_Ka/Cr_Ka']
+            The list of kfactor in same order as intensities. Note that
+            intensities provided by hyperspy are sorted by the aplhabetical
+            order of the X-ray lines. eg. kfactors =[0.982, 1.32, 1.60] for
+            ['Al_Ka','Cr_Ka', 'Ni_Ka'].
+        composition_units: 'weight' or 'atomic'
+            Cliff-Lorimer return weight percent. By choosing 'atomic', the
+            return composition is in atomic percent.
+        navigation_mask : None or float or boolean numpy.array
+            The navigation locations marked as True are not used in the
+            quantification. If int is given the vacuum_mask method is used to
+            generate a mask with the int value as threhsold.
+        closing: bool
+            If true, applied a morphologic closing to the mask obtained by
+            vacuum_mask.
+        plot_result : bool
+            If True, plot the calculated composition. If the current
+            object is a single spectrum it prints the result instead.
+        kwargs
+            The extra keyword arguments for plotting. See
+            `utils.plot.plot_signals`
+
+        Return
+        ------
+        A list of quantified elemental maps giving the composition of the
+        sample in weight or atomic percent.
 
         Examples
         ---------
         >>> #s is a signals.EDSTEMSpectrum
         >>> s.set_elements(["Al", "Cr", "Ni"])
-        >>> s.set_lines(["Al_Ka","Cr_Ka", "Ni_Ka"])
-        >>> kfactors = [1.47,1.72]
+        >>> s.add_lines()
+        >>> kfactors = [0.982, 1.32, 1.60]
         >>> intensities = s.get_lines_intensity()
         >>> res = s.quantification_cliff_lorimer(intensities,kfactors)
-        >>> utils.plot.plot_signals(res)
-        """
 
+        See also
+        --------
+        vacuum_mask
+        """
+        if isinstance(navigation_mask, float):
+            navigation_mask = self.vacuum_mask(navigation_mask, closing).data
+        elif navigation_mask is not None:
+            navigation_mask = navigation_mask.data
         xray_lines = self.metadata.Sample.xray_lines
-        indexes = range(len(xray_lines))
-        if reference_line != 'auto':
-            index = [indexes.pop(xray_lines.index(reference_line))]
-            indexes = index + indexes
-        data_res = utils_eds.quantification_cliff_lorimer(
-            kfactors=kfactors,
-            intensities=[intensities[i].data for i in indexes])
-        spec_res = []
-        for xray_line, index, intensity in zip(
-                xray_lines, indexes, intensities):
+        composition = utils.stack(intensities)
+        composition.data = utils_eds.quantification_cliff_lorimer(
+            composition.data, kfactors=kfactors,
+            mask=navigation_mask) * 100.
+        composition = composition.split()
+        if composition_units == 'atomic':
+            composition = utils.material.weight_to_atomic(composition)
+        for i, xray_line in enumerate(xray_lines):
             element, line = utils_eds._get_element_and_line(xray_line)
-            spec_res.append(intensity.deepcopy())
-            spec_res[-1].data = data_res[index]
-            spec_res[-1].metadata.General.title = 'Weight fraction of ' +\
-                element
-        return spec_res
+            composition[i].metadata.General.title = composition_units + \
+                ' percent of ' + element
+            composition[i].metadata.set_item("Sample.elements", ([element]))
+            composition[i].metadata.set_item(
+                "Sample.xray_lines", ([xray_line]))
+            if plot_result and \
+                    composition[i].axes_manager.signal_dimension == 0:
+                print("%s (%s): Composition = %.2f %s percent"
+                      % (element, xray_line, composition[i].data,
+                         composition_units))
+        if plot_result and composition[i].axes_manager.signal_dimension != 0:
+            utils.plot.plot_signals(composition, **kwargs)
+        return composition
 
     def get_absorption_corrections(self, weight_fraction='auto',
                                    thickness='auto', density='auto'):
