@@ -395,10 +395,10 @@ def mass_absorption_coefficient_of_mixture_of_pure_elements(elements,
 
 def _elements_auto(composition, elements):
     if isinstance(composition[0], numbers.Number):
-        if elements == 'auto':
+        if isinstance(elements,str):
             raise ValueError("The elements needs to be provided.")
     else:
-        if elements == 'auto':
+        if isinstance(elements,str):
             elements = []
             for compo in composition:
                 if len(compo.metadata.Sample.elements) > 1:
