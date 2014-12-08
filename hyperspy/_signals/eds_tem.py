@@ -897,7 +897,7 @@ class EDSTEMSpectrum(EDSSpectrum):
             If not None, the weight_fraction is tilted
         thickness: float
             The thickness of each indiviual voxel (square). If 'auto' axes
-            manager
+            manager. in nm.
         density: array
             The density to correct of the sample. If 'auto' use the
             weight_fraction to calculate it. in gm/cm^3

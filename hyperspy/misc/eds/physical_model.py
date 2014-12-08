@@ -182,7 +182,7 @@ def absorption_correction_matrix(weight_fraction,
     elements: list of str
         The elements of the sample
     thickness: float
-            Set the thickness in nm
+            Set the thickness in cm
     density: array
         dim = {z,y,x} The density to correct of the sample.
         If 'auto' use the weight_fraction
@@ -202,10 +202,11 @@ def absorption_correction_matrix(weight_fraction,
         {xray_lines,z,y,x}
     """
     from hyperspy import utils
-    from hyperspy.misc.eds import material
+    from hyperspy.misc import material
 
     x_ax, y_ax, z_ax = 3, 2, 1
     order = 3
+    #reflect is not really good to deal with border in z direction
     weight_fraction_r = ndimage.rotate(weight_fraction,
                                        angle=-azimuth_angle,
                                        axes=(x_ax, y_ax),
@@ -249,7 +250,7 @@ def absorption_correction_matrix(weight_fraction,
         fact = np.nan_to_num(density_r * mac * thickness * mask_el_r[i])
 
         fact_sum = np.zeros_like(fact)
-        fact_sum[:, :, -1] = fact[:, :, -1]
+        fact_sum[:, :, -1] = fact[:, :, -1] #/ 2. first voxel is two times thinner
         for j in range(len(fact[0, 0]) - 2, -1, -1):
             fact_sum[:, :, j] = fact_sum[:, :, j+1] + fact[:, :, j]
         abs_co = np.exp(-(fact_sum))
@@ -326,7 +327,7 @@ def absorption_correction_matrix2(weight_fraction,
         {xray_lines,z,y,x}
     """
     from hyperspy import utils
-    from hyperspy.misc.eds import material
+    from hyperspy.misc import material
 
     x_ax, y_ax, z_ax = 3, 2, 1
     order = 3
