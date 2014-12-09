@@ -250,7 +250,7 @@ def absorption_correction_matrix(weight_fraction,
         fact = np.nan_to_num(density_r * mac * thickness * mask_el_r[i])
 
         fact_sum = np.zeros_like(fact)
-        fact_sum[:, :, -1] = fact[:, :, -1] #/ 2. first voxel is two times thinner
+        fact_sum[:, :, -1] = fact[:, :, -1] / 2.  # approx
         for j in range(len(fact[0, 0]) - 2, -1, -1):
             fact_sum[:, :, j] = fact_sum[:, :, j+1] + fact[:, :, j]
         abs_co = np.exp(-(fact_sum))
@@ -398,7 +398,7 @@ def absorption_correction_matrix2(weight_fraction,
                 elements, weight_fraction_r, xray_line)
         fact = np.nan_to_num(density_r * mac * thickness / 2. * mask_el_r[i])
         fact_sum = np.zeros_like(fact)
-        fact_sum[:, :, -1] = fact[:, :, -1]
+        fact_sum[:, :, -1] = fact[:, :, -1] / 2.
         for j in range(len(fact[0, 0]) - 2, -1, -1):
             fact_sum[:, :, j] = fact_sum[:, :, j+1] + fact[:, :, j]
         abs_corr[i] = fact_sum
