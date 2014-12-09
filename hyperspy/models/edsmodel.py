@@ -186,27 +186,32 @@ class EDSModel(Model):
             for li in elements_db[element]['Atomic_properties']['Xray_lines']:
                 if line[0] in li and line != li:
                     xray_sub = element + '_' + li
-                    line_energy, line_FWHM = self.spectrum._get_line_energy(
-                        xray_sub, FWHM_MnKa='auto')
-                    component_sub = create_component.Gaussian()
-                    component_sub.centre.value = line_energy
-                    component_sub.name = xray_sub
-                    # component_sub.fwhm = line_FWHM
-                    component_sub.sigma.value = line_FWHM / 2.355
-                    # component.A.ext_force_positive = True
-                    component_sub.centre.free = False
-                    component_sub.sigma.free = False
-                    component_sub.A.twin_function = _get_weight(element, li)
-                    component_sub.A.twin_inverse_function = _get_iweight(
-                        element, li)
-                    component_sub.A.twin = component.A
-                    self.append(component_sub)
+                    if self.spectrum.\
+                            _get_xray_lines_in_spectral_range(
+                                [xray_sub])[0] != []:
+                        line_energy, line_FWHM = self.spectrum.\
+                            _get_line_energy(
+                                xray_sub, FWHM_MnKa='auto')
+                        component_sub = create_component.Gaussian()
+                        component_sub.centre.value = line_energy
+                        component_sub.name = xray_sub
+                        # component_sub.fwhm = line_FWHM
+                        component_sub.sigma.value = line_FWHM / 2.355
+                        # component.A.ext_force_positive = True
+                        component_sub.centre.free = False
+                        component_sub.sigma.free = False
+                        component_sub.A.twin_function = _get_weight(
+                            element, li)
+                        component_sub.A.twin_inverse_function = _get_iweight(
+                            element, li)
+                        component_sub.A.twin = component.A
+                        self.append(component_sub)
             self.fetch_stored_values()
 
     def get_lines_intensity(self,
                             xray_lines='auto',
                             plot_result=True,
-                            store_in_mp=True,
+                            store_in_mp=False,
                             **kwargs):
         """
 
@@ -227,23 +232,25 @@ class EDSModel(Model):
         """
         intensities = []
 
+        if store_in_mp:
+            xray_lines = 'from_metadata'
+            if self.spectrum.metadata.Sample.has_item(
+                    'xray_lines') is False:
+                self.spectrum.metadata.Sample.xray_lines = xray_lines
+
         if xray_lines == 'auto':
             xray_lines = []
-            components = self.xray_lines
-            for component in components:
+            for component in self.xray_lines:
                 xray_lines.append(component.name)
         else:
             if xray_lines == 'from_metadata':
                 xray_lines = self.spectrum.metadata.Sample.xray_lines
-            components = filter(lambda x: x.name in xray_lines,
-                                self.xray_lines)
+            xray_lines = filter(lambda x: x in [a.name for a in
+                                self.xray_lines], xray_lines)
 
-        if self.spectrum.metadata.Sample.has_item(
-                'xray_lines') is False and store_in_mp:
-            self.spectrum.metadata.Sample.xray_lines = xray_lines
-        for xray_line, component in zip(xray_lines, components):
+        for xray_line in xray_lines:
             line_energy = self.spectrum._get_line_energy(xray_line)
-            data_res = component.A.map['values']
+            data_res = self[xray_line].A.map['values']
             if self.axes_manager.navigation_dimension == 0:
                 data_res = data_res[0]
             img = self.spectrum._set_result(xray_line, 'intensities',
