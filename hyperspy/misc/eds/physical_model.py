@@ -206,7 +206,7 @@ def absorption_correction_matrix(weight_fraction,
 
     x_ax, y_ax, z_ax = 3, 2, 1
     order = 3
-    #reflect is not really good to deal with border in z direction
+    # reflect is not really good to deal with border in z direction
     weight_fraction_r = ndimage.rotate(weight_fraction,
                                        angle=-azimuth_angle,
                                        axes=(x_ax, y_ax),

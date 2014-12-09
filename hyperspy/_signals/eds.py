@@ -1645,6 +1645,7 @@ class EDSSpectrum(Spectrum):
         ----------
         det_name: int, str
             If {0,1,2,3,4}, INCA efficiency database
+            If 'osiris' or "from_p_buffat", from layer
             If str, model from DTSAII
         gateway: execnet Gateway
             If 'auto', generate automatically the connection to jython.
@@ -1654,9 +1655,9 @@ class EDSSpectrum(Spectrum):
         database.detector_efficiency_INCA
         utils_eds.get_detector_properties
         """
-        spec = self._get_signal_signal()   
+        spec = self._get_signal_signal()
         energy_axis = spec.axes_manager.signal_axes[0]
-        
+
         if detector_name == 'osiris' or detector_name == "from_p_buffat":
             det_efficiency = self.\
                 compute_detector_efficiency_from_layers(
@@ -1668,21 +1669,22 @@ class EDSSpectrum(Spectrum):
                 detector_name, gateway=gateway)
         else:
             det_efficiency = database.detector_efficiency_INCA(detector_name)
-            
-        if det_efficiency.axes_manager.signal_axes[0].units != energy_axis.units:
+
+        if det_efficiency.axes_manager.signal_axes[0].units \
+                != energy_axis.units:
             det_efficiency._eV_to_keV()
-            
+
         spec.metadata.General.title = 'detector efficiency: ' + \
-                det_efficiency.metadata.General.title
-                
-        f =  interp1d(det_efficiency.axes_manager.signal_axes[0].axis,
-            det_efficiency.data.squeeze(),bounds_error=False,
-            fill_value=0.,)
-            
+            det_efficiency.metadata.General.title
+
+        f = interp1d(
+            det_efficiency.axes_manager.signal_axes[0].axis,
+            det_efficiency.data.squeeze(), bounds_error=False, fill_value=0.)
+
         spec.data = f(energy_axis.axis)
-        
+
         return spec
-        
+
     def save_result(self, result, filename, xray_lines='all',
                     extension='hdf5'):
         """
