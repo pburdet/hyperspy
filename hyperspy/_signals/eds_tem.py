@@ -417,8 +417,8 @@ class EDSTEMSpectrum(EDSSpectrum):
         get_link_to_jython
 
         """
-        xrays = ["Si_Ka"] + self.metadata.Sample.xray_lines
-        beam_energy = self._get_beam_energy()
+        xrays = ["Si_Ka"] + list(self.metadata.Sample.xray_lines)
+        beam_energy = self.metadata.Acquisition_instrument.TEM.beam_energy
         kfactors = []
         kfactors_name = []
         if gateway == 'auto':
