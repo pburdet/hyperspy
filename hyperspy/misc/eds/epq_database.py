@@ -70,8 +70,10 @@ def get_mass_absorption_coefficient(energy,
             #u_MAC = epq.MassAbsorptionCoefficient.Chantler2005.\
             #    computeWithUncertaintyEstimate(
             #    composition, energy)
+            u_MAC = epq.MassAbsorptionCoefficient.Chantler2005.\
+                  fractionalUncertainty(composition, energy)
             channel.send(MAC*10)
-            #channel.send(u_MAC*10)
+            channel.send(u_MAC*10)
     """)
     datas = []
     for i, item in enumerate(channel):
