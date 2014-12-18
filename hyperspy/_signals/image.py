@@ -173,8 +173,7 @@ class Image(Signal):
             FBP, filtered back projection
             SART, Simultaneous Algebraic Reconstruction Technique
         tilt_stages: list or 'auto'
-            the angles of the sinogram. If 'auto', takes the angles in
-            Acquisition_instrument.TEM.tilt_stage
+            the angles of the sinogram. If 'auto', takes axes_manager
         iteration: int
             The numebr of iteration used for SART
         parallel : {None, int}
@@ -244,3 +243,18 @@ class Image(Signal):
         rec.axes_manager[0].name = 'z'
         rec.get_dimensions_from_data()
         return rec
+
+    def plot_orthoview(self, isotropic_voxel=True):
+        """
+        Plot an orthogonal view of a 3D images
+
+        Parameters
+        ---------
+        image: signals.Image
+            An image in 3D.
+        isotropic_voxel:
+            If True, generate a new image, scaling z in order to obtain
+            isotropic voxel.
+        """
+        from hyperspy.misc.eds.image_eds import plot_orthoview_animated
+        plot_orthoview_animated(self, isotropic_voxel=isotropic_voxel)

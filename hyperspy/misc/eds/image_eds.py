@@ -291,7 +291,8 @@ def plot_orthoview(image,
                    plot_index=False,
                    space=2,
                    plot_result=True,
-                   isotropic_voxel=True):
+                   isotropic_voxel=True,
+                   mean_img='auto'):
     """
     Plot an orthogonal view of a 3D images
 
@@ -299,19 +300,16 @@ def plot_orthoview(image,
     ----------
     image: signals.Image
         An image in 3D.
-
     index: list
         The position [x,y,z] of the view.
-
     line_index: bool
         Plot the line indicating the index position.
-
     space: int
         the spacing between the images in pixel.
-
     plot_result: bool
         if False, return the image.
-
+    mean_img: float or 'auto'
+        The value in the space
     isotropic_voxel:
         If True, generate a new image, scaling z in order to obtain isotropic
         voxel.
@@ -328,10 +326,11 @@ def plot_orthoview(image,
     dim = image.axes_manager.shape
 
     map_color = plt.get_cmap()
-    if map_color.name == 'RdYlBu_r':
-        mean_img = image.mean(0).mean(0).mean(0).data
-    else:
-        mean_img = image.max(0).max(0).max(0).data * 0.88
+    if mean_img == 'auto':
+        if map_color.name == 'RdYlBu_r':
+            mean_img = image.mean(0).mean(0).mean(0).data
+        else:
+            mean_img = image.max(0).max(0).max(0).data * 0.88
 
     if isinstance(index[2], int):
         a = image[index[2] * scale_fact].deepcopy()

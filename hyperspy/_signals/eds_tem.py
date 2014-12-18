@@ -1028,7 +1028,7 @@ class EDSTEMSpectrum(EDSSpectrum):
             arg['input'] = intensities
             for ti in tilt:
                 args.append(arg.copy())
-                args[-1]['angle'] = ti
+                args[-1]['angle'] = -ti
             tilt_intensities = np.array(pool.map_sync(multiprocessing.rotate,
                                                       args))
             tilt_intensities = np.rollaxis(tilt_intensities, 1, 0)
@@ -1056,8 +1056,8 @@ class EDSTEMSpectrum(EDSSpectrum):
         result = result.data.copy()
         result = result.astype("float")
         tilt_result = []
-        for i, tilt in enumerate(tilt):
-            tilt_result.append(ndimage.rotate(result, angle=-tilt, axes=(2, 0),
+        for i, ti in enumerate(tilt):
+            tilt_result.append(ndimage.rotate(result, angle=-ti, axes=(2, 0),
                                order=0, reshape=False, mode='reflect'))
         tilt_result = np.array(tilt_result)
         return tilt_result
