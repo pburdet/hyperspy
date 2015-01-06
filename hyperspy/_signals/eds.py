@@ -456,6 +456,7 @@ class EDSSpectrum(Spectrum):
 
         Returns
         -------
+        list of X-ray lines alphabetically sorted
 
         """
 
@@ -486,6 +487,7 @@ class EDSSpectrum(Spectrum):
                       "in the data spectral range")
             else:
                 lines.extend(element_lines)
+        lines.sort()
         return lines
 
     def get_lines_intensity(self,
