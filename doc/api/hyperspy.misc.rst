@@ -41,6 +41,14 @@ hyperspy.misc.elements module
     :undoc-members:
     :show-inheritance:
 
+hyperspy.misc.elements_old module
+---------------------------------
+
+.. automodule:: hyperspy.misc.elements_old
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 hyperspy.misc.image_tools module
 --------------------------------
 
@@ -69,6 +77,14 @@ hyperspy.misc.math_tools module
 -------------------------------
 
 .. automodule:: hyperspy.misc.math_tools
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+hyperspy.misc.multiprocessing module
+------------------------------------
+
+.. automodule:: hyperspy.misc.multiprocessing
     :members:
     :undoc-members:
     :show-inheritance:
