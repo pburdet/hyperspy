@@ -69,16 +69,18 @@ def weight_to_atomic(weight_percent, elements='auto'):
     array([ 93.19698614,   6.80301386])
 
     """
+    from hyperspy.signals import Signal
     elements = _elements_auto(weight_percent, elements)
-    if isinstance(weight_percent[0], numbers.Number):
-        return _weight_to_atomic(weight_percent, elements)
-    else:
+
+    if isinstance(weight_percent[0], Signal):
         atomic_percent = stack(weight_percent)
         atomic_percent.data = _weight_to_atomic(
             atomic_percent.data, elements)
         atomic_percent.data = np.nan_to_num(atomic_percent.data)
         atomic_percent = atomic_percent.split()
         return atomic_percent
+    else:
+        return _weight_to_atomic(weight_percent, elements)
 
 
 def _atomic_to_weight(atomic_percent, elements):
@@ -144,15 +146,16 @@ def atomic_to_weight(atomic_percent, elements='auto'):
     array([ 88.00501989,  11.99498011])
 
     """
+    from hyperspy.signals import Signal
     elements = _elements_auto(atomic_percent, elements)
-    if isinstance(atomic_percent[0], numbers.Number):
-        return _atomic_to_weight(atomic_percent, elements)
-    else:
+    if isinstance(atomic_percent[0], Signal):
         weight_percent = stack(atomic_percent)
         weight_percent.data = _atomic_to_weight(
             weight_percent.data, elements)
         weight_percent = weight_percent.split()
         return weight_percent
+    else:
+        return _atomic_to_weight(atomic_percent, elements)
 
 
 def _density_of_mixture_of_pure_elements(weight_percent, elements):
@@ -230,57 +233,15 @@ def density_of_mixture_of_pure_elements(weight_percent, elements='auto'):
     8.6903187973131466
 
     """
+    from hyperspy.signals import Signal
     elements = _elements_auto(weight_percent, elements)
-    if isinstance(weight_percent[0], numbers.Number):
-        return _density_of_mixture_of_pure_elements(weight_percent, elements)
-    else:
-        density = weight_percent[0].deepcopy()
-        density.data = _density_of_mixture_of_pure_elements(
-            stack(weight_percent).data, elements)
+    if isinstance(weight_percent[0], Signal):
+        density = weight_percent[0]._deepcopy_with_new_data(
+            _density_of_mixture_of_pure_elements(
+                stack(weight_percent).data, elements))
         return density
-
-# working for signals as well
-# weight_fraction=utils.stack(weight_fraction)
-# if isinstance(weight_fraction,list):
-    # weight_fraction=np.array(weight_fraction)
-#densities = []
-# for element, weight in zip(elements,weight_fraction):
-    #density = utils.material.elements\
-        #[element]['Physical_properties']['density (g/cm^3)']
-    # densities.append(weight/density)
-# if isinstance(densities[0],list):
-    # densities=np.array(densities)
-# elif isinstance(densities[0],signals.Signal):
-    # densities=utils.stack(densities)
-# weight_fraction.sum(0)/densities.sum(0)
-# old version
-# densities = np.array(
-    #[elements_db[element]['Physical_properties']['density (g/cm^3)'] for element in elements])
-#density = (weight_percent / densities / sum(weight_percent)).sum() ** -1
-# return density
-
-
-# def _mac_interpolation(mac, mac1, energy,
-        # energy_db, energy_db1):
-    #"""
-    # Interpolate between the tabulated mass absorption coefficients
-    # for an energy
-
-    # Parameters
-    #----------
-    # mac, mac1: float
-        # The mass absorption coefficients in cm^2/g
-    # energy,energy_db,energy_db1:
-        # The energy. The given energy and the tabulated energy,
-        # respectively
-
-    # Return
-    #------
-    # mass absorption coefficient in cm^2/g
-    #"""
-    # return np.exp(np.log(mac1) + np.log(mac / mac1)
-        #* (np.log(energy / energy_db1) / np.log(
-        # energy_db / energy_db1)))
+    else:
+        return _density_of_mixture_of_pure_elements(weight_percent, elements)
 
 
 def mass_absorption_coefficient(element, energies):
@@ -355,17 +316,11 @@ def mass_absorption_coefficient_of_mixture_of_pure_elements(elements,
     if hasattr(weight_fraction[0], '__iter__'):
 
         weight_fraction = np.array(weight_fraction)
-        # mac_res = 0
         mac_res = np.zeros(weight_fraction.shape[1:])
-        #mac_res = np.zeros_like(energies,dtype=float)
-        # mac_re = np.array([mass_absorption_coefficient(
-        #    el, energies) for el in elements])
         for element, weight in zip(elements, weight_fraction):
             mac_re = mass_absorption_coefficient(
                 element, energies)
-        # for weight in weight_fraction:
             mac_res += mac_re * weight
-            #mac_res.append(np.dot(weight, mac_re))
         return mac_res
     else:
         mac_res = np.array([mass_absorption_coefficient(
@@ -373,39 +328,22 @@ def mass_absorption_coefficient_of_mixture_of_pure_elements(elements,
         mac_res = np.dot(weight_fraction, mac_res)
         return mac_res
 
-    # if hasattr(energies, '__iter__'):
-        #is_iter = True
-    # else:
-        #is_iter = False
-        #energies = [energies]
-
-    #mac_res = []
-    # for i, energy in enumerate(energies):
-        # if isinstance(weight_fraction[0], float):
-        # mac_res.append(0)
-        # else:
-        # mac_res.append(np.zeros_like(weight_fraction))
-        # for el, weight in zip(elements, weight_fraction):
-        # mac_res[i] += weight * np.array(mass_absorption_coefficient(
-        # el, energy))
-    # if is_iter:
-        # return mac_res
-    # else:
-        # return mac_res[0]
 
 def _elements_auto(composition, elements):
     if isinstance(composition[0], numbers.Number):
-        if isinstance(elements,str):
-            raise ValueError("The elements needs to be provided.")
+        if isinstance(elements, str):
+            if elements == 'auto':
+                raise ValueError("The elements needs to be provided.")
     else:
-        if isinstance(elements,str):
-            elements = []
-            for compo in composition:
-                if len(compo.metadata.Sample.elements) > 1:
-                    raise ValueError(
-                        "The signal %s contains more than one "
-                        "element but this function requires only one element "
-                        "per signal." % compo.metadata.General.title)
-                else:
-                    elements.append(compo.metadata.Sample.elements[0])
+        if isinstance(elements, str):
+            if elements == 'auto':
+                elements = []
+                for compo in composition:
+                    if len(compo.metadata.Sample.elements) > 1:
+                        raise ValueError(
+                            "The signal %s contains more than one element "
+                            "but this function requires only one element "
+                            "per signal." % compo.metadata.General.title)
+                    else:
+                        elements.append(compo.metadata.Sample.elements[0])
     return elements
