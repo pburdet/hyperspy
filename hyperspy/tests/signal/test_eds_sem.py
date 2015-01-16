@@ -131,7 +131,7 @@ class Test_metadata:
         s = self.signal[0, 0]
         signal_type = 'EDS_TEM'
         mp = s.metadata
-        mp.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa =\
+        mp.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa = \
             125.3
         sTEM = s.deepcopy()
         sTEM.set_signal_type(signal_type)
@@ -211,6 +211,8 @@ class Test_get_lines_intentisity:
         s.axes_manager[-1].offset = 1.0
         sC = s.get_lines_intensity(["C_Ka"], plot_result=False)
         nose.tools.assert_equal(len(sC), 0)
+        nose.tools.assert_true(sAl.metadata.Sample.elements, ["Al"])
+        nose.tools.assert_true(sAl.metadata.Sample.xray_lines, ["Al_Ka"])
 
     def test_model_deconvolution(self):
         s = self.signal
