@@ -10,7 +10,7 @@ syntax: glob
 *.mex
 *.o
 dist
-*derby.log
+*.log
 *.deb
 *.swo
 build/*

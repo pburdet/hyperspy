@@ -518,6 +518,7 @@ class Test_plot_Xray_lines:
         #s = self.signal
         # s.plot_Xray_lines()
 
+
 class Test_tools_bulk:
 
     def setUp(self):
