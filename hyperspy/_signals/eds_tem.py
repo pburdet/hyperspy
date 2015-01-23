@@ -595,7 +595,7 @@ class EDSTEMSpectrum(EDSSpectrum):
                        store_in_mp=True,
                        **kwargs):
         """
-        Quantification using Cliff-Lorimer or zetha factor method
+        Quantification using Cliff-Lorimer or zeta-factor method
 
         Parameters
         ----------
@@ -606,8 +606,8 @@ class EDSTEMSpectrum(EDSSpectrum):
             Note that intensities provided by hyperspy are sorted by the
             aplhabetical order of the X-ray lines.
             eg. kfactors =[0.982, 1.32, 1.60] for ['Al_Ka','Cr_Ka', 'Ni_Ka'].
-        method: 'CL' or 'zetha'
-            Set the quantification method: Cliff-Lorimer or zetha factor
+        method: 'CL' or 'zeta'
+            Set the quantification method: Cliff-Lorimer or zeta-factor method
         composition_units: 'weight' or 'atomic'
             Quantification return weight percent. By choosing 'atomic', the
             return composition is in atomic percent.
@@ -660,8 +660,8 @@ class EDSTEMSpectrum(EDSSpectrum):
             composition.data = utils_eds.quantification_cliff_lorimer(
                 composition.data, kfactors=kfactors,
                 mask=navigation_mask) * 100.
-        elif method == 'zetha':
-            results = utils_eds.quantification_zetha_factor(
+        elif method == 'zeta':
+            results = utils_eds.quantification_zeta_factor(
                 composition.data, zfactors=kfactors, dose=self.get_dose())
             composition.data = results[0] * 100.
             mass_thickness = intensities[0]
@@ -1252,7 +1252,7 @@ class EDSTEMSpectrum(EDSSpectrum):
 
     def zfactors_from_kfactors(self, kfactors='auto'):
         """
-        Provide Zetha factors from the k-factors
+        Provide Zeta factors from the k-factors
 
         Parameters
         ----------

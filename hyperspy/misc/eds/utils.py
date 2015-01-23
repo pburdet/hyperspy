@@ -2339,11 +2339,11 @@ def _quantification_cliff_lorimer(intensities,
     return composition
 
 
-def quantification_zetha_factor(intensities,
-                                zfactors,
-                                dose):
+def quantification_zeta_factor(intensities,
+                               zfactors,
+                               dose):
     """
-    Quantification using Cliff-Lorimer
+    Quantification using zeta-factor method
 
     Parameters
     ----------
