@@ -20,6 +20,7 @@ from __future__ import division
 import traits.api as t
 import numpy as np
 from scipy import ndimage
+from scipy import constants
 
 from hyperspy import utils
 from hyperspy._signals.eds import EDSSpectrum
@@ -583,29 +584,32 @@ class EDSTEMSpectrum(EDSSpectrum):
 #        if store_in_mp is False:
 #            return res
 
-    def quantification_cliff_lorimer(self,
-                                     intensities='auto',
-                                     kfactors='auto',
-                                     composition_units='weight',
-                                     navigation_mask=1.0,
-                                     closing=True,
-                                     plot_result=False,
-                                     store_in_mp=True,
-                                     **kwargs):
+    def quantification(self,
+                       intensities='auto',
+                       method='CL',
+                       kfactors='auto',
+                       composition_units='weight',
+                       navigation_mask=1.0,
+                       closing=True,
+                       plot_result=False,
+                       store_in_mp=True,
+                       **kwargs):
         """
-        Quantification using Cliff-Lorimer
+        Quantification using Cliff-Lorimer or zetha factor method
 
         Parameters
         ----------
         intensities: list of signal
             the intensitiy for each X-ray lines.
         kfactors: list of float
-            The list of kfactor in same order as intensities. Note that
-            intensities provided by hyperspy are sorted by the aplhabetical
-            order of the X-ray lines. eg. kfactors =[0.982, 1.32, 1.60] for
-            ['Al_Ka','Cr_Ka', 'Ni_Ka'].
+            The list of kfactor (or zfactor) in same order as intensities.
+            Note that intensities provided by hyperspy are sorted by the
+            aplhabetical order of the X-ray lines.
+            eg. kfactors =[0.982, 1.32, 1.60] for ['Al_Ka','Cr_Ka', 'Ni_Ka'].
+        method: 'CL' or 'zetha'
+            Set the quantification method: Cliff-Lorimer or zetha factor
         composition_units: 'weight' or 'atomic'
-            Cliff-Lorimer return weight percent. By choosing 'atomic', the
+            Quantification return weight percent. By choosing 'atomic', the
             return composition is in atomic percent.
         navigation_mask : None or float or boolean numpy.array
             The navigation locations marked as True are not used in the
@@ -633,14 +637,17 @@ class EDSTEMSpectrum(EDSSpectrum):
         >>> s.add_lines()
         >>> kfactors = [0.982, 1.32, 1.60]
         >>> intensities = s.get_lines_intensity()
-        >>> res = s.quantification_cliff_lorimer(intensities,kfactors)
+        >>> res = s.quantification(intensities,kfactors)
 
         See also
         --------
         vacuum_mask
         """
         if kfactors == 'auto':
-            kfactors = self.metadata.Sample.kfactors
+            if method == 'CL':
+                kfactors = self.metadata.Sample.kfactors
+            elif method == 'zetha':
+                kfactors = self.metadata.Sample.zfactors
         if intensities == 'auto':
             intensities = self.metadata.Sample.intensities
         if isinstance(navigation_mask, float):
@@ -649,9 +656,16 @@ class EDSTEMSpectrum(EDSSpectrum):
             navigation_mask = navigation_mask.data
         xray_lines = self.metadata.Sample.xray_lines
         composition = utils.stack(intensities)
-        composition.data = utils_eds.quantification_cliff_lorimer(
-            composition.data, kfactors=kfactors,
-            mask=navigation_mask) * 100.
+        if method == 'CL':
+            composition.data = utils_eds.quantification_cliff_lorimer(
+                composition.data, kfactors=kfactors,
+                mask=navigation_mask) * 100.
+        elif method == 'zetha':
+            results = utils_eds.quantification_zetha_factor(
+                composition.data, zfactors=kfactors, dose=self.get_dose())
+            composition.data = results[0] * 100.
+            mass_thickness = intensities[0]
+            mass_thickness.data = results[1]
         composition = composition.split()
         if composition_units == 'atomic':
             composition = utils.material.weight_to_atomic(composition)
@@ -676,6 +690,8 @@ class EDSTEMSpectrum(EDSSpectrum):
                     xray_line=xray_lines[i], result='quant',
                     data_res=compo.data, plot_result=False,
                     store_in_mp=store_in_mp)
+            if method == 'zetha':
+                self.metadata.set_item("Sample.mass_thickness", mass_thickness)
         else:
             return composition
 
@@ -1233,3 +1249,39 @@ class EDSTEMSpectrum(EDSSpectrum):
             navigation_mask=navigation_mask, *args, **kwargs)
         self.learning_results.loadings = np.nan_to_num(
             self.learning_results.loadings)
+
+    def zfactors_from_kfactors(self, kfactors='auto'):
+        """
+        Provide Zetha factors from the k-factors
+
+        Parameters
+        ----------
+        zfactors: list of float
+            The list of kfactor in same order as intensities. Note that
+            intensities provided by hyperspy are sorted by the aplhabetical
+            order of the X-ray lines. eg. kfactors =[0.982, 1.32, 1.60] for
+            ['Al_Ka','Cr_Ka', 'Ni_Ka'].
+        """
+        print "Not working"
+        if kfactors == 'auto':
+            kfactors = self.metadata.Sample.kfactors
+        self.metadata.Sample.set_item(
+            'zfactors',
+            np.array(self.metadata.Sample.kfactors) / constants.N_A)
+
+    def get_dose(self, beam_current='auto', real_time='auto'):
+        """
+        Return the total electron dose.  given by i*t*N, i the current, t the
+        acquisition time, and N the number of electron by unit electric charge.
+
+        Parameters
+        ----------
+        beam_current:
+        real_time:
+        """
+        parameters = self.metadata.Acquisition_instrument.TEM
+        if beam_current == 'auto':
+            beam_current = parameters.beam_current
+        if real_time == 'auto':
+            real_time = parameters.Detector.EDS.real_time
+        return real_time * beam_current * 1e-9 / constants.e
