@@ -646,7 +646,7 @@ class EDSTEMSpectrum(EDSSpectrum):
         if kfactors == 'auto':
             if method == 'CL':
                 kfactors = self.metadata.Sample.kfactors
-            elif method == 'zetha':
+            elif method == 'zeta':
                 kfactors = self.metadata.Sample.zfactors
         if intensities == 'auto':
             intensities = self.metadata.Sample.intensities
@@ -690,7 +690,7 @@ class EDSTEMSpectrum(EDSSpectrum):
                     xray_line=xray_lines[i], result='quant',
                     data_res=compo.data, plot_result=False,
                     store_in_mp=store_in_mp)
-            if method == 'zetha':
+            if method == 'zeta':
                 self.metadata.set_item("Sample.mass_thickness", mass_thickness)
         else:
             return composition
