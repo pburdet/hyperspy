@@ -54,8 +54,7 @@ def multifit(args):
 
 
 def isart(args):
-    from hyperspy.misc.borrowed.scikit_image_dev.radon_transform\
-        import iradon_sart
+    from skimage.transform import iradon_sart
     import numpy as np
     sinogram, iteration, kwargs = args
     rec = np.zeros([sinogram.shape[0], sinogram.shape[1],

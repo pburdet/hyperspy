@@ -200,16 +200,14 @@ class Image(Signal):
         # a = time.time()
         if algorithm == 'FBP':
             # from skimage.transform import iradon
-            from hyperspy.misc.borrowed.scikit_image_dev.radon_transform \
-                import iradon
+            from skimage.transform import iradon
             rec = np.zeros([sinogram.shape[0], sinogram.shape[1],
                             sinogram.shape[1]])
             for i in range(sinogram.shape[0]):
                 rec[i] = iradon(sinogram[i], theta=tilt_stages,
                                 output_size=sinogram.shape[1], **kwargs)
         elif algorithm == 'SART' and parallel is None:
-            from hyperspy.misc.borrowed.scikit_image_dev.radon_transform\
-                import iradon_sart
+            from skimage.transform import iradon_sart
             rec = np.zeros([sinogram.shape[0], sinogram.shape[1],
                             sinogram.shape[1]])
             for i in range(sinogram.shape[0]):
