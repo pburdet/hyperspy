@@ -333,6 +333,248 @@ def _set_spectrum_xlabel(spectrum, ax):
     ax.set_xlabel("%s (%s)" % (x_axis.name, x_axis.units))
 
 
+def plot_images(images,
+                cmap=plt.cm.gray,
+                no_nans=False,
+                per_row=3,
+                label = 'titles',
+                plot_colorbar=True,
+                plot_scalebar=False,
+                scalebar_color='white',
+                single_colorbar=False,
+                interp='nearest',
+                axes_on=True,
+                fig=None,
+                *args,
+                **kwargs):
+    """Plot multiple images as subimages in one figure.
+
+        Parameters
+        ----------
+
+        images : list of Signals to plot
+            if any signal is not an image, a ValueError will be raised
+
+        cmap : matplotlib colormap
+            The colormap used for the images
+
+        no_nans : bool
+            If True, removes NaN's from the plots.
+
+        per_row : int
+            the number of plots in each row
+
+        label : None, str, or list of str
+            Control the title labeling of the plotted images.
+            If None, no titles will be shown.
+            If 'titles', the title from each image's metadata.General.title will be used.
+            If any other single str, images will be labeled in sequence using that str as a prefix.
+            If a list of str, the titles will be read from the list, and repeated if the length of the list
+                is shorter than the number of images to be plotted.
+
+        plot_colorbar : bool
+            If True, a labeled colorbar is plotted alongside each image.
+
+        single_colorbar : bool
+            If True, figure will contain a single colorbar that is shared between all images
+
+        interp : None or str
+            Type of interpolation to use with matplotlib.imshow()
+            Possible values are None, 'none', 'nearest', 'bilinear', 'bicubic', 'spline16',
+           'spline36', 'hanning', 'hamming', 'hermite', 'kaiser', 'quadric',
+           'catrom', 'gaussian', 'bessel', 'mitchell', 'sinc', 'lanczos'
+
+        plot_scalebar : bool
+            If True, a scalebar will be added to each plot
+
+        scalebar_color : str
+            A valid MPL color string; will be used as the scalebar color
+
+        axes_on : bool
+            If true, axes (labels and values) will be plotted. If not, just image is shown.
+
+        fig : mpl figure
+            If set, the images will be plotted to an existing MPL figure
+
+        *args, **kwargs
+            Additional arguments passed to matplotlib.imshow()
+
+        Returns
+        -------
+        f, the figure handler that is plotted
+
+    """
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+    from hyperspy.drawing import widgets
+    from hyperspy.misc import rgb_tools
+    from hyperspy.signal import Signal
+    from traits import trait_base
+
+    if isinstance(images, Signal) and len(images) is 1:
+        print "Single image provided, using Signal.plot() instead."
+        print "Use Signal.plot() directly to supply more options."
+        images.plot()
+        f = plt.gcf()
+        return f
+    elif not isinstance(images, (list, tuple, Signal)):
+        raise ValueError("images must be a list of image signals."
+                         " " + repr(type(images)) + " was given.")
+
+    for i, sig in enumerate(images):
+        if sig.axes_manager.signal_dimension != 2:
+            raise ValueError("This method only plots signals that are images. "
+                             "The signal dimension must be equal to 2. "
+                             "The signal at position " + repr(i) + " was " + repr(sig) + ".")
+
+    # Sort out the labeling:
+    if label is None:
+        pass
+    elif label is 'titles':
+        # Set label_list to each image's pre-defined title
+        label_list = [x.metadata.General.title for x in images]
+    elif type(label) is str:
+        # Set label_list to an indexed list, based off of label
+        label_list = [label + " " + repr(num) for num in range(len(images))]
+    elif type(label) is list and all(isinstance(x, str) for x in label):
+        label_list = label
+        # If list of labels is longer than the number of images, just use the
+        # first len(images) elements
+        if len(label_list) > len(images):
+            del label_list[len(images):]
+        if len(label_list) < len(images):
+            label_list *= (len(images) / len(label_list)) + 1
+            del label_list[len(images):]
+    else:
+        # catch all others to revert to default if bad input
+        print "Did not understand input of labels. Defaulting to image titles."
+        label_list = [x.metadata.General.title for x in images]
+
+    # Determine appropriate number of images per row
+    n = len(images)
+    rows = int(np.ceil(n / float(per_row)))
+    if n < per_row:
+            per_row = n
+
+    # Set overall figure size and define figure (if not pre-existing)
+    if fig is None:
+        k = max(plt.rcParams['figure.figsize']) / max(per_row, rows)
+        f = plt.figure(figsize=(tuple(k * i for i in (per_row, rows))))
+    else:
+        f = fig
+
+    # Initialize list to hold subplot axes
+    axes_list = []
+
+    # Initialize list of rgb tags
+    isrgb = [False]*len(images)
+
+    # Check to see if there are any rgb images in list
+    # if so, disable the global colorbar
+    for img in images:
+        if rgb_tools.is_rgbx(img.data):
+            if single_colorbar:
+                print "Using a single colorbar is not supported when plotting with"
+                print "RGB images, and has been disabled."
+            single_colorbar = False
+
+    # If using a single colorbar, find global min and max values of all the images
+    if single_colorbar:
+        gl_max, gl_min = max([images[i].data.max() for i in range(len(images))]), \
+                            min([images[i].data.min() for i in range(len(images))])
+
+    # Loop through each image, adding subplot for each one
+    for i in xrange(n):
+        ax = f.add_subplot(rows, per_row, i + 1)
+        axes_list.append(ax)
+        data = images[i].data
+
+        # Enable RGB plotting
+        if rgb_tools.is_rgbx(data):
+            # plot_colorbar = False
+            single_colorbar = False
+            data = rgb_tools.rgbx2regular_array(data, plot_friendly=True)
+            isrgb[i] = True
+        else:
+            data = images[i].data.flatten()
+
+        # Remove NaNs (if requested)
+        if no_nans:
+            data = np.nan_to_num(data)
+
+        # Get handles for the signal axes and axes_manager
+        axes_manager = images[i].axes_manager
+        axes = axes_manager.signal_axes
+
+        if axes_manager.signal_dimension == 2:
+            # get calibration from a passed axes_manager
+            shape = axes_manager._signal_shape_in_array
+
+            # Reshape the data for input into imshow (if not rgb)
+            if not isrgb[i]:
+                data = data.reshape(shape)
+
+            # Set dimensions of images
+            extent = (axes[0].low_value,
+                      axes[0].high_value,
+                      axes[1].high_value,
+                      axes[1].low_value)
+
+            # Plot image data, using vmin and vmax to set bounds, or allowing them
+            # to be set automatically if using individual colorbars
+            if single_colorbar:
+                im = ax.imshow(data,
+                               cmap=cmap, extent=extent,
+                               interpolation=interp,
+                               vmin=gl_min, vmax=gl_max, *args, **kwargs)
+            else:
+                im = ax.imshow(data,
+                               cmap=cmap, extent=extent,
+                               interpolation=interp,
+                               *args, **kwargs)
+
+            # Label the axes
+            if type(axes[0].units) is trait_base._Undefined:
+                axes[0].units = 'pixels'
+            if type(axes[1].units) is trait_base._Undefined:
+                axes[1].units = 'pixels'
+            plt.xlabel(axes[0].units)
+            plt.ylabel(axes[1].units)
+
+            if label:
+                plt.title(label_list[i])
+
+            if not axes_on:
+                plt.axis('off')
+
+            # If using independent colorbars, add them
+            if plot_colorbar and not single_colorbar and not isrgb[i]:
+                div = make_axes_locatable(ax)
+                cax = div.append_axes("right", size="5%", pad=0.05)
+                plt.colorbar(im, cax=cax)
+
+    # If using a single colorbar, add it
+    if plot_colorbar and single_colorbar:
+        f.subplots_adjust(right=0.8)
+        cbar_ax = f.add_axes([0.9, 0.1, 0.03, 0.8])
+        f.colorbar(im, cax=cbar_ax)
+
+    try:
+        plt.tight_layout()
+    except:
+        pass
+
+    # If we want to plot scalebars, loop through the list of axes and add them
+    if plot_scalebar:
+        for ax in axes_list:
+            ax.scalebar = widgets.Scale_Bar(
+                ax=ax,
+                units=axes[0].units,
+                color=scalebar_color,
+            )
+
+    return f
+
+
 def plot_spectra(
         spectra,
         style='default',
