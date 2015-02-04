@@ -366,64 +366,6 @@ def plot_orthoview(image,
 # bug of map
 
 
-def tv_denoise(self,
-               weight=50,
-               n_iter_max=200,
-               eps=0.0002,
-               method='bregman'):
-    """
-    Perform total-variation denoising on 2D and 3D images.
-
-    Parameters
-    ---------
-
-    weight : float, optional
-        Denoising weight. The greater `weight`, the more denoising (at
-        the expense of fidelity to `input`).
-    eps : float, optional
-        Relative difference of the value of the cost function that
-        determines the stop criterion. The algorithm stops when:
-
-        (E_(n-1) - E_n) < eps * E_0
-
-    n_iter_max : int, optional
-        Maximal number of iterations used for the optimization.
-
-    method: 'chambolle' | 'bregman'
-
-    Example
-    -------
-
-    >>> im = database.image2D()
-    >>> image_eds.tv_denoise(im,method='chambolle',
-    >>>      weight=0.5,n_iter_max=4).plot()
-
-    See also:
-    -----
-
-    skimage.filter.denoise_tv_chambolle
-    skimage.filter.denoise_tv_bregman
-
-    """
-
-    import skimage.filter
-    img = self.deepcopy()
-
-    if method == 'bregman':
-         # img.map(
-         #   skimage.filter.denoise_tv_bregman, weight=weight,
-         #   eps=eps, max_iter=n_iter_max)
-        img.data = skimage.filter.denoise_tv_bregman(img.data, weight=weight,
-                                                     eps=eps, max_iter=n_iter_max)
-    elif method == 'chambolle':
-        # img.map(
-        #    skimage.filter.denoise_tv_chambolle,
-        #    weight=weight, eps=eps, n_iter_max=n_iter_max)
-        img.data = skimage.filter.denoise_tv_chambolle(img.data,
-                                                       weight=weight, eps=eps, n_iter_max=n_iter_max)
-    return img
-
-
 def plot_orthoview_animated(image, isotropic_voxel=True):
     """
     Plot an orthogonal view of a 3D images
@@ -568,7 +510,7 @@ def mean_filter(self, size):
     img = self.map(scipy.ndimage.convolve, weights=kernel)
     return img
 
-# must be more general, compare image
+# must use utils.plot.plot_images
 
 
 def compare_results(specs, results, sum_elements=False,

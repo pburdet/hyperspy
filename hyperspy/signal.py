@@ -4599,6 +4599,49 @@ class Signal(MVA,
     def is_rgbx(self):
         return rgb_tools.is_rgbx(self.data)
 
+    def tv_denoise(self,
+                   weight=5,
+                   n_iter_max=10,
+                   eps=0.0002,
+                   method='chambolle'):
+        """
+        Perform total-variation denoising on signal.
+
+        Parameters
+        ---------
+        weight : float, optional
+            Denoising weight. The greater `weight`, the more denoising (at
+            the expense of fidelity to `input`).
+        eps : float, optional
+            Relative difference of the value of the cost function that
+            determines the stop criterion. The algorithm stops when:
+            (E_(n-1) - E_n) < eps * E_0
+        n_iter_max : int, optional
+            Maximal number of iterations used for the optimization.
+        method: 'chambolle' | 'bregman'
+
+        Example
+        -------
+        >>> im = database.image2D()
+        >>> im.tv_denoise(method='chambolle',
+        >>>      weight=0.5,n_iter_max=4).plot()
+
+        See also
+        --------
+        skimage.filter.denoise_tv_chambolle
+        skimage.filter.denoise_tv_bregman
+        """
+
+        from skimage import restoration as filter
+        img = self.deepcopy()
+        if method == 'bregman':
+            img.data = filter.denoise_tv_bregman(
+                img.data, weight=weight, eps=eps, max_iter=n_iter_max)
+        elif method == 'chambolle':
+            img.data = filter.denoise_tv_chambolle(
+                img.data, weight=weight, eps=eps, n_iter_max=n_iter_max)
+        return img
+
 # Implement binary operators
 for name in (
     # Arithmetic operators
