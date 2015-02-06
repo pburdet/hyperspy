@@ -593,6 +593,7 @@ class EDSTEMSpectrum(EDSSpectrum):
                        closing=True,
                        plot_result=False,
                        store_in_mp=True,
+                       min_intensity = 0.1,
                        **kwargs):
         """
         Quantification using Cliff-Lorimer or zeta-factor method
@@ -659,7 +660,7 @@ class EDSTEMSpectrum(EDSSpectrum):
         if method == 'CL':
             composition.data = utils_eds.quantification_cliff_lorimer(
                 composition.data, kfactors=kfactors,
-                mask=navigation_mask) * 100.
+                mask=navigation_mask, min_intensity=min_intensity) * 100.
         elif method == 'zeta':
             results = utils_eds.quantification_zeta_factor(
                 composition.data, zfactors=kfactors, dose=self.get_dose())

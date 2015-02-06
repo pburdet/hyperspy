@@ -2232,7 +2232,8 @@ def quantification_absorption_corrections_thin_film(intensities,
 
 def quantification_cliff_lorimer(intensities,
                                  kfactors,
-                                 mask=None):
+                                 mask=None,
+                                 min_intensity = 0.1):
     """
     Quantification using Cliff-Lorimer
 
@@ -2254,7 +2255,7 @@ def quantification_cliff_lorimer(intensities,
     shape as intensities.
     """
     # Value used as an threshold to prevent using zeros as denominator
-    min_intensity = 0.1
+    
     dim = intensities.shape
     if len(dim) > 1:
         dim2 = reduce(lambda x, y: x*y, dim[1:])
