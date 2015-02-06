@@ -345,6 +345,7 @@ def plot_images(images,
                 interp='nearest',
                 axes_on=True,
                 fig=None,
+                aspect='equal',
                 *args,
                 **kwargs):
     """Plot multiple images as subimages in one figure.
@@ -521,24 +522,35 @@ def plot_images(images,
 
             # Plot image data, using vmin and vmax to set bounds, or allowing them
             # to be set automatically if using individual colorbars
+            
+            #aspect = np.abs(1.5 * axes[0].scale / axes[1].scale)
+            
             if single_colorbar:
                 im = ax.imshow(data,
-                               cmap=cmap, extent=extent,
+                               cmap=cmap, #extent=extent, aspect=aspect,
                                interpolation=interp,
                                vmin=gl_min, vmax=gl_max, *args, **kwargs)
             else:
                 im = ax.imshow(data,
-                               cmap=cmap, extent=extent,
+                               cmap=cmap, #extent=extent, aspect=aspect,
                                interpolation=interp,
                                *args, **kwargs)
-
+                                   
             # Label the axes
-            if type(axes[0].units) is trait_base._Undefined:
-                axes[0].units = 'pixels'
-            if type(axes[1].units) is trait_base._Undefined:
-                axes[1].units = 'pixels'
-            plt.xlabel(axes[0].units)
-            plt.ylabel(axes[1].units)
+#            if type(axes[0].units) is trait_base._Undefined:
+#                axes[0].units = 'pixels'
+#            if type(axes[1].units) is trait_base._Undefined:
+#                axes[1].units = 'pixels'
+            from traits.api import Undefined
+            xlabel = '%s' % str(axes[0].name)
+            if axes[0].units is not Undefined:
+                xlabel += ' (%s)' % axes[0].units
+
+            ylabel = '%s' % str(axes[1])
+            if axes[1].units is not Undefined:
+                ylabel += ' (%s)' % axes[1].units
+            plt.xlabel(xlabel)
+            plt.ylabel(ylabel)
 
             if label:
                 plt.title(label_list[i])

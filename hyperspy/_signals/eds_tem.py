@@ -648,7 +648,7 @@ class EDSTEMSpectrum(EDSSpectrum):
                 kfactors = self.metadata.Sample.kfactors
             elif method == 'zeta':
                 kfactors = self.metadata.Sample.zfactors
-        if intensities == 'auto':
+        if intensities is 'auto':
             intensities = self.metadata.Sample.intensities
         if isinstance(navigation_mask, float):
             navigation_mask = self.vacuum_mask(navigation_mask, closing).data
