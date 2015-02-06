@@ -46,6 +46,11 @@ img._plot.signal_plot.vmax = 0.45
 img._plot.signal_plot.vmin = 0.0
 img._plot.signal_plot.update()
 
+#Modify param signal
+img.plot()
+img._plot.signal_plot.perc = 0.0
+img._plot.signal_plot.update()
+
 #Draw an area with marker
 splot =  database.image2D()
 pos = [10., 20., 10., 15.]
