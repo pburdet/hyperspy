@@ -59,6 +59,7 @@ class ImagePlot(BlittedFigure):
     """
 
     def __init__(self):
+        self.perc = 0.01
         self.data_function = None
         self.pixel_units = None
         self.plot_scalebar = True
@@ -125,7 +126,8 @@ class ImagePlot(BlittedFigure):
                 factor = 1
         self._aspect = np.abs(factor * xaxis.scale / yaxis.scale)
 
-    def optimize_contrast(self, data, perc=0.01):
+    def optimize_contrast(self, data):
+        perc = self.perc
         dc = data.copy().ravel()
         if 'complex' in dc.dtype.name:
             dc = np.log(np.abs(dc))
