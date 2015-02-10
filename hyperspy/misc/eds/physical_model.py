@@ -398,7 +398,7 @@ def absorption_correction_matrix2(weight_fraction,
                 elements, weight_fraction_r, xray_line)
         fact = np.nan_to_num(density_r * mac * thickness / 2. * mask_el_r[i])
         fact_sum = np.zeros_like(fact)
-        fact_sum[:, :, -1] = fact[:, :, -1] / 2.
+        fact_sum[:, :, -1] = fact[:, :, -1] / 2. #approx
         for j in range(len(fact[0, 0]) - 2, -1, -1):
             fact_sum[:, :, j] = fact_sum[:, :, j+1] + fact[:, :, j]
         abs_corr[i] = fact_sum
@@ -409,7 +409,7 @@ def absorption_correction_matrix2(weight_fraction,
         fact2 = np.nan_to_num(
             density_r2 * mac2 * thickness / 2. * mask_el_r2[i])
         fact_sum2 = np.zeros_like(fact2)
-        fact_sum2[:, :, -1] = fact2[:, :, -1]
+        fact_sum2[:, :, -1] = fact2[:, :, -1] / 2. #approx
         for j in range(len(fact2[0, 0]) - 2, -1, -1):
             fact_sum2[:, :, j] = fact_sum2[:, :, j+1] + fact2[:, :, j]
         abs_corr2[i] = fact_sum2
