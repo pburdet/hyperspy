@@ -4603,7 +4603,8 @@ class Signal(MVA,
                    weight=5,
                    n_iter_max=10,
                    eps=0.0002,
-                   method='chambolle'):
+                   method='chambolle',
+                   **kwargs):
         """
         Perform total-variation denoising on signal.
 
@@ -4636,10 +4637,14 @@ class Signal(MVA,
         img = self.deepcopy()
         if method == 'bregman':
             img.data = filter.denoise_tv_bregman(
-                img.data, weight=weight, eps=eps, max_iter=n_iter_max)
+                img.data, weight=weight, eps=eps,
+                max_iter=n_iter_max, **kwargs)
         elif method == 'chambolle':
             img.data = filter.denoise_tv_chambolle(
-                img.data, weight=weight, eps=eps, n_iter_max=n_iter_max)
+                img.data, weight=weight, eps=eps,
+                n_iter_max=n_iter_max, **kwargs)
+        else:
+            print "wrning"
         return img
 
 # Implement binary operators
