@@ -307,7 +307,7 @@ def absorption_correction_matrix2(weight_fraction,
     elements: list of str
         The elements of the sample
     thickness: float
-            Set the thickness in nm
+            Set the thickness in cm
     density: array
         dim = {z,y,x} The density to correct of the sample.
         If 'auto' use the weight_fraction
