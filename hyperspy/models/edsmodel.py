@@ -482,15 +482,17 @@ class EDSModel(Model):
             for li in elements_db[element]['Atomic_properties']['Xray_lines']:
                 if line[0] in li and line != li:
                     xray_sub = element + '_' + li
-                    component_sub = self[xray_sub]
-                    component_sub.A.bmin = 1e-10
-                    component_sub.A.bmax = None
-                    weight_line = component_sub.A.value / component.A.value
-                    component_sub.A.twin_function = _get_weight(
-                        element, li, weight_line)
-                    component_sub.A.twin_inverse_function = _get_iweight(
-                        element, li, weight_line)
-                    component_sub.A.twin = component.A
+                    if xray_sub in [m.name for m in self]:
+                        component_sub = self[xray_sub]
+                        component_sub.A.bmin = 1e-10
+                        component_sub.A.bmax = None
+                        weight_line = component_sub.A.value / component.A.value
+                        component_sub.A.twin_function = _get_weight(
+                            element, li, weight_line)
+                        component_sub.A.twin_inverse_function = _get_iweight(
+                            element, li, weight_line)
+                        component_sub.A.twin = component.A
+
         for component in self.xray_lines:
             if xray_lines == 'all':
                 fix_twin()
