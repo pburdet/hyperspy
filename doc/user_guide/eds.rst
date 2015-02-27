@@ -332,12 +332,11 @@ Selecting certain type of lines:
    :align:   center
    :width:   500 
 
-
 .. _get_lines_intensity:
 
 
 Get lines intensity
-^^^^^^^^^^^^^^^^^^^
+-------------------
 
 The :py:meth:`~._signals.eds.EDSSpectrum.get_lines_intensity` 
 method generates intensity maps by peak integration.
@@ -377,6 +376,21 @@ an interactive way to generate intensity map.
     <Image, title: , dimensions: (|128, 95)>
     
 .. figure::  images/EDS_integrate_in_range.png
+   :align:   center
+   :width:   800
+
+Background subtraction
+^^^^^^^^^^^^^^^^^^^^^^
+
+The background can be subtracted from the X-ray intensities with the :py:meth:`~._signals.eds.EDSSpectrum.get_lines_intensity` method. The background value is obtained by averaging the intensity in two windows on each side of the X-ray line. The position of the windows can be estimated with the :py:meth:`~._signals.eds.EDSSpectrum.estimate_background_windows` method and can be plotted with the :py:meth:`~._signals.eds.EDSSpectrum.plot_background_windows` method as follow.
+
+.. code-block:: python
+
+    >>> bw = spec.estimate_background_windows()
+    >>> spec.plot_background_windows(bw)
+    >>> intensity = spec.get_lines_intensity(background_windows=bw)
+
+.. figure::  images/EDS_background_subtraction.png
    :align:   center
    :width:   800
 
