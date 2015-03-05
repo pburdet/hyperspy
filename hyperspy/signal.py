@@ -4038,7 +4038,7 @@ class Signal(MVA,
         hist_spec.metadata.Signal.binned = True
         return hist_spec
 
-    def map(self, function,
+    def map(self, function, parallel=None,
             show_progressbar=None, **kwargs):
         """Apply a function to the signal data at all the coordinates.
 
@@ -4058,6 +4058,11 @@ class Signal(MVA,
 
         function : function
             A function that can be applied to the signal.
+        parallel: int or None
+            If int, the function is processed in parallel with `parallel` the
+            number of cores (number of engines in IPython.parallel). The cores
+            must be started before. It can be done in the Clusters tab of the
+            ipython dashboard.
         show_progressbar : None or bool
             If True, display a progress bar. If None the default is set in
             `preferences`.
@@ -4069,7 +4074,8 @@ class Signal(MVA,
         This method is similar to Python's :func:`map` that can also be utilize
         with a :class:`Signal` instance for similar purposes. However, this
         method has the advantage of being faster because it iterates the numpy
-        array instead of the :class:`Signal`.
+        array instead of the :class:`Signal`. It can be parallelized, but
+        parallelisation is faster if the function is significantly slow.
 
         Examples
         --------
@@ -4132,18 +4138,62 @@ class Signal(MVA,
                                     self.axes_manager.signal_axes])
             self.data = function(self.data, **kwargs)
         else:
-            # Iteration over coordinates.
-            pbar = progressbar(
-                maxval=self.axes_manager.navigation_size,
-                disabled=not show_progressbar)
-            iterators = [signal[1]._iterate_signal() for signal in ndkwargs]
-            iterators = tuple([self._iterate_signal()] + iterators)
-            for data in zip(*iterators):
-                for (key, value), datum in zip(ndkwargs, data[1:]):
-                    kwargs[key] = datum[0]
-                data[0][:] = function(data[0], **kwargs)
-                pbar.next()
-            pbar.finish()
+            if parallel is None:
+                # Iteration over coordinates.
+                pbar = progressbar(
+                    maxval=self.axes_manager.navigation_size,
+                    disabled=not show_progressbar)
+                iterators = [signal[1]._iterate_signal() for signal in
+                             ndkwargs]
+                iterators = tuple([self._iterate_signal()] + iterators)
+                for data in zip(*iterators):
+                    for (key, value), datum in zip(ndkwargs, data[1:]):
+                        kwargs[key] = datum[0]
+                    data[0][:] = function(data[0], **kwargs)
+                    pbar.next()
+                pbar.finish()
+            else:
+                import functools
+                fargs_default = inspect.getargspec(function).defaults
+                from hyperspy.misc import mp
+                if isinstance(parallel, int):
+                    # present method does not work with pool_type='mp'
+                    pool, pool_type = mp.pool(parallel, pool_type='iypthon')
+                else:
+                    # For test purpose
+                    pool = parallel
+                    pool_type = 'mp'
+                ndkwargs = {}
+                for key, value in kwargs.iteritems():
+                    if isinstance(value, Signal):
+                        ndkwargs[key] = value
+                # Transform ndkwargs in ndargs_mp. Make sure the ndargs are in
+                # the order of fargs and there is no gap, to avoid
+                # mixing with kwargs_mp
+                ndargs_mp = []
+                kwargs_mp = kwargs.copy()
+                for i, (farg, farg_default) in enumerate(zip(
+                        fargs, fargs_default)):
+                    if i == 0:
+                        ndargs_mp.append(self.data)
+                    elif ndkwargs != {}:
+                        if farg in kwargs.keys():
+                            if isinstance(kwargs[farg], Signal):
+                                ndargs_mp.append(kwargs[farg].data)
+                                del ndkwargs[farg]
+                                del kwargs_mp[farg]
+                            else:
+                                # transform kwargs in ndargs to avoid gap
+                                ndargs_mp.append([kwargs[farg]]*len(
+                                    self.data))
+                                del kwargs_mp[farg]
+                        else:
+                            # for default kwargs/ndkwargs
+                            ndargs_mp.append('')
+                result = pool.map_async(functools.partial(
+                    function, **kwargs_mp), *ndargs_mp)
+                self.data = np.array(result.get())
+                mp.close(pool, pool_type)
 
     def copy(self):
         try:
