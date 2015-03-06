@@ -1626,7 +1626,8 @@ class EDSSpectrum(Spectrum):
             generation_factor=generation_factor,
             beam_energy=beam_energy)
         return spec
-        
+
+    # TODO: official version detetector_efficiency_from_layers, should be mer
     def compute_detector_efficiency_from_layers(self,
                          elements='auto',
                         thicknesses_layer='auto',
@@ -1773,6 +1774,7 @@ class EDSSpectrum(Spectrum):
                                                                    weight_fraction=weight_fraction, 
                                                                    elements=elements)
 
+    # official version detetector_efficiency_from_layers
     def get_detector_efficiency(self,
                                 detector_name,
                                 gateway='auto'):
@@ -1870,12 +1872,12 @@ class EDSSpectrum(Spectrum):
             res.save(filename=filename + "_" + result + "_" + xray_line,
                      extension=extension, overwrite=True)
                      
-    def _get_signal_signal(self):
-        s = Spectrum(np.zeros(self.axes_manager._signal_shape_in_array,
-                                dtype=self.data.dtype),
-                       axes=self.axes_manager._get_signal_axes_dicts())
-        s.set_signal_type(self.metadata.Signal.signal_type)
-        return s
+#    def _get_signal_signal(self):
+#        s = Spectrum(np.zeros(self.axes_manager._signal_shape_in_array,
+#                                dtype=self.data.dtype),
+#                       axes=self.axes_manager._get_signal_axes_dicts())
+#        s.set_signal_type(self.metadata.Signal.signal_type)
+#        return s
         
     def align_results(self,
                       results='all',
@@ -2320,3 +2322,73 @@ class EDSSpectrum(Spectrum):
 #                elements, atomic_percent.data)
 #            atomic_percent.data = np.nan_to_num(atomic_percent.data)
 #        return atomic_percent
+
+    def detetector_efficiency_from_layers(self,
+                                          elements=['C', 'Al', 'Si', 'O'],
+                                          thicknesses_layer=[50., 30.,
+                                                             40., 40.],
+                                          thickness_detector=0.45,
+                                          cutoff_energy=0.1):
+        """Compute the detector efficiency from the layers.
+
+        The efficiency is calculated by estimating the absorption of the
+        different the layers in front of the detector.
+
+        Parameters
+        ----------
+        energy: float or list of float
+            The energy of the  X-ray reaching the detector in keV.
+        elements: list of str
+            The composition of each layer. One element per layer.
+        thicknesses_layer: list of float
+            The thickness of each layer in nm
+        thickness_detector: float
+            The thickness of the detector in mm
+        cutoff_energy: float
+            The lower energy limit in keV below which the detector has no
+            efficiency.
+
+        Return
+        ------
+        An EDSspectrum instance. 1. is a totaly efficient detector.
+
+        Example
+        -------
+
+        >>> s = signals.EDSTEMSpectrum(np.ones(1024))
+        >>> s.axes_manager.signal_axes[0].scale = 0.01
+        >>> s.axes_manager.signal_axes[0].units = "keV"
+        >>> s.detetector_efficiency_from_layers()
+        <EDSTEMSpectrum, title: Detection efficiency, dimensions: (|1024)>
+
+        Notes
+        -----
+        Equation adapted from  Alvisi et al 2006
+        """
+        efficiency = self._get_signal_signal()
+        if efficiency.metadata.Signal.signal_type == 'EDS_SEM':
+            mp = efficiency.metadata.Acquisition_instrument.SEM
+        elif self.metadata.Signal.signal_type == 'EDS_TEM':
+            mp = efficiency.metadata.Acquisition_instrument.TEM
+        efficiency.metadata.General.title = 'Detection efficiency'
+        mp.Detector.EDS.set_item('Description.elements', elements)
+        mp.Detector.EDS.set_item('Description.thicknesses_layer',
+                                 thicknesses_layer)
+        mp.Detector.EDS.set_item('Description.thickness_detector',
+                                 thickness_detector)
+        units = efficiency.axes_manager.signal_axes[0].units
+        if units == 'eV':
+            units_factor = 1000.
+        elif units == 'keV':
+            units_factor = 1.
+        else:
+            units_factor = 1.
+            warnings.warn("The energy unit %s is not supported. " % (units) +
+                          "It it supposed to be keV.")
+        eng = efficiency.axes_manager.signal_axes[0].axis / units_factor
+        efficiency.data = utils_eds.detetector_efficiency_from_layers(
+            energies=eng, elements=elements,
+            thicknesses_layer=thicknesses_layer,
+            thickness_detector=thickness_detector,
+            cutoff_energy=cutoff_energy)
+        return efficiency

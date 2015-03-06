@@ -669,3 +669,23 @@ class Test_MAC:
             s.get_sample_mass_absorption_coefficient(
                 weight_fraction=[0.5, 0.5]),
                 [2587.4161643905127, 1239.4598146508552]))
+
+
+class Test_detector_efficiency:
+
+    def setUp(self):
+        s = EDSSEMSpectrum(np.ones((5)))
+        s.axes_manager.signal_axes[0].scale = 0.5
+        s.axes_manager.signal_axes[0].units = "keV"
+        self.signal = s
+
+    def test_beam_energy(self):
+        s = self.signal
+        det = s.detetector_efficiency_from_layers(
+            elements=['C', 'Al', 'Si', 'O'], thicknesses_layer=[50., 30.,
+                                                                40., 40.],
+            thickness_detector=0.45, cutoff_energy=0.1)
+        nose.tools.assert_true(
+            np.allclose(det.data, np.array([0., 0.75500789, 0.95501759,
+                                            0.98541387, 0.95350419]),
+                        atol=1e-3))
