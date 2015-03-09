@@ -1,6 +1,7 @@
 import numpy as np
 import numbers
 import warnings
+import copy
 
 from hyperspy.misc.elements import elements as elements_db
 from hyperspy.misc.eds.ffast_mac import ffast_mac_db as ffast_mac
@@ -302,11 +303,12 @@ def mass_absorption_coefficient(element, energies):
 
     energies_db = np.array(ffast_mac[element].energies_keV)
     macs = np.array(ffast_mac[element].mass_absorption_coefficient_cm2g)
+    energies = copy.copy(energies)
     if isinstance(energies, str):
         energies = utils_eds._get_energy_xray_line(energies)
     elif hasattr(energies, '__iter__'):
-        if isinstance(energies[0], str):
-            for i, energy in enumerate(energies):
+        for i, energy in enumerate(energies):
+            if isinstance(energy, str):
                 energies[i] = utils_eds._get_energy_xray_line(energy)
     index = np.searchsorted(energies_db, energies)
     mac_res = np.exp(np.log(macs[index - 1])
@@ -394,7 +396,7 @@ def mass_absorption_coefficient_of_mixture_of_pure_elements(weight_percent,
         The list of element symbol of the absorber, e.g. ['Al','Zn']. If
         elements is 'auto', take the elements in each signal metadata of the
         weight_percent list.
-    energies: float or list of float or str or list of str or 'auto'
+    energies: list of float or list of str or 'auto'
         The energy or energies of the X-ray in keV, or the name of the X-rays,
         e.g. 'Al_Ka'. If 'auto', take the lines in each signal metadata of the
         weight_percent list.
@@ -403,7 +405,7 @@ def mass_absorption_coefficient_of_mixture_of_pure_elements(weight_percent,
     --------
     >>> utils.material.mass_absorption_coefficient_of_mixture_of_pure_elements(
     >>>     elements=['Al','Zn'], weight_percent=[50,50], energies='Al_Ka')
-    2587.4161643905127
+    2587.41616439
 
     Return
     ------
@@ -426,12 +428,19 @@ def mass_absorption_coefficient_of_mixture_of_pure_elements(weight_percent,
     elements = _elements_auto(weight_percent, elements)
     energies = _lines_auto(weight_percent, energies)
     if isinstance(weight_percent[0], Signal):
-        weight_per = stack(weight_percent)
-        mac_res = weight_per.deepcopy()
+        weight_per = np.array([wt.data for wt in weight_percent])
+        mac_res = stack([weight_percent[0].deepcopy()]*len(energies))
         mac_res.data = \
             _mass_absorption_coefficient_of_mixture_of_pure_elements(
-                weight_per.data, elements, energies)
+                weight_per, elements, energies)
         mac_res = mac_res.split()
+        for i, energy in enumerate(energies):
+            mac_res[i].metadata.set_item("Sample.xray_lines", ([energy]))
+            mac_res[i].metadata.General.set_item(
+                "title", "Absoprtion coeff of"
+                " %s in %s" % (energy, mac_res[i].metadata.General.title))
+            if mac_res[i].metadata.has_item("Sample.elements"):
+                del mac_res[i].metadata.Sample.elements
         return mac_res
     else:
         return _mass_absorption_coefficient_of_mixture_of_pure_elements(
