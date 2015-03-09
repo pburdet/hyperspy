@@ -362,13 +362,12 @@ def mass_absorption_coefficient_of_mixture_of_pure_elements(elements,
         raise ValueError(
             "Elements and weight_fraction should have the same lenght")
     if hasattr(weight_percent[0], '__iter__'):
-        weight_percent = np.array(weight_percent)
-        mac_res = np.zeros(weight_percent.shape[1:])
-        for element, weight in zip(elements, weight_percent):
-            mac_re = mass_absorption_coefficient(
-                element, energies)
-            mac_res += mac_re * weight
-        mac_res /= np.sum(weight_percent, 0)
+        weight_fraction = np.array(weight_percent)
+        weight_fraction /= np.sum(weight_fraction, 0)
+        mac_res = np.zeros([len(energies)]+list(weight_fraction.shape[1:]))
+        for element, weight in zip(elements, weight_fraction):
+            mac_re = mass_absorption_coefficient(element, energies)
+            mac_res += np.array([weight * ma for ma in mac_re])
         return mac_res
     else:
         mac_res = np.array([mass_absorption_coefficient(
