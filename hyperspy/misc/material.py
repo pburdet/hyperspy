@@ -316,9 +316,9 @@ def mass_absorption_coefficient(element, energies):
     return np.nan_to_num(mac_res)
 
 
-def mass_absorption_coefficient_of_mixture_of_pure_elements(elements,
-                                                            weight_percent,
-                                                            energies):
+def _mass_absorption_coefficient_of_mixture_of_pure_elements(weight_percent,
+                                                             elements,
+                                                             energies):
     """Calculate the mass absorption coefficient for X-ray absorbed in a
     mixture of elements.
 
@@ -327,11 +327,11 @@ def mass_absorption_coefficient_of_mixture_of_pure_elements(elements,
 
     Parameters
     ----------
-    elements: list of str
-        The list of element symbol of the absorber, e.g. ['Al','Zn'].
     weight_percent: np.array
         The composition of the absorber(s) in weight percent. The first
         dimension of the matrix corresponds to the elements.
+    elements: list of str
+        The list of element symbol of the absorber, e.g. ['Al','Zn'].
     energies: float or list of float or str or list of str
         The energy or energies of the X-ray in keV, or the name of the X-rays,
         e.g. 'Al_Ka'.
@@ -376,6 +376,88 @@ def mass_absorption_coefficient_of_mixture_of_pure_elements(elements,
         return mac_res
 
 
+def mass_absorption_coefficient_of_mixture_of_pure_elements(weight_percent,
+                                                            elements='auto',
+                                                            energies='auto'):
+    """Calculate the mass absorption coefficient for X-ray absorbed in a
+    mixture of elements.
+
+    The mass absorption coefficient is calculated as a weighted mean of the
+    weight percent and is retrieved from the database of Chantler2005.
+
+    Parameters
+    ----------
+    weight_percent: list of float or list of signals
+        The composition of the absorber(s) in weight percent. The first
+        dimension of the matrix corresponds to the elements.
+    elements: list of str or 'auto'
+        The list of element symbol of the absorber, e.g. ['Al','Zn']. If
+        elements is 'auto', take the elements in each signal metadata of the
+        weight_percent list.
+    energies: float or list of float or str or list of str or 'auto'
+        The energy or energies of the X-ray in keV, or the name of the X-rays,
+        e.g. 'Al_Ka'. If 'auto', take the lines in each signal metadata of the
+        weight_percent list.
+
+    Examples
+    --------
+    >>> utils.material.mass_absorption_coefficient_of_mixture_of_pure_elements(
+    >>>     elements=['Al','Zn'], weight_percent=[50,50], energies='Al_Ka')
+    2587.4161643905127
+
+    Return
+    ------
+    float or array of float
+    mass absorption coefficient(s) in cm^2/g
+
+    See also
+    --------
+    utils.material.mass_absorption_coefficient
+
+    Note
+    ----
+    See http://physics.nist.gov/ffast
+    Chantler, C.T., Olsen, K., Dragoset, R.A., Kishore, A.R., Kotochigova,
+    S.A., and Zucker, D.S. (2005), X-Ray Form Factor, Attenuation and
+    Scattering Tables (version 2.1).
+
+    """
+    from hyperspy.signals import Signal
+    elements = _elements_auto(weight_percent, elements)
+    energies = _lines_auto(weight_percent, energies)
+    if isinstance(weight_percent[0], Signal):
+        weight_per = stack(weight_percent)
+        mac_res = weight_per.deepcopy()
+        mac_res.data = \
+            _mass_absorption_coefficient_of_mixture_of_pure_elements(
+                weight_per.data, elements, energies)
+        mac_res = mac_res.split()
+        return mac_res
+    else:
+        return _mass_absorption_coefficient_of_mixture_of_pure_elements(
+            weight_percent, elements, energies)
+
+
+def _lines_auto(composition, xray_lines):
+    if isinstance(composition[0], numbers.Number):
+        if isinstance(xray_lines, str):
+            if xray_lines == 'auto':
+                raise ValueError("The X-ray lines needs to be provided.")
+    else:
+        if isinstance(xray_lines, str):
+            if xray_lines == 'auto':
+                xray_lines = []
+                for compo in composition:
+                    if len(compo.metadata.Sample.xray_lines) > 1:
+                        raise ValueError(
+                            "The signal %s contains more than one X-ray lines "
+                            "but this function requires only one X-ray lines "
+                            "per signal." % compo.metadata.General.title)
+                    else:
+                        xray_lines.append(compo.metadata.Sample.xray_lines[0])
+    return xray_lines
+
+
 def _elements_auto(composition, elements):
     if isinstance(composition[0], numbers.Number):
         if isinstance(elements, str):
@@ -394,4 +476,3 @@ def _elements_auto(composition, elements):
                     else:
                         elements.append(compo.metadata.Sample.elements[0])
     return elements
-
