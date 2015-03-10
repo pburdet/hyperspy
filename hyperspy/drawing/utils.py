@@ -350,17 +350,19 @@ def plot_images(images,
                 label='titles',
                 labelwrap=30,
                 colorbar='multi',
-                plot_scalebar=False,
+                scalebar=None,
                 scalebar_color='white',
                 interp='nearest',
                 axes_decor='all',
                 padding=None,
                 tight_layout=True,
+                aspect='auto',
+                min_asp=0.1,
                 fig=None,
                 aspect='equal',
                 *args,
                 **kwargs):
-    """Plot multiple images as subimages in one figure.
+    """Plot multiple images as sub-images in one figure.
 
         Parameters
         ----------
@@ -402,8 +404,10 @@ def plot_images(images,
            'spline36', 'hanning', 'hamming', 'hermite', 'kaiser', 'quadric',
            'catrom', 'gaussian', 'bessel', 'mitchell', 'sinc', 'lanczos'
 
-        plot_scalebar : bool
-            If True, a scalebar will be added to each plot
+        scalebar : None, 'all', or list of ints
+            If None (or False), no scalebars will be added to the images.
+            If 'all', scalebars will be added to all images.
+            If list of ints, scalebars will be added to each image specified by number.
 
         scalebar_color : str
             A valid MPL color string; will be used as the scalebar color
@@ -418,7 +422,7 @@ def plot_images(images,
         padding : None or dict
             This parameter controls the spacing between images. If None, default options will be used
             Otherwise, supply a dictionary with the spacing options as keywords and desired values as values
-            Possible spacings are:
+            Values should be supplied as used in pyplot.subplots_adjust(), and can be:
                 'left', 'bottom', 'right', 'top', 'wspace' (width), and 'hspace' (height)
 
         tight_layout : bool
@@ -426,6 +430,15 @@ def plot_images(images,
                 This is known to cause some problems, so an option is provided to disable it.
                 Turn this option off if output is not as expected, or try adjusting `labelwrap` or `per_row`
             If false, repositioning images inside the figure will be left as an exercise for the user.
+
+        aspect : str or (float, int, long)
+            If 'auto', aspect ratio will be automatically determined, subject to min_asp.
+            If 'square', image will be forced onto square display.
+            If 'equal', aspect ratio of 1 will be enforced.
+            If float (or int/long), given value will be used.
+
+        min_asp : float
+            Minimum aspect ratio to be used when plotting images
 
         fig : mpl figure
             If set, the images will be plotted to an existing MPL figure
@@ -523,8 +536,14 @@ def plot_images(images,
         gl_max, gl_min = max([i.data.max() for i in list(compress(images, [not j for j in isrgb]))]), \
                          min([i.data.min() for i in list(compress(images, [not j for j in isrgb]))])
 
-    # Loop through each image, adding subplot for each one
+    # Check if we need to add a scalebar for some of the images
+    if isinstance(scalebar, list) and all(isinstance(x, int) for x in scalebar):
+        scalelist = True
+    else:
+        scalelist = False
+
     idx = 0
+    # Loop through each image, adding subplot for each one
     for i, ims in enumerate(images):
         # Get handles for the signal axes and axes_manager
         axes_manager = images[i].axes_manager
@@ -558,14 +577,34 @@ def plot_images(images,
                     data = data.reshape(shape)
 
             # Set dimensions of images
+            xaxis = axes[0]
+            yaxis = axes[1]
+
             extent = (
-                axes[0].low_value,
-                axes[0].high_value,
-                axes[1].high_value,
-                axes[1].low_value,
+                xaxis.low_value,
+                xaxis.high_value,
+                yaxis.high_value,
+                yaxis.low_value,
             )
 
-            asp = abs(extent[1] - extent[0]) / abs(extent[3] - extent[2])
+            if not isinstance(aspect, (int, long, float)) and aspect not in ['auto', 'square', 'equal']:
+                print 'Did not understand aspect ratio input. Using \'auto\' as default.'
+                aspect = 'auto'
+
+            if aspect is 'auto':
+                if float(yaxis.size) / xaxis.size < min_asp:
+                    factor = min_asp * float(xaxis.size) / yaxis.size
+                elif float(yaxis.size) / xaxis.size > min_asp ** -1:
+                    factor = min_asp ** -1 * float(xaxis.size) / yaxis.size
+                else:
+                    factor = 1
+                asp = np.abs(factor * float(xaxis.scale) / yaxis.scale)
+            elif aspect is 'square':
+                asp = abs(extent[1] - extent[0]) / abs(extent[3] - extent[2])
+            elif aspect is 'equal':
+                asp = 1
+            elif isinstance(aspect, (int, long, float)):
+                asp = aspect
 
             # Plot image data, using vmin and vmax to set bounds, or allowing them
             # to be set automatically if using individual colorbars
@@ -621,6 +660,14 @@ def plot_images(images,
                 cax = div.append_axes("right", size="5%", pad=0.05)
                 plt.colorbar(im, cax=cax)
 
+            # Add scalebars as necessary
+            if (scalelist and i in scalebar) or scalebar is 'all':
+                ax.scalebar = widgets.Scale_Bar(
+                    ax=ax,
+                    units=axes[0].units,
+                    color=scalebar_color,
+                )
+
     # If using a single colorbar, add it
     if colorbar is 'single':
         f.subplots_adjust(right=0.8)
@@ -633,13 +680,18 @@ def plot_images(images,
         plt.tight_layout()
 
     # If we want to plot scalebars, loop through the list of axes and add them
-    if plot_scalebar:
-        for ax in axes_list:
-            ax.scalebar = widgets.Scale_Bar(
-                ax=ax,
-                units=axes[0].units,
-                color=scalebar_color,
-            )
+    if scalebar is None or scalebar is False:
+        # Do nothing if no scalebars are called for
+        pass
+    elif scalebar is 'all':
+        # scalebars were taken care of in the plotting loop
+        pass
+    elif scalelist:
+        # scalebars were taken care of in the plotting loop
+        pass
+    else:
+        print 'Did not understand scalebar input. Please use None, \'all\', or list of ints.'
+        print 'No scalebars will be displayed.'
 
     # Adjust subplot spacing according to user's specification
     if padding is not None:
