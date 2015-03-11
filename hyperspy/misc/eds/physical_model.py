@@ -60,7 +60,7 @@ def xray_absorption_bulk(energy,
 
     xi = utils.material.mass_absorption_coefficient_of_mixture_of_pure_elements(
         energies=energy, elements=elements,
-        weight_fraction=weight_fraction) / np.sin(np.radians(TOA))
+        weight_percent=weight_fraction) / np.sin(np.radians(TOA))
     sig = coeff / (np.power(beam_energy, 1.65
                             ) - np.power(energy, 1.65))
     return 1. / ((1. + xi / sig) * (1. + h / (1. + h) * (xi / sig)))
@@ -110,7 +110,7 @@ def xray_absorption_thin_film(energy,
     mac_sample = utils.material.\
         mass_absorption_coefficient_of_mixture_of_pure_elements(
             energies=energy, elements=elements,
-            weight_fraction=weight_fraction)
+            weight_percent=weight_fraction)
     rt = density * thickness * 1e-7 / np.sin(np.radians(TOA))
     fact = mac_sample * rt
     abs_corr = np.nan_to_num((1 - np.exp(-(fact))) / fact)
