@@ -370,7 +370,7 @@ def plot_images(images,
 
         images : list of Signals to plot
             If any signal is not an image, a ValueError will be raised
-             multi-dimensional images will have each plane plotted as a separate image
+            multi-dimensional images will have each plane plotted as a separate image
 
         cmap : matplotlib colormap
             The colormap used for the images, by default read from pyplot
@@ -385,8 +385,8 @@ def plot_images(images,
             Control the title labeling of the plotted images.
             If None, no titles will be shown.
             If 'auto' (default), function will try to determine suitable titles using Image titles,
-             falling back to the 'titles' option if no good short titles are detected.
-             Works best if all images to be plotted have the same beginning to their titles.
+            falling back to the 'titles' option if no good short titles are detected.
+            Works best if all images to be plotted have the same beginning to their titles.
             If 'titles' , the title from each image's metadata.General.title will be used.
             If any other single str, images will be labeled in sequence using that str as a prefix.
             If a list of str, the list elements will be used to determine the labels (repeated, if necessary).
@@ -397,7 +397,8 @@ def plot_images(images,
             overlap of the labels between each figure
 
         suptitle : str
-            Title to use at the top of the figure.
+            Title to use at the top of the figure. If called with label='auto', this parameter will override
+            the automatically determined title.
 
         suptitle_fontsize : int
             Font size to use for super title at top of figure
@@ -411,9 +412,9 @@ def plot_images(images,
         interp : None or str
             Type of interpolation to use with matplotlib.imshow()
             Possible values are:
-             None, 'none', 'nearest', 'bilinear', 'bicubic', 'spline16',
-             'spline36', 'hanning', 'hamming', 'hermite', 'kaiser', 'quadric',
-             'catrom', 'gaussian', 'bessel', 'mitchell', 'sinc', 'lanczos'
+            None, 'none', 'nearest', 'bilinear', 'bicubic', 'spline16',
+            'spline36', 'hanning', 'hamming', 'hermite', 'kaiser', 'quadric',
+            'catrom', 'gaussian', 'bessel', 'mitchell', 'sinc', 'lanczos'
 
         scalebar : None, 'all', or list of ints
             If None (or False), no scalebars will be added to the images.
@@ -502,6 +503,10 @@ def plot_images(images,
 
     # Sort out the labeling:
     div_num = 0
+    all_match = False
+    shared_titles = False
+    user_labels = False
+
     if label is None:
         pass
     elif label is 'auto':
@@ -551,7 +556,10 @@ def plot_images(images,
         if namefrac > 0.5:
             # there was a significant overlap of label beginnings
             shared_titles = True
-            suptitle = basename
+            # only use new suptitle if one isn't specified already
+            if suptitle is None:
+                suptitle = basename
+
         else:
             # there was not much overlap, so default back to 'titles' mode
             shared_titles = False
@@ -568,6 +576,7 @@ def plot_images(images,
 
     elif isinstance(label, list) and all(isinstance(x, str) for x in label):
         label_list = label
+        user_labels = True
         # If list of labels is longer than the number of images, just use the
         # first n elements
         if len(label_list) > n:
@@ -713,10 +722,20 @@ def plot_images(images,
             if label:
                 if all_match:
                     title = ''
-                else:
+                elif shared_titles:
                     title = label_list[i][div_num - 1:]
-                if ims.axes_manager.navigation_size > 1:
+                else:
+                    if len(ims) == n:
+                        # This is true if we are plotting just 1 multi-dimensional Image
+                        title = label_list[idx - 1]
+                    elif user_labels:
+                        title = label_list[idx - 1]
+                    else:
+                        title = label_list[i]
+
+                if ims.axes_manager.navigation_size > 1 and not user_labels:
                     title += " %s" % str(ims.axes_manager.indices)
+
                 ax.set_title(textwrap.fill(title, labelwrap))
 
             # Set axes decorations based on user input

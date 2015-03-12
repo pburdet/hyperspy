@@ -81,6 +81,14 @@ hyperspy.misc.math_tools module
     :undoc-members:
     :show-inheritance:
 
+hyperspy.misc.mp module
+-----------------------
+
+.. automodule:: hyperspy.misc.mp
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 hyperspy.misc.multiprocessing module
 ------------------------------------
 
