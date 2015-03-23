@@ -18,6 +18,9 @@
 
 import copy
 import itertools
+import textwrap
+from traits import trait_base
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -131,7 +134,7 @@ def plot_RGB_map(im_list, normalization='single', dont_plot=False):
         rgb[:, :, 2] = im_list[2].data.squeeze()
     if normalization == 'single':
         for i in xrange(rgb.shape[2]):
-            rgb[:, :, i] /= rgb[:,:, i].max()
+            rgb[:, :, i] /= rgb[:, :, i].max()
     elif normalization == 'global':
         rgb /= rgb.max()
     rgb = rgb.clip(0, rgb.max())
@@ -368,108 +371,131 @@ def plot_images(images,
         Parameters
         ----------
 
-        images : list of Signals to plot
+        images : list
+            `images` should be a list of Signals (Images) to plot
             If any signal is not an image, a ValueError will be raised
-            multi-dimensional images will have each plane plotted as a separate image
+            multi-dimensional images will have each plane plotted as a separate
+            image
 
-        cmap : matplotlib colormap
+        cmap : matplotlib colormap, optional
             The colormap used for the images, by default read from pyplot
 
-        no_nans : bool
+        no_nans : bool, optional
             If True, removes NaN's from the plots.
 
-        per_row : int
+        per_row : int, optional
             The number of plots in each row
 
-        label : None, str, or list of str
+        label : None, str, or list of str, optional
             Control the title labeling of the plotted images.
             If None, no titles will be shown.
-            If 'auto' (default), function will try to determine suitable titles using Image titles,
-            falling back to the 'titles' option if no good short titles are detected.
-            Works best if all images to be plotted have the same beginning to their titles.
-            If 'titles' , the title from each image's metadata.General.title will be used.
-            If any other single str, images will be labeled in sequence using that str as a prefix.
-            If a list of str, the list elements will be used to determine the labels (repeated, if necessary).
+            If 'auto' (default), function will try to determine suitable titles
+            using Image titles, falling back to the 'titles' option if no good
+            short titles are detected.
+            Works best if all images to be plotted have the same beginning
+            to their titles.
+            If 'titles', the title from each image's metadata.General.title
+            will be used.
+            If any other single str, images will be labeled in sequence using
+            that str as a prefix.
+            If a list of str, the list elements will be used to determine the
+            labels (repeated, if necessary).
 
-        labelwrap : int
-            integer specifying the number of characters that will be used on one line
-            If the function returns an unexpected blank figure, lower this value to reduce
-            overlap of the labels between each figure
+        labelwrap : int, optional
+            integer specifying the number of characters that will be used on
+            one line
+            If the function returns an unexpected blank figure, lower this
+            value to reduce overlap of the labels between each figure
 
-        suptitle : str
-            Title to use at the top of the figure. If called with label='auto', this parameter will override
-            the automatically determined title.
+        suptitle : str, optional
+            Title to use at the top of the figure. If called with label='auto',
+            this parameter will override the automatically determined title.
 
-        suptitle_fontsize : int
+        suptitle_fontsize : int, optional
             Font size to use for super title at top of figure
 
-        colorbar : None, 'multi' (default), or 'single'
+        colorbar : {'multi', None, 'single'}
             Controls the type of colorbars that are plotted.
             If None, no colorbar is plotted.
-            If 'multi', individual colorbars are plotted for each (non-RGB) image
-            If 'single', all (non-RGB) images are plotted on the same scale, and one colorbar is shown for all
+            If 'multi' (default), individual colorbars are plotted for each
+            (non-RGB) image
+            If 'single', all (non-RGB) images are plotted on the same scale,
+            and one colorbar is shown for all
 
-        interp : None or str
+        interp : None or str, optional
             Type of interpolation to use with matplotlib.imshow()
             Possible values are:
             None, 'none', 'nearest', 'bilinear', 'bicubic', 'spline16',
             'spline36', 'hanning', 'hamming', 'hermite', 'kaiser', 'quadric',
             'catrom', 'gaussian', 'bessel', 'mitchell', 'sinc', 'lanczos'
 
-        scalebar : None, 'all', or list of ints
+        scalebar : {None, 'all', list of ints}, optional
             If None (or False), no scalebars will be added to the images.
             If 'all', scalebars will be added to all images.
-            If list of ints, scalebars will be added to each image specified by number.
+            If list of ints, scalebars will be added to each image specified.
 
-        scalebar_color : str
+        scalebar_color : str, optional
             A valid MPL color string; will be used as the scalebar color
 
-        axes_decor : str
+        axes_decor : {'all', 'ticks', 'off', None}, optional
             Controls how the axes are displayed on each image; default is 'all'
             If 'all', both ticks and axis labels will be shown
-            If 'ticks', no axis labels will be shown, but ticks and tick labels will
+            If 'ticks', no axis labels will be shown, but ticks/tick labels will
             If 'off', all decorations and frame will be disabled
             If None, no axis decorations will be shown, but ticks/frame will
 
-        padding : None or dict
-            This parameter controls the spacing between images. If None, default options will be used
-            Otherwise, supply a dictionary with the spacing options as keywords and desired values as values
-            Values should be supplied as used in pyplot.subplots_adjust(), and can be:
-                'left', 'bottom', 'right', 'top', 'wspace' (width), and 'hspace' (height)
+        padding : None or dict, optional
+            This parameter controls the spacing between images.
+            If None, default options will be used
+            Otherwise, supply a dictionary with the spacing options as
+            keywords and desired values as values
+            Values should be supplied as used in pyplot.subplots_adjust(),
+            and can be:
+                'left', 'bottom', 'right', 'top', 'wspace' (width),
+                and 'hspace' (height)
 
-        tight_layout : bool
-            If true, hyperspy will attempt to improve image placement in figure using matplotlib's tight_layout
-             This is known to cause some problems, so an option is provided to disable it.
-             Turn this option off if output is not as expected, or try adjusting `labelwrap` or `per_row`
-            If false, repositioning images inside the figure will be left as an exercise for the user.
+        tight_layout : bool, optional
+            If true, hyperspy will attempt to improve image placement in
+            figure using matplotlib's tight_layout
+            If false, repositioning images inside the figure will be left as
+            an exercise for the user.
 
-        aspect : str or (float, int, long)
-            If 'auto', aspect ratio will be automatically determined, subject to min_asp.
+        aspect : str or numeric, optional
+            If 'auto', aspect ratio will be auto determined, subject to min_asp.
             If 'square', image will be forced onto square display.
             If 'equal', aspect ratio of 1 will be enforced.
             If float (or int/long), given value will be used.
 
-        min_asp : float
+        min_asp : float, optional
             Minimum aspect ratio to be used when plotting images
 
-        fig : mpl figure
+        fig : mpl figure, optional
             If set, the images will be plotted to an existing MPL figure
 
-        *args, **kwargs
+        *args, **kwargs, optional
             Additional arguments passed to matplotlib.imshow()
 
         Returns
         -------
-        axes_list, a list of subplot axes that hold the images
+        axes_list : list
+            a list of subplot axes that hold the images
+
+        See Also
+        --------
+        plot_spectra : Plotting of multiple spectra
+        plot_signals : Plotting of multiple signals
+        plot_histograms : Compare signal histograms
+
+        Notes
+        -----
+        `tight_layout` is known to be quite brittle, so an option is provided
+        to disable it. Turn this option off if output is not as expected,
+        or try adjusting `label`, `labelwrap`, or `per_row`
 
     """
-    from mpl_toolkits.axes_grid1 import make_axes_locatable
-    from hyperspy.drawing import widgets
+    from hyperspy.drawing.widgets import Scale_Bar
     from hyperspy.misc import rgb_tools
     from hyperspy.signal import Signal
-    from traits import trait_base
-    from itertools import compress
-    import textwrap
 
     if isinstance(images, Signal) and len(images) is 1:
         print "Single image provided, using Signal.plot() instead."
@@ -478,7 +504,8 @@ def plot_images(images,
         f = plt.gcf()
         return f
     elif not isinstance(images, (list, tuple, Signal)):
-        raise ValueError("images must be a list of image signals or multi-dimensional signal."
+        raise ValueError("images must be a list of image signals or "
+                         "multi-dimensional signal."
                          " " + repr(type(images)) + " was given.")
 
     # Get default colormap from pyplot:
@@ -487,7 +514,8 @@ def plot_images(images,
 
     # If input is >= 1D signal (e.g. for multi-dimensional plotting),
     # copy it and put it in a list so labeling works out as (x,y) when plotting
-    if isinstance(images,Signal) and images.axes_manager.navigation_dimension > 0:
+    if isinstance(
+            images, Signal) and images.axes_manager.navigation_dimension > 0:
         images = [images._deepcopy_with_new_data(images.data)]
 
     n = 0
@@ -495,8 +523,10 @@ def plot_images(images,
         if sig.axes_manager.signal_dimension != 2:
             raise ValueError("This method only plots signals that are images. "
                              "The signal dimension must be equal to 2. "
-                             "The signal at position " + repr(i) + " was " + repr(sig) + ".")
-        # increment n by the navigation size, or by 1 if the navigation size is <= 0
+                             "The signal at position " + repr(i) +
+                             " was " + repr(sig) + ".")
+        # increment n by the navigation size, or by 1 if the navigation size is
+        # <= 0
         n += (sig.axes_manager.navigation_size
               if sig.axes_manager.navigation_size > 0
               else 1)
@@ -516,8 +546,8 @@ def plot_images(images,
         # Find the shortest common string between the image titles
         # and pull that out as the base title for the sequence of images
         # array in which to store arrays
-        res = np.zeros((len(label_list),len(label_list[0]) + 1))
-        res[:,0] = 1
+        res = np.zeros((len(label_list), len(label_list[0]) + 1))
+        res[:, 0] = 1
 
         # j iterates the strings
         for j in range(len(label_list)):
@@ -534,7 +564,7 @@ def plot_images(images,
             div_num = len(label_list[0])
             all_match = True
         else:
-            div_num = int(min(np.sum(res,1)))
+            div_num = int(min(np.sum(res, 1)))
             basename = label_list[0][:div_num - 1]
             all_match = False
 
@@ -614,18 +644,27 @@ def plot_images(images,
         if rgb_tools.is_rgbx(img.data):
             isrgb[i] = True
 
-    # Find global min and max values of all the non-rgb images for use with 'single' scalebar
+    # Determine how many non-rgb Images there are
+    non_rgb = list(itertools.compress(images, [not j for j in isrgb]))
+    if len(non_rgb) is 0:
+        colorbar = None
+        print "Sorry, colorbar is not implemented for RGB images."
+
+    # Find global min and max values of all the non-rgb images for use with
+    # 'single' scalebar
     if colorbar is 'single':
-        gl_max, gl_min = max([i.data.max() for i in list(compress(images, [not j for j in isrgb]))]), \
-                         min([i.data.min() for i in list(compress(images, [not j for j in isrgb]))])
+        global_max = max([i.data.max() for i in non_rgb])
+        global_min = min([i.data.min() for i in non_rgb])
 
     # Check if we need to add a scalebar for some of the images
-    if isinstance(scalebar, list) and all(isinstance(x, int) for x in scalebar):
+    if isinstance(scalebar, list) and all(isinstance(x, int)
+                                          for x in scalebar):
         scalelist = True
     else:
         scalelist = False
 
     idx = 0
+    ax_im_list = [0] * len(isrgb)
     # Loop through each image, adding subplot for each one
     for i, ims in enumerate(images):
         # Get handles for the signal axes and axes_manager
@@ -657,10 +696,6 @@ def plot_images(images,
                 # get calibration from a passed axes_manager
                 shape = axes_manager._signal_shape_in_array
 
-                # Reshape the data for input into imshow (if not rgb)
-                if not isrgb[i]:
-                    data = data.reshape(shape)
-
             # Set dimensions of images
             xaxis = axes[0]
             yaxis = axes[1]
@@ -672,8 +707,10 @@ def plot_images(images,
                 yaxis.low_value,
             )
 
-            if not isinstance(aspect, (int, long, float)) and aspect not in ['auto', 'square', 'equal']:
-                print 'Did not understand aspect ratio input. Using \'auto\' as default.'
+            if not isinstance(aspect, (int, long, float)) and aspect not in [
+                    'auto', 'square', 'equal']:
+                print 'Did not understand aspect ratio input. ' \
+                      'Using \'auto\' as default.'
                 aspect = 'auto'
 
             if aspect is 'auto':
@@ -691,22 +728,24 @@ def plot_images(images,
             elif isinstance(aspect, (int, long, float)):
                 asp = aspect
 
-            # Plot image data, using vmin and vmax to set bounds, or allowing them
-            # to be set automatically if using individual colorbars
+            # Plot image data, using vmin and vmax to set bounds,
+            # or allowing them to be set automatically if using individual
+            # colorbars
             if colorbar is 'single' and not isrgb[i]:
-                im = ax.imshow(data,
-                               cmap=cmap, #extent=extent, aspect=aspect,
-                               interpolation=interp,
-                               vmin=gl_min, vmax=gl_max,
-                               aspect=asp,
-                               *args, **kwargs)
+                axes_im = ax.imshow(data,
+                                    cmap=cmap, extent=extent,
+                                    interpolation=interp,
+                                    vmin=global_min, vmax=global_max,
+                                    aspect=asp,
+                                    *args, **kwargs)
+                ax_im_list[i] = axes_im
             else:
-                im = ax.imshow(data,
-                               cmap=cmap, extent=extent,
-                               aspect=asp,
-                               interpolation=interp,
-                               *args, **kwargs)
-                                   
+                axes_im = ax.imshow(data,
+                                    cmap=cmap, extent=extent,
+                                    aspect=asp,
+                                    interpolation=interp,
+                                    *args, **kwargs)
+                ax_im_list[i] = axes_im
             # Label the axes
             if isinstance(axes[0].units, trait_base._Undefined):
                 axes[0].units = 'pixels'
@@ -726,7 +765,8 @@ def plot_images(images,
                     title = label_list[i][div_num - 1:]
                 else:
                     if len(ims) == n:
-                        # This is true if we are plotting just 1 multi-dimensional Image
+                        # This is true if we are plotting just 1
+                        # multi-dimensional Image
                         title = label_list[idx - 1]
                     elif user_labels:
                         title = label_list[idx - 1]
@@ -756,24 +796,34 @@ def plot_images(images,
             if colorbar is 'multi' and not isrgb[i]:
                 div = make_axes_locatable(ax)
                 cax = div.append_axes("right", size="5%", pad=0.05)
-                plt.colorbar(im, cax=cax)
+                plt.colorbar(axes_im, cax=cax)
 
             # Add scalebars as necessary
             if (scalelist and i in scalebar) or scalebar is 'all':
-                ax.scalebar = widgets.Scale_Bar(
+                ax.scalebar = Scale_Bar(
                     ax=ax,
                     units=axes[0].units,
                     color=scalebar_color,
                 )
 
-    # If using a single colorbar, add it, and do tight_layout:
+    # If using a single colorbar, add it, and do tight_layout, ensuring that
+    # a colorbar is only added based off of non-rgb Images:
     if colorbar is 'single':
-        f.subplots_adjust(right=0.8)
-        cbar_ax = f.add_axes([0.9, 0.1, 0.03, 0.8])
-        f.colorbar(im, cax=cbar_ax)
-        if tight_layout:
-            # tight_layout, leaving room for the colorbar
-            plt.tight_layout(rect=[0, 0, 0.9, 1])
+        foundim = None
+        for i in range(len(isrgb)):
+            if (not isrgb[i]) and foundim is None:
+                foundim = i
+
+        if foundim is not None:
+            f.subplots_adjust(right=0.8)
+            cbar_ax = f.add_axes([0.9, 0.1, 0.03, 0.8])
+            cbar = f.colorbar(ax_im_list[foundim], cax=cbar_ax)
+            if tight_layout:
+                # tight_layout, leaving room for the colorbar
+                plt.tight_layout(rect=[0, 0, 0.9, 1])
+        elif tight_layout:
+            plt.tight_layout()
+
     elif tight_layout:
         plt.tight_layout()
 
@@ -793,8 +843,8 @@ def plot_images(images,
         # scalebars were taken care of in the plotting loop
         pass
     else:
-        print 'Did not understand scalebar input. Please use None, \'all\', or list of ints.'
-        print 'No scalebars will be displayed.'
+        raise ValueError("Did not understand scalebar input. Must be None, "
+                         "\'all\', or list of ints.")
 
     # Adjust subplot spacing according to user's specification
     if padding is not None:
