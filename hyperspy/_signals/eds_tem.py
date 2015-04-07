@@ -599,6 +599,95 @@ class EDSTEMSpectrum(EDSSpectrum):
 #            return res
 
     def quantification(self,
+                       intensities,
+                       kfactors,
+                       composition_units='weight',
+                       navigation_mask=1.0,
+                       closing=True,
+                       plot_result=False,
+                       **kwargs):
+        """
+        Quantification of intensities to return elemental composition
+
+        Method: Cliff-Lorimer
+
+        Parameters
+        ----------
+        intensities: list of signal
+            the intensitiy for each X-ray lines.
+        kfactors: list of float
+            The list of kfactor in same order as intensities. Note that
+            intensities provided by hyperspy are sorted by the aplhabetical
+            order of the X-ray lines. eg. kfactors =[0.982, 1.32, 1.60] for
+            ['Al_Ka','Cr_Ka', 'Ni_Ka'].
+        composition_units: 'weight' or 'atomic'
+            Quantification returns weight percent. By choosing 'atomic', the
+            return composition is in atomic percent.
+        navigation_mask : None or float or signal
+            The navigation locations marked as True are not used in the
+            quantification. If int is given the vacuum_mask method is used to
+            generate a mask with the int value as threhsold.
+            Else provides a signal with the navigation shape.
+        closing: bool
+            If true, applied a morphologic closing to the mask obtained by
+            vacuum_mask.
+        plot_result : bool
+            If True, plot the calculated composition. If the current
+            object is a single spectrum it prints the result instead.
+        kwargs
+            The extra keyword arguments are passed to plot.
+
+        Return
+        ------
+        A list of quantified elemental maps (signal) giving the composition of
+        the sample in weight or atomic percent.
+
+        Examples
+        --------
+        >>> s = utils.example_signals.EDS_TEM_Spectrum()
+        >>> s.add_lines()
+        >>> kfactors = [1.450226, 5.075602] #For Fe Ka and Pt La
+        >>> bw = s.estimate_background_windows(line_width=[5.0, 2.0])
+        >>> s.plot(background_windows=bw)
+        >>> intensities = s.get_lines_intensity(background_windows=bw)
+        >>> res = s.quantification(intensities, kfactors, plot_result=True,
+        >>>                        composition_units='atomic')
+        Fe (Fe_Ka): Composition = 15.41 atomic percent
+        Pt (Pt_La): Composition = 84.59 atomic percent
+
+        See also
+        --------
+        vacuum_mask
+        """
+        if isinstance(navigation_mask, float):
+            navigation_mask = self.vacuum_mask(navigation_mask, closing).data
+        elif navigation_mask is not None:
+            navigation_mask = navigation_mask.data
+        xray_lines = self.metadata.Sample.xray_lines
+        composition = utils.stack(intensities)
+        composition.data = utils_eds.quantification_cliff_lorimer(
+            composition.data, kfactors=kfactors,
+            mask=navigation_mask) * 100.
+        composition = composition.split()
+        if composition_units == 'atomic':
+            composition = utils.material.weight_to_atomic(composition)
+        for i, xray_line in enumerate(xray_lines):
+            element, line = utils_eds._get_element_and_line(xray_line)
+            composition[i].metadata.General.title = composition_units + \
+                ' percent of ' + element
+            composition[i].metadata.set_item("Sample.elements", ([element]))
+            composition[i].metadata.set_item(
+                "Sample.xray_lines", ([xray_line]))
+            if plot_result and \
+                    composition[i].axes_manager.signal_dimension == 0:
+                print("%s (%s): Composition = %.2f %s percent"
+                      % (element, xray_line, composition[i].data,
+                         composition_units))
+        if plot_result and composition[i].axes_manager.signal_dimension != 0:
+            utils.plot.plot_signals(composition, **kwargs)
+        return composition
+
+    def quantification_1(self,
                        intensities='auto',
                        method='CL',
                        kfactors='auto',
@@ -711,8 +800,7 @@ class EDSTEMSpectrum(EDSSpectrum):
                     store_in_mp=store_in_mp)
             if method == 'zeta':
                 self.metadata.set_item("Sample.mass_thickness", mass_thickness)
-        else:
-            return composition
+        return composition
 
     def get_absorption_corrections(self, weight_fraction='auto',
                                    thickness='auto', density='auto'):

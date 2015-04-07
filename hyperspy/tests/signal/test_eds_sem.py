@@ -196,7 +196,7 @@ class Test_get_lines_intentisity:
 
         sAl = s.get_lines_intensity(["Al_Ka"],
                                     plot_result=False,
-                                    integration_window_factor=5)[0]
+                                    integration_windows=5)[0]
         nose.tools.assert_true(np.allclose(24.99516, sAl.data[0, 0, 0],
                                            atol=1e-3))
 
@@ -226,47 +226,71 @@ class Test_get_lines_intentisity:
         nose.tools.assert_true(sAl.metadata.Sample.elements, ["Al"])
         nose.tools.assert_true(sAl.metadata.Sample.xray_lines, ["Al_Ka"])
 
-    def test_model_deconvolution(self):
-        s = self.signal
+#    def test_model_deconvolution(self):
+#        s = self.signal
+#
+#        sAl = s[0].get_lines_intensity(["Al_Ka"],
+#                                       plot_result=False,
+#                                       lines_deconvolution='model')[0]
+#        nose.tools.assert_true(np.allclose(19.22613, sAl.data[0, 0],
+#                                           atol=1e-3))
+#        # Why?
+#        # assert_true(np.allclose(0.75061671, sAl.data[0, 0], atol=1e-3))
+#        sAl = s[0, 0].get_lines_intensity(["Al_Ka"],
+#                                          plot_result=False,
+#                                          lines_deconvolution='model')[0]
+#        nose.tools.assert_true(np.allclose(19.22613, sAl.data[0], atol=1e-3))
+#        # assert_true(np.allclose(0.75061671, sAl.data[0], atol=1e-3))
+#        sAl = s[0, 0, 0].get_lines_intensity(["Al_Ka"],
+#                                             plot_result=False,
+#                                             lines_deconvolution='model')[0]
+#        nose.tools.assert_true(np.allclose(19.22613, sAl.data, atol=1e-3))
+#        # assert_true(np.allclose(0.75061671, sAl.data, atol=1e-3))
 
-        sAl = s[0].get_lines_intensity(["Al_Ka"],
-                                       plot_result=False,
-                                       lines_deconvolution='model')[0]
-        nose.tools.assert_true(np.allclose(19.22613, sAl.data[0, 0],
-                                           atol=1e-3))
-        # Why?
-        # assert_true(np.allclose(0.75061671, sAl.data[0, 0], atol=1e-3))
-        sAl = s[0, 0].get_lines_intensity(["Al_Ka"],
-                                          plot_result=False,
-                                          lines_deconvolution='model')[0]
-        nose.tools.assert_true(np.allclose(19.22613, sAl.data[0], atol=1e-3))
-        # assert_true(np.allclose(0.75061671, sAl.data[0], atol=1e-3))
-        sAl = s[0, 0, 0].get_lines_intensity(["Al_Ka"],
-                                             plot_result=False,
-                                             lines_deconvolution='model')[0]
-        nose.tools.assert_true(np.allclose(19.22613, sAl.data, atol=1e-3))
-        # assert_true(np.allclose(0.75061671, sAl.data, atol=1e-3))
-
-    def test_model_deconvolution_std(self):
+#    def test_model_deconvolution_std(self):
+#        s = self.signal
+#        std = s[0, 0, 0]
+#        std.metadata.General.title = 'Al_std'
+#        s.metadata.set_item('Sample.standard_spec', [std * 0.99])
+#        sAl = s[0].get_lines_intensity(["Al_Ka"],
+#                                       plot_result=False,
+#                                       lines_deconvolution='standard')[0]
+#        nose.tools.assert_true(np.allclose(25.252525252525249, sAl.data[0, 0],
+#                                           atol=1e-3))
+#        sAl = s[0, 0].get_lines_intensity(["Al_Ka"],
+#                                          plot_result=False,
+#                                          lines_deconvolution='standard')[0]
+#        nose.tools.assert_true(np.allclose(25.252525252525249, sAl.data[0],
+#                                           atol=1e-3))
+#        sAl = s[0, 0, 0].get_lines_intensity(["Al_Ka"],
+#                                             plot_result=False,
+#                                             lines_deconvolution='standard')[0]
+#        nose.tools.assert_true(np.allclose(25.252525252525249, sAl.data,
+#                                           atol=1e-3))
+                                           
+    def test_background_substraction(self):
         s = self.signal
-        std = s[0, 0, 0]
-        std.metadata.General.title = 'Al_std'
-        s.metadata.set_item('Sample.standard_spec', [std * 0.99])
-        sAl = s[0].get_lines_intensity(["Al_Ka"],
-                                       plot_result=False,
-                                       lines_deconvolution='standard')[0]
-        nose.tools.assert_true(np.allclose(25.252525252525249, sAl.data[0, 0],
-                                           atol=1e-3))
-        sAl = s[0, 0].get_lines_intensity(["Al_Ka"],
-                                          plot_result=False,
-                                          lines_deconvolution='standard')[0]
-        nose.tools.assert_true(np.allclose(25.252525252525249, sAl.data[0],
-                                           atol=1e-3))
-        sAl = s[0, 0, 0].get_lines_intensity(["Al_Ka"],
-                                             plot_result=False,
-                                             lines_deconvolution='standard')[0]
-        nose.tools.assert_true(np.allclose(25.252525252525249, sAl.data,
-                                           atol=1e-3))
+        intens = s.get_lines_intensity(["Al_Ka"], plot_result=False)[0].data
+        s = s + 1.
+        nose.tools.assert_true(np.allclose(s.estimate_background_windows(
+            xray_lines=["Al_Ka"])[0, 0], 1.25666201, atol=1e-3))
+        nose.tools.assert_true(np.allclose(s.get_lines_intensity(
+            ["Al_Ka"], background_windows=s.estimate_background_windows(
+                [4, 4], xray_lines=["Al_Ka"]), plot_result=False)[0].data,
+            intens, atol=1e-3))
+
+    def test_estimate_integration_windows(self):
+        s = self.signal
+        nose.tools.assert_true(np.allclose(
+            s.estimate_integration_windows(3.0, ["Al_Ka"]),
+            [[1.371, 1.601]], atol=1e-2))
+
+    def test_with_signals_examples(self):
+        from hyperspy.misc.example_signals_loading import \
+            load_1D_EDS_SEM_spectrum as EDS_SEM_Spectrum
+        s = EDS_SEM_Spectrum()
+        np.allclose(utils.stack(s.get_lines_intensity()).data,
+                    np.array([84163, 89063, 96117, 96700, 99075]))
 
 
 class Test_quantification:
@@ -280,6 +304,7 @@ class Test_quantification:
         s.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time = 3.1
         s.metadata.Acquisition_instrument.SEM.beam_energy = 15.0
         s.metadata.Acquisition_instrument.SEM.Detector.EDS.elevation_angle = 35.0
+        s.metadata.Acquisition_instrument.SEM.Detector.EDS.FWHM_MnKa = 130
         FWHM_MnKa = 130
         s.metadata.Acquisition_instrument.SEM.Detector.EDS.azimuth_angle = 0.0
         s.metadata.Acquisition_instrument.SEM.tilt_stage = 0.0
@@ -289,7 +314,7 @@ class Test_quantification:
         gauss.centre.value = line_energy
         gauss.A.value = 500
         #FWHM_MnKa = s.metadata.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa
-        gauss.sigma.value = utils_eds.get_FWHM_at_Energy(
+        gauss.fwhm = utils_eds.get_FWHM_at_Energy(
             FWHM_MnKa,
             line_energy)
 
@@ -298,7 +323,7 @@ class Test_quantification:
         gauss2.centre.value = line_energy
         gauss2.A.value = 300
         #FWHM_MnKa = s.metadata.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa
-        gauss2.sigma.value = utils_eds.get_FWHM_at_Energy(
+        gauss2.fwhm = utils_eds.get_FWHM_at_Energy(
             FWHM_MnKa,
             line_energy)
 
@@ -312,7 +337,7 @@ class Test_quantification:
                             plot_result=False,
                             integration_windows=5)[0]
         nose.tools.assert_true(
-            np.allclose(24.99516, sAl.data[0, 0, 0], atol=1e-3))
+            np.allclose(500*100, sAl.data[0, 0, 0], atol=1e-3))
 
 
         stdAl = s[0, 0, 0].deepcopy()
@@ -437,10 +462,11 @@ class Test_simulation:
         utils_eds.simulate_one_spectrum_TEM(nTraj=10,
                                             mp=s.metadata, gateway=gateway)
         s.get_kfactors_from_first_principles(gateway=gateway)
-        nose.tools.assert_equal(s.metadata.Sample.kfactors[0], 1.9798201626244532)
+        nose.tools.assert_equal(s.metadata.Sample.kfactors[0], 0.9608483657921267)
+                                # 1.9798201626244532)
         s.simulate_two_elements_standard(nTraj=10, gateway=gateway)
         s.get_kfactors_from_standard()
-        s.quant_cliff_lorimer()
+        #s.quantification()
         s.set_signal_type('EDS_SEM')
 
 
@@ -536,31 +562,6 @@ class Test_plot_Xray_lines:
     # def test_plot_Xray_lines2(self):
         #s = self.signal
         # s.plot_Xray_lines()
-
-    def test_background_substraction(self):
-        s = self.signal
-        intens = s.get_lines_intensity(["Al_Ka"], plot_result=False)[0].data
-        s = s + 1.
-        nose.tools.assert_true(np.allclose(s.estimate_background_windows(
-            xray_lines=["Al_Ka"])[0, 0], 1.25666201, atol=1e-3))
-        nose.tools.assert_true(np.allclose(s.get_lines_intensity(
-            ["Al_Ka"], background_windows=s.estimate_background_windows(
-                [4, 4], xray_lines=["Al_Ka"]), plot_result=False)[0].data,
-            intens, atol=1e-3))
-
-    def test_estimate_integration_windows(self):
-        s = self.signal
-        nose.tools.assert_true(np.allclose(
-            s.estimate_integration_windows(3.0, ["Al_Ka"]),
-            [[1.371, 1.601]], atol=1e-2))
-
-    def test_with_signals_examples(self):
-        from hyperspy.misc.example_signals_loading import \
-            load_1D_EDS_SEM_spectrum as EDS_SEM_Spectrum
-        s = EDS_SEM_Spectrum()
-        np.allclose(utils.stack(s.get_lines_intensity()).data,
-                    np.array([84163, 89063, 96117, 96700, 99075]))
-
 
 class Test_tools_bulk:
 

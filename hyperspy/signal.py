@@ -498,31 +498,31 @@ class Signal1DTools(object):
         pbar = progressbar(
             maxval=self.axes_manager.navigation_size,
             disabled=not show_progressbar)
-#        for i, dat in enumerate(self._iterate_signal()):
-#            dat_int = sp.interpolate.interp1d(
-#                range(i0, i1) + range(i2, i3),
-#                dat[i0:i1].tolist() + dat[i2:i3].tolist(),
-#                **kwargs)
-#            dat[i1:i2] = dat_int(range(i1, i2))
-#            pbar.update(i + 1)
-        from scipy.interpolate import UnivariateSpline
         for i, dat in enumerate(self._iterate_signal()):
-            if kind == 'poly':
-                dat_int = np.poly1d(np.polyfit(range(i0, i1) + range(i2, i3),
-                                    dat[i0:i1].tolist() + dat[i2:i3].tolist(),
-                                    deg, **kwargs))
-            elif kind == 'spline':
-                dat_int = UnivariateSpline(
-                    range(i0, i1) + range(i2, i3),
-                    dat[i0:i1].tolist() + dat[i2:i3].tolist(), **kwargs)
-            elif kind == 'spline+':
-                dat_int = UnivariateSpline(
-                    range(i0, i1) + [int(np.mean([i1, i2]))] + range(i2, i3),
-                    dat[i0:i1].tolist() + [np.mean([dat[i0:i1].tolist() +
-                                           dat[i2:i3].tolist()])]
-                    + dat[i2:i3].tolist(), **kwargs)
+            dat_int = sp.interpolate.interp1d(
+                range(i0, i1) + range(i2, i3),
+                dat[i0:i1].tolist() + dat[i2:i3].tolist(),
+                **kwargs)
             dat[i1:i2] = dat_int(range(i1, i2))
             pbar.update(i + 1)
+#        from scipy.interpolate import UnivariateSpline
+#        for i, dat in enumerate(self._iterate_signal()):
+#            if kind == 'poly':
+#                dat_int = np.poly1d(np.polyfit(range(i0, i1) + range(i2, i3),
+#                                    dat[i0:i1].tolist() + dat[i2:i3].tolist(),
+#                                    deg, **kwargs))
+#            elif kind == 'spline':
+#                dat_int = UnivariateSpline(
+#                    range(i0, i1) + range(i2, i3),
+#                    dat[i0:i1].tolist() + dat[i2:i3].tolist(), **kwargs)
+#            elif kind == 'spline+':
+#                dat_int = UnivariateSpline(
+#                    range(i0, i1) + [int(np.mean([i1, i2]))] + range(i2, i3),
+#                    dat[i0:i1].tolist() + [np.mean([dat[i0:i1].tolist() +
+#                                           dat[i2:i3].tolist()])]
+#                    + dat[i2:i3].tolist(), **kwargs)
+#            dat[i1:i2] = dat_int(range(i1, i2))
+#            pbar.update(i + 1)
 
     def _check_navigation_mask(self, mask):
         if mask is not None:

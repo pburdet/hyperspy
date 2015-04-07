@@ -1983,7 +1983,7 @@ class EDSSpectrum(Spectrum):
                 weight_fraction = [1. / len(elements) for elm in elements] 
                 print 'Weight fraction is automatically set to ' + str(weight_fraction)
         return utils.material.mass_absorption_coefficient_of_mixture_of_pure_elements(energies=xray_lines,
-                                                                   weight_fraction=weight_fraction, 
+                                                                   weight_percent=weight_fraction, 
                                                                    elements=elements)
 
     # official version detetector_efficiency_from_layers
