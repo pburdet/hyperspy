@@ -50,14 +50,21 @@ class Test_metadata:
 
     def test_sum_live_time(self):
         s = self.signal
+        old_metadata = s.metadata.deepcopy()
         sSum = s.sum(0)
         nose.tools.assert_equal(
             sSum.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time,
             3.1 *
             2)
+        # Check that metadata is unchanged
+        print old_metadata, s.metadata      # Capture for comparison on error
+        nose.tools.assert_dict_equal(old_metadata.as_dictionary(),
+                                     s.metadata.as_dictionary(),
+                                     "Source metadata changed")
 
     def test_rebin_live_time(self):
         s = self.signal
+        old_metadata = s.metadata.deepcopy()
         dim = s.axes_manager.shape
         s = s.rebin([dim[0] / 2, dim[1] / 2, dim[2]])
         nose.tools.assert_equal(
@@ -65,6 +72,11 @@ class Test_metadata:
             3.1 *
             2 *
             2)
+        # Check that metadata is unchanged
+        print old_metadata, self.signal.metadata    # Captured on error
+        nose.tools.assert_dict_equal(old_metadata.as_dictionary(),
+                                     self.signal.metadata.as_dictionary(),
+                                     "Source metadata changed")
 
     def test_add_elements(self):
         s = self.signal
@@ -192,21 +204,21 @@ class Test_get_lines_intentisity:
         s = self.signal
         sAl = s.get_lines_intensity(["Al_Ka"],
                                     plot_result=False,
-                                    integration_window_factor=5)[0]
+                                    integration_windows=5)[0]
         nose.tools.assert_true(
             np.allclose(24.99516, sAl.data[0, 0, 0], atol=1e-3))
         sAl = s[0].get_lines_intensity(["Al_Ka"],
                                        plot_result=False,
-                                       integration_window_factor=5)[0]
+                                       integration_windows=5)[0]
         nose.tools.assert_true(
             np.allclose(24.99516, sAl.data[0, 0], atol=1e-3))
         sAl = s[0, 0].get_lines_intensity(["Al_Ka"],
                                           plot_result=False,
-                                          integration_window_factor=5)[0]
+                                          integration_windows=5)[0]
         nose.tools.assert_true(np.allclose(24.99516, sAl.data[0], atol=1e-3))
         sAl = s[0, 0, 0].get_lines_intensity(["Al_Ka"],
                                              plot_result=False,
-                                             integration_window_factor=5)[0]
+                                             integration_windows=5)[0]
         nose.tools.assert_true(np.allclose(24.99516, sAl.data, atol=1e-3))
         s.axes_manager[-1].offset = 1.0
         sC = s.get_lines_intensity(["C_Ka"], plot_result=False)
@@ -295,6 +307,13 @@ class Test_quantification:
 
         s.set_elements(('Al', 'Zn'))
         s.add_lines()
+        
+        sAl = s.get_lines_intensity(["Al_Ka"],
+                            plot_result=False,
+                            integration_windows=5)[0]
+        nose.tools.assert_true(
+            np.allclose(24.99516, sAl.data[0, 0, 0], atol=1e-3))
+
 
         stdAl = s[0, 0, 0].deepcopy()
         gauss.A.value = 12000
@@ -509,7 +528,7 @@ class Test_plot_Xray_lines:
     def test_plot_Xray_lines(self):
         s = self.signal
 
-        s.plot_xray_lines()
+        s.plot(True)
         # s.plot_Xray_lines(only_lines=('a'))
         # s.plot_Xray_lines(only_lines=('a,Kb'))
 
@@ -526,8 +545,21 @@ class Test_plot_Xray_lines:
             xray_lines=["Al_Ka"])[0, 0], 1.25666201, atol=1e-3))
         nose.tools.assert_true(np.allclose(s.get_lines_intensity(
             ["Al_Ka"], background_windows=s.estimate_background_windows(
-                4, xray_lines=["Al_Ka"]), plot_result=False)[0].data,
+                [4, 4], xray_lines=["Al_Ka"]), plot_result=False)[0].data,
             intens, atol=1e-3))
+
+    def test_estimate_integration_windows(self):
+        s = self.signal
+        nose.tools.assert_true(np.allclose(
+            s.estimate_integration_windows(3.0, ["Al_Ka"]),
+            [[1.371, 1.601]], atol=1e-2))
+
+    def test_with_signals_examples(self):
+        from hyperspy.misc.example_signals_loading import \
+            load_1D_EDS_SEM_spectrum as EDS_SEM_Spectrum
+        s = EDS_SEM_Spectrum()
+        np.allclose(utils.stack(s.get_lines_intensity()).data,
+                    np.array([84163, 89063, 96117, 96700, 99075]))
 
 
 class Test_tools_bulk:

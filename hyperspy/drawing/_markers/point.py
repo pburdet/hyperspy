@@ -20,6 +20,7 @@ from hyperspy.drawing.marker import MarkerBase
 
 
 class Point(MarkerBase):
+
     """Point marker that can be added to the signal figure
 
     Parameters
@@ -27,7 +28,7 @@ class Point(MarkerBase):
     x: array or float
         The position of the point in x. If float, the marker is fixed.
         If array, the marker will be updated when navigating. The array should
-        have the same dimensions than the nagivation axes.
+        have the same dimensions in the nagivation axes.
     y: array or float
         The position of the point in y. see x arguments
     size: array or float
@@ -38,13 +39,22 @@ class Point(MarkerBase):
 
     Example
     -------
-    >>> im = signals.Image(random.random([10, 50, 50]))
+    >>> import numpy as np
+    >>> im = signals.Image(np.random.random([10, 50, 50]))
     >>> m = utils.plot.markers.point(x=range(10), y=range(10)[::-1],
                                      color='red')
-    >>> im.plot()
-    >>> im._plot.signal_plot.add_marker(m)
-    >>> m.plot()
+    >>> im.add_marker(m)
 
+    #Markers on local maxima
+    >>> from skimage.feature import peak_local_max
+    >>> import scipy.misc
+    >>> im = signals.Image(scipy.misc.face()).as_image([2,0])
+    >>> index = array([peak_local_max(i.data, min_distance=100, num_peaks=4)
+    >>>                for i in im])
+    >>> for i in range(4):
+    >>>     m = utils.plot.markers.point(x=index[:, i, 1],
+    >>>                                  y=index[:, i, 0], color='red')
+    >>>     im.add_marker(m)
     """
 
     def __init__(self, x, y, size=20, **kwargs):

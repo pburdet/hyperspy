@@ -54,11 +54,6 @@ from hyperspy.component import Component
 from hyperspy.signal import Signal
 
 
-weights_deprecation_warning = (
-    'The `weights` argument is deprecated and will be removed '
-    'in the next release. ')
-
-
 class Model(list):
 
     """One-dimensional model and data fitting.
@@ -1150,9 +1145,6 @@ class Model(list):
         multifit
 
         """
-        if "weights" in kwargs:
-            warnings.warn(weights_deprecation_warning, DeprecationWarning)
-            del kwargs["weights"]
 
         if fitter is None:
             fitter = preferences.Model.default_fitter
@@ -1391,9 +1383,17 @@ class Model(list):
         if show_progressbar is None:
             show_progressbar = preferences.General.show_progressbar
 
-        if "weights" in kwargs:
-            warnings.warn(weights_deprecation_warning, DeprecationWarning)
-            del kwargs["weights"]
+        if autosave is not False:
+            fd, autosave_fn = tempfile.mkstemp(
+                prefix='hyperspy_autosave-',
+                dir='.', suffix='.npz')
+            os.close(fd)
+            autosave_fn = autosave_fn[:-4]
+            messages.information(
+                "Autosaving each %s pixels to %s.npz" % (autosave_every,
+                                                         autosave_fn))
+            messages.information(
+                "When multifit finishes its job the file will be deleted")
         if mask is not None and \
                 (mask.shape != tuple(self.axes_manager._navigation_shape_in_array)):
             messages.warning_exit(
@@ -1511,11 +1511,26 @@ class Model(list):
             self.fold()
 
     def save_parameters2file(self, filename):
-        """Save the parameters array in binary format
+        """Save the parameters array in binary format.
+
+        The data is saved to a single file in numpy's uncompressed ``.npz``
+        format.
 
         Parameters
         ----------
         filename : str
+
+        See Also
+        --------
+        load_parameters_from_file, export_results
+
+        Notes
+        -----
+        This method can be used to save the current state of the model in a way
+        that can be loaded back to recreate the it using `load_parameters_from
+        file`. Actually, as of HyperSpy 0.8 this is the only way to do so.
+        However, this is known to be brittle. For example see
+        https://github.com/hyperspy/hyperspy/issues/341.
 
         """
         kwds = {}
@@ -1529,15 +1544,25 @@ class Model(list):
         np.savez(filename, **kwds)
 
     def load_parameters_from_file(self, filename):
-        """Loads the parameters array from  a binary file written with
-        the 'save_parameters2file' function
+        """Loads the parameters array from  a binary file written with the
+        'save_parameters2file' function.
 
         Parameters
         ---------
         filename : str
 
-        """
+        See Also
+        --------
+        save_parameters2file, export_results
 
+        Notes
+        -----
+        In combination with `save_parameters2file`, this method can be used to
+        recreate a model stored in a file. Actually, before HyperSpy 0.8 this
+        is the only way to do so.  However, this is known to be brittle. For
+        example see https://github.com/hyperspy/hyperspy/issues/341.
+
+        """
         f = np.load(filename)
         i = 0
         for component in self:  # Cut the parameters list
@@ -1644,26 +1669,6 @@ class Model(list):
         for component in self:
             self._disable_plot_component(component)
         self._plot_components = False
-
-    def set_current_values_to(self, components_list=None, mask=None):
-        """Set parameter values for all positions to the current ones.
-
-        Parameters
-        ----------
-        component_list : list of components, optional
-            If a list of components is given, the operation will be performed
-            only in the value of the parameters of the given components.
-            The components can be specified by name, index or themselves.
-        mask : boolean numpy array or None, optional
-            The operation won't be performed where mask is True.
-
-        """
-
-        warnings.warn(
-            "This method has been renamed to `assign_current_values_to_all` "
-            "and it will be removed in the next release", DeprecationWarning)
-        return self.assign_current_values_to_all(
-            components_list=components_list, mask=mask)
 
     def assign_current_values_to_all(self, components_list=None, mask=None):
         """Set parameter values for all positions to the current ones.

@@ -22,6 +22,7 @@ from hyperspy.drawing.marker import MarkerBase
 
 
 class Rectangle(MarkerBase):
+
     """Rectangle marker that can be added to the signal figure
 
     Parameters
@@ -30,7 +31,7 @@ class Rectangle(MarkerBase):
         The position of the up left corner of the rectangle in x.
         If float, the marker is fixed.
         If array, the marker will be updated when navigating. The array should
-        have the same dimensions than the nagivation axes.
+        have the same dimensions in the nagivation axes.
     y1: array or float
         The position of the up left corner of the rectangle in y.
         see x1 arguments
@@ -38,7 +39,7 @@ class Rectangle(MarkerBase):
         The position of the down right corner of the rectangle in x.
         see x1 arguments
     y2: array or float
-        The position of the up down right of the rectangle in y.
+        The position of the down right of the rectangle in y.
         see x1 arguments
     kwargs:
         Kewywords argument of axvline valid properties (i.e. recognized by
@@ -46,13 +47,11 @@ class Rectangle(MarkerBase):
 
     Example
     -------
-    >>> im = signals.Image(np.zeros((100, 100)))
-    >>> m = utils.plot.markers.rectangle(
-    >>>     x1=20, x2=70, y1=20, y2=70,
-    >>>     linewidth=4, color='red', linestyle='dotted')
-    >>> im.plot()
-    >>> im._plot.signal_plot.add_marker(m)
-    >>> m.plot()
+    >>> import scipy.misc
+    >>> im = signals.Image(scipy.misc.lena())
+    >>> m = utils.plot.markers.rectangle(x1=150, y1=100, x2=400, y2=400,
+    >>>                                  color='red')
+    >>> im.add_marker(m)
 
     """
 

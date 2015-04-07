@@ -20,6 +20,7 @@ from hyperspy.drawing.marker import MarkerBase
 
 
 class Text(MarkerBase):
+
     """Text marker that can be added to the signal figure
 
     Parameters
@@ -27,7 +28,7 @@ class Text(MarkerBase):
     x: array or float
         The position of the text in x. If float, the marker is fixed.
         If array, the marker will be updated when navigating. The array should
-        have the same dimensions than the nagivation axes.
+        have the same dimensions in the nagivation axes.
     y: array or float
         The position of the text in y. see x arguments
     text: array or str
@@ -38,13 +39,15 @@ class Text(MarkerBase):
 
     Example
     -------
-    >>> im = signals.Image(random.random([10, 50, 50]))
-    >>> m = utils.plot.markers.text(x=range(10), y=range(10)[::-1],
-                                    text=[i for i in 'absdefghij'],
-                                    color='red')
-    >>> im.plot()
-    >>> im._plot.signal_plot.add_marker(m)
-    >>> m.plot()
+    >>> s = signals.Spectrum(np.arange(100).reshape([10,10]))
+    >>> s.plot(navigator='spectrum')
+    >>> for i in range(10):
+    >>>     m = utils.plot.markers.text(y=range(50,1000,100)[i],
+    >>>                                 x=i, text='abcdefghij'[i])
+    >>>     s.add_marker(m, plot_on_signal=False)
+    >>> m = utils.plot.markers.text(x=5, y=range(7,110, 10),
+    >>>                             text=[i for i in 'abcdefghij'])
+    >>> s.add_marker(m)
 
     """
 

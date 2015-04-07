@@ -17,12 +17,12 @@
 # along with  Hyperspy.  If not, see <http://www.gnu.org/licenses/>.
 
 import matplotlib.pyplot as plt
-import warnings
 
 from hyperspy.drawing.marker import MarkerBase
 
 
 class HorizontalLineSegment(MarkerBase):
+
     """Horizontal line segment marker that can be added to the signal figure
 
     Parameters
@@ -31,7 +31,7 @@ class HorizontalLineSegment(MarkerBase):
         The position of the start of the line segment in x.
         If float, the marker is fixed.
         If array, the marker will be updated when navigating. The array should
-        have the same dimensions than the nagivation axes.
+        have the same dimensions in the nagivation axes.
     x2: array or float
         The position of the end of the line segment in x.
         see x1 arguments
@@ -44,12 +44,11 @@ class HorizontalLineSegment(MarkerBase):
 
     Example
     -------
+    >>> import numpy as np
     >>> im = signals.Image(np.zeros((100, 100)))
     >>> m = utils.plot.markers.horizontal_line_segment(
     >>>     x1=20, x2=70, y=70, linewidth=4, color='red', linestyle='dotted')
-    >>> im.plot()
-    >>> im._plot.signal_plot.add_marker(m)
-    >>> m.plot()
+    >>> im.add_marker(m)
 
     """
 
@@ -65,18 +64,7 @@ class HorizontalLineSegment(MarkerBase):
     def update(self):
         if self.auto_update is False:
             return
-        segments = self.marker.get_segments()
-        segments[0][0, 1] = self.get_data_position('y1')
-        segments[0][1, 1] = segments[0][0, 1]
-        if self.get_data_position('x1') is None:
-            segments[0][0, 0] = plt.getp(self.marker.axes, 'xlim')[0]
-        else:
-            segments[0][0, 0] = self.get_data_position('x1')
-        if self.get_data_position('x2') is None:
-            segments[0][1, 0] = plt.getp(self.marker.axes, 'xlim')[1]
-        else:
-            segments[0][1, 0] = self.get_data_position('x2')
-        self.marker.set_segments(segments)
+        self._update_segment()
 
     def plot(self):
         if self.ax is None:
@@ -85,6 +73,14 @@ class HorizontalLineSegment(MarkerBase):
                 "figure using `s._plot.signal_plot.add_marker(m)` or " +
                 "`s._plot.navigator_plot.add_marker(m)`")
         self.marker = self.ax.vlines(0, 0, 1, **self.marker_properties)
+        self._update_segment()
+        self.marker.set_animated(True)
+        try:
+            self.ax.hspy_fig._draw_animated()
+        except:
+            pass
+
+    def _update_segment(self):
         segments = self.marker.get_segments()
         segments[0][0, 1] = self.get_data_position('y1')
         segments[0][1, 1] = segments[0][0, 1]
@@ -97,8 +93,3 @@ class HorizontalLineSegment(MarkerBase):
         else:
             segments[0][1, 0] = self.get_data_position('x2')
         self.marker.set_segments(segments)
-        self.marker.set_animated(True)
-        try:
-            self.ax.hspy_fig._draw_animated()
-        except:
-            pass

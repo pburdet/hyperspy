@@ -21,13 +21,16 @@ import itertools
 import textwrap
 from traits import trait_base
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+import warnings
 
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
 from hyperspy.misc.utils import unfold_if_multidim
+from hyperspy.misc.image_tools import contrast_stretching
 from hyperspy.defaults_parser import preferences
+import hyperspy.messages as messages
 
 
 def create_figure(window_title=None,
@@ -355,14 +358,15 @@ def plot_images(images,
                 suptitle=None,
                 suptitle_fontsize=18,
                 colorbar='multi',
+                saturated_pixels=0.2,
                 scalebar=None,
                 scalebar_color='white',
-                interp='nearest',
                 axes_decor='all',
                 padding=None,
                 tight_layout=False,
                 aspect='auto',
                 min_asp=0.1,
+                namefrac_thresh=0.4,
                 fig=None,
                 *args,
                 **kwargs):
@@ -378,7 +382,7 @@ def plot_images(images,
         cmap : matplotlib colormap, optional
             The colormap used for the images, by default read from pyplot
         no_nans : bool, optional
-            If True, removes NaN's from the plots.
+            If True, set nans to zero for plotting.
         per_row : int, optional
             The number of plots in each row
         label : None, str, or list of str, optional
@@ -412,12 +416,10 @@ def plot_images(images,
             (non-RGB) image
             If 'single', all (non-RGB) images are plotted on the same scale,
             and one colorbar is shown for all
-        interp : None or str, optional
-            Type of interpolation to use with matplotlib.imshow()
-            Possible values are:
-            None, 'none', 'nearest', 'bilinear', 'bicubic', 'spline16',
-            'spline36', 'hanning', 'hamming', 'hermite', 'kaiser', 'quadric',
-            'catrom', 'gaussian', 'bessel', 'mitchell', 'sinc', 'lanczos'
+        saturated_pixels: scalar
+            The percentage of pixels that are left out of the bounds.  For example,
+            the low and high bounds of a value of 1 are the 0.5% and 99.5%
+            percentiles. It must be in the [0, 100] range.
         scalebar : {None, 'all', list of ints}, optional
             If None (or False), no scalebars will be added to the images.
             If 'all', scalebars will be added to all images.
@@ -451,6 +453,13 @@ def plot_images(images,
             If float (or int/long), given value will be used.
         min_asp : float, optional
             Minimum aspect ratio to be used when plotting images
+        namefrac_thresh : float, optional
+            Threshold to use for auto-labeling. This parameter controls how
+            much of the titles must be the same for the auto-shortening of
+            labels to activate. Can vary from 0 to 1. Smaller values
+            encourage shortening of titles by auto-labeling, while larger
+            values will require more overlap in titles before activing the
+            auto-label code.
         fig : mpl figure, optional
             If set, the images will be plotted to an existing MPL figure
         *args, **kwargs, optional
@@ -469,6 +478,10 @@ def plot_images(images,
 
         Notes
         -----
+        `interpolation` is a useful parameter to provide as a keyword
+        argument to control how the space between pixels is interpolated. A
+        value of ``'nearest'`` will cause no interpolation between pixels.
+
         `tight_layout` is known to be quite brittle, so an option is provided
         to disable it. Turn this option off if output is not as expected,
         or try adjusting `label`, `labelwrap`, or `per_row`
@@ -567,7 +580,7 @@ def plot_images(images,
             # title set originally, so nothing to share
             namefrac = 0
 
-        if namefrac > 0.5:
+        if namefrac > namefrac_thresh:
             # there was a significant overlap of label beginnings
             shared_titles = True
             # only use new suptitle if one isn't specified already
@@ -639,6 +652,7 @@ def plot_images(images,
     if colorbar is 'single':
         global_max = max([i.data.max() for i in non_rgb])
         global_min = min([i.data.min() for i in non_rgb])
+        g_vmin, g_vmax = contrast_stretching(i.data, saturated_pixels)
 
     # Check if we need to add a scalebar for some of the images
     if isinstance(scalebar, list) and all(isinstance(x, int)
@@ -664,8 +678,11 @@ def plot_images(images,
             # Enable RGB plotting
             if rgb_tools.is_rgbx(data):
                 data = rgb_tools.rgbx2regular_array(data, plot_friendly=True)
+                l_vmin, l_vmax = None, None
             else:
                 data = im.data
+                # Find min and max for contrast
+                l_vmin, l_vmax = contrast_stretching(data, saturated_pixels)
 
             # Remove NaNs (if requested)
             if no_nans:
@@ -706,6 +723,8 @@ def plot_images(images,
                 asp = 1
             elif isinstance(aspect, (int, long, float)):
                 asp = aspect
+            if ('interpolation' in kwargs.keys()) is False:
+                kwargs['interpolation'] = 'nearest'
 
             # Plot image data, using vmin and vmax to set bounds,
             # or allowing them to be set automatically if using individual
@@ -713,29 +732,34 @@ def plot_images(images,
             if colorbar is 'single' and not isrgb[i]:
                 axes_im = ax.imshow(data,
                                     cmap=cmap, extent=extent,
-                                    interpolation=interp,
-                                    vmin=global_min, vmax=global_max,
+                                    vmin=g_vmin, vmax=g_vmax,
                                     aspect=asp,
                                     *args, **kwargs)
                 ax_im_list[i] = axes_im
             else:
                 axes_im = ax.imshow(data,
                                     cmap=cmap, extent=extent,
+                                    vmin=l_vmin, vmax=l_vmax,
                                     aspect=asp,
-                                    interpolation=interp,
                                     *args, **kwargs)
                 ax_im_list[i] = axes_im
-            # Label the axes
-            if isinstance(axes[0].units, trait_base._Undefined):
-                axes[0].units = 'pixels'
-            if isinstance(axes[1].units, trait_base._Undefined):
-                axes[1].units = 'pixels'
-            if isinstance(axes[0].name, trait_base._Undefined):
-                axes[0].name = 'x'
-            if isinstance(axes[1].name, trait_base._Undefined):
-                axes[1].name = 'y'
-            ax.set_xlabel(axes[0].name + " axis (" + axes[0].units + ")")
-            ax.set_ylabel(axes[1].name + " axis (" + axes[1].units + ")")
+            # If an axis trait is undefined, shut off :
+            if isinstance(xaxis.units, trait_base._Undefined) or  \
+                    isinstance(yaxis.units, trait_base._Undefined) or \
+                    isinstance(xaxis.name, trait_base._Undefined) or \
+                    isinstance(yaxis.name, trait_base._Undefined):
+                if axes_decor is 'all':
+                    warnings.warn(
+                        'Axes labels were requested, but one '
+                        'or both of the '
+                        'axes units and/or name are undefined. '
+                        'Axes decorations have been set to '
+                        '\'ticks\' instead.')
+                    axes_decor = 'ticks'
+            # If all traits are defined, set labels as appropriate:
+            else:
+                ax.set_xlabel(axes[0].name + " axis (" + axes[0].units + ")")
+                ax.set_ylabel(axes[1].name + " axis (" + axes[1].units + ")")
 
             if label:
                 if all_match:

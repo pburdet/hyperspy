@@ -17,7 +17,7 @@
 
 
 import numpy as np
-from nose.tools import assert_true, assert_equal
+from nose.tools import assert_true, assert_equal, assert_dict_equal
 
 from hyperspy.signals import EDSTEMSpectrum, Simulation
 from hyperspy.defaults_parser import preferences
@@ -37,14 +37,21 @@ class Test_metadata:
 
     def test_sum_live_time(self):
         s = self.signal
+        old_metadata = s.metadata.deepcopy()
         sSum = s.sum(0)
         assert_equal(
             sSum.metadata.Acquisition_instrument.TEM.Detector.EDS.live_time,
             3.1 *
             2)
+        # Check that metadata is unchanged
+        print old_metadata, s.metadata      # Capture for comparison on error
+        assert_dict_equal(old_metadata.as_dictionary(),
+                          s.metadata.as_dictionary(),
+                          "Source metadata changed")
 
     def test_rebin_live_time(self):
         s = self.signal
+        old_metadata = s.metadata.deepcopy()
         dim = s.axes_manager.shape
         s = s.rebin([dim[0] / 2, dim[1] / 2, dim[2]])
         assert_equal(
@@ -52,6 +59,11 @@ class Test_metadata:
             3.1 *
             2 *
             2)
+        # Check that metadata is unchanged
+        print old_metadata, self.signal.metadata    # Captured on error
+        assert_dict_equal(old_metadata.as_dictionary(),
+                          self.signal.metadata.as_dictionary(),
+                          "Source metadata changed")
 
     def test_add_elements(self):
         s = self.signal
@@ -67,14 +79,16 @@ class Test_metadata:
     def test_default_param(self):
         s = self.signal
         mp = s.metadata
-        assert_equal(mp.Acquisition_instrument.TEM.Detector.EDS.energy_resolution_MnKa,
-                     preferences.EDS.eds_mn_ka)
+        assert_equal(
+            mp.Acquisition_instrument.TEM.Detector.EDS.energy_resolution_MnKa,
+            preferences.EDS.eds_mn_ka)
 
     def test_SEM_to_TEM(self):
         s = self.signal[0, 0]
         signal_type = 'EDS_SEM'
         mp = s.metadata
-        mp.Acquisition_instrument.TEM.Detector.EDS.energy_resolution_MnKa = 125.3
+        mp.Acquisition_instrument.TEM.Detector.EDS.energy_resolution_MnKa =\
+            125.3
         sSEM = s.deepcopy()
         sSEM.set_signal_type(signal_type)
         mpSEM = sSEM.metadata
@@ -82,7 +96,8 @@ class Test_metadata:
             mp.Acquisition_instrument.TEM.Detector.EDS.energy_resolution_MnKa]
         results.append(signal_type)
         resultsSEM = [
-            mpSEM.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa]
+            mpSEM.Acquisition_instrument.SEM.Detector.EDS.
+            energy_resolution_MnKa]
         resultsSEM.append(mpSEM.Signal.signal_type)
         assert_equal(results, resultsSEM)
 
@@ -128,7 +143,7 @@ class Test_quantification:
         s = self.signal
         kfactors = [1, 2.0009344042484134]
         intensities = s.get_lines_intensity()
-        res = s.quantification_cliff_lorimer(intensities, kfactors)
+        res = s.quantification(intensities, kfactors)
         assert_true(np.allclose(res[0].data, np.array(
                     [22.70779, 22.70779]), atol=1e-3))
 
@@ -141,17 +156,17 @@ class Test_quantification:
         assert_true(np.allclose(
             utils_eds.quantification_cliff_lorimer(
                 intens, [1, 1, 3]).T,
-                np.array([[0.2,  0.2,  0.6],
-                          [0.,  0.25,  0.75],
-                          [0.25,  0.,  0.75],
-                          [0.5,  0.5,  0.],
-                          [1.,  0.,  0.]])))
+            np.array([[0.2, 0.2, 0.6],
+                      [0., 0.25, 0.75],
+                      [0.25, 0., 0.75],
+                      [0.5, 0.5, 0.],
+                      [1., 0., 0.]])))
 
 
 class Test_vacum_mask:
 
     def setUp(self):
-        s = Simulation(np.array([np.linspace(0.001, 0.5, 20)]*100).T)
+        s = Simulation(np.array([np.linspace(0.001, 0.5, 20)] * 100).T)
         s.add_poissonian_noise()
         s = EDSTEMSpectrum(s.data)
         self.signal = s
@@ -160,6 +175,7 @@ class Test_vacum_mask:
         s = self.signal
         assert_equal(s.vacuum_mask().data[0], True)
         assert_equal(s.vacuum_mask().data[-1], False)
+
 
 
 class Test_simple_model:
@@ -190,3 +206,13 @@ class Test_simple_model:
 #        s.set_elements(['Al','Ni'],['Ka','La'])
 #        sAl = s.get_lines_intensity(plot_result=True)[0]
 #        assert_true(np.allclose(s[...,0].data*15.0, sAl.data))
+
+class Test_get_lines_intentisity:
+
+    def test_with_signals_examples(self):
+        from hyperspy.misc.example_signals_loading import \
+            load_1D_EDS_TEM_spectrum as EDS_TEM_Spectrum
+        s = EDS_TEM_Spectrum()
+        np.allclose(np.array([res.data for res in s.get_lines_intensity()]),
+                    np.array([3710, 15872]))
+
