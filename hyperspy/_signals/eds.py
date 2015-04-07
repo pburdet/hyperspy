@@ -1730,80 +1730,81 @@ class EDSSpectrum(Spectrum):
 
         return spec_th
 
-    def save(self, filename=None, overwrite=None, extension=None,
-             **kwds):
-        """Saves the signal in the specified format.
-
-        The function gets the format from the extension.:
-            - hdf5 for HDF5
-            - rpl for Ripple (useful to export to Digital Micrograph)
-            - msa for EMSA/MSA single spectrum saving.
-            - Many image formats such as png, tiff, jpeg...
-
-        If no extension is provided the default file format as defined
-        in the `preferences` is used.
-        Please note that not all the formats supports saving datasets of
-        arbitrary dimensions, e.g. msa only suports 1D data.
-
-        Each format accepts a different set of parameters. For details
-        see the specific format documentation.
-
-        Parameters
-        ----------
-        filename : str or None
-            If None (default) and tmp_parameters.filename and
-            `tmp_paramters.folder` are defined, the
-            filename and path will be taken from there. A valid
-            extension can be provided e.g. "my_file.rpl", see `extension`.
-        overwrite : None, bool
-            If None, if the file exists it will query the user. If
-            True(False) it (does not) overwrites the file if it exists.
-        extension : {None, 'hdf5', 'rpl', 'msa',common image extensions e.g. 'tiff', 'png'}
-            The extension of the file that defines the file format.
-            If None, the extesion is taken from the first not None in the follwoing list:
-            i) the filename
-            ii)  `tmp_parameters.extension`
-            iii) `preferences.General.default_file_format` in this order.
-        """
-        mp = self.metadata
-
-        if hasattr(mp, 'Sample'):
-            if hasattr(mp.Sample, 'standard_spec'):
-                l_time = []
-                for el in range(len(mp.Sample.elements)):
-                # for el in range(len(mp.Sample.xray_lines)):
-                    std = mp.Sample.standard_spec[el]
-                    if "Acquisition_instrument.SEM" in std.metadata:
-                        microscope = std.metadata.Acquisition_instrument.SEM
-                    elif "Acquisition_instrument.TEM" in std.metadata:
-                        microscope = std.metadata.Acquisition_instrument.TEM
-                    l_time.append(microscope.Detector.EDS.live_time)
-                std_store = copy.deepcopy(mp.Sample.standard_spec)
-                std = utils.stack(std_store)
-                std.metadata.General.title = std_store[
-                    0].metadata.General.title
-                if "Acquisition_instrument.SEM" in std.metadata:
-                    std.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time = l_time
-                elif "Acquisition_instrument.TEM" in std.metadata:
-                    std.metadata.Acquisition_instrument.TEM.Detector.EDS.live_time = l_time
-                mp.Sample.standard_spec = std
-            result_store = []
-            for result in ['kratios', 'quant', 'quant_enh', 'intensities']:
-                if hasattr(mp.Sample, result):
-                    result_store.append(copy.deepcopy(mp.Sample[result]))
-                    mp.Sample[result] = utils.stack(mp.Sample[result])
-                    del mp.Sample[result].original_parameters.stack_elements
-
-        super(EDSSpectrum, self).save(filename, overwrite, extension)
-
-        if hasattr(mp, 'Sample'):
-            if hasattr(mp.Sample, 'standard_spec'):
-                mp.Sample.standard_spec = std_store
-            i = 0
-            for result in ['kratios', 'quant', 'quant_enh', 'intensities']:
-                if hasattr(mp.Sample, result):
-                    mp.Sample[result] = result_store[i]
-                    i = i + 1
+#Should be able to save lsit with hyperpsy 0.8.0
+#    def save(self, filename=None, overwrite=None, extension=None,
+#             **kwds):
+#        """Saves the signal in the specified format.
+#
+#        The function gets the format from the extension.:
+#            - hdf5 for HDF5
+#            - rpl for Ripple (useful to export to Digital Micrograph)
+#            - msa for EMSA/MSA single spectrum saving.
+#            - Many image formats such as png, tiff, jpeg...
+#
+#        If no extension is provided the default file format as defined
+#        in the `preferences` is used.
+#        Please note that not all the formats supports saving datasets of
+#        arbitrary dimensions, e.g. msa only suports 1D data.
+#
+#        Each format accepts a different set of parameters. For details
+#        see the specific format documentation.
+#
+#        Parameters
+#        ----------
+#        filename : str or None
+#            If None (default) and tmp_parameters.filename and
+#            `tmp_paramters.folder` are defined, the
+#            filename and path will be taken from there. A valid
+#            extension can be provided e.g. "my_file.rpl", see `extension`.
+#        overwrite : None, bool
+#            If None, if the file exists it will query the user. If
+#            True(False) it (does not) overwrites the file if it exists.
+#        extension : {None, 'hdf5', 'rpl', 'msa',common image extensions e.g. 'tiff', 'png'}
+#            The extension of the file that defines the file format.
+#            If None, the extesion is taken from the first not None in the follwoing list:
+#            i) the filename
+#            ii)  `tmp_parameters.extension`
+#            iii) `preferences.General.default_file_format` in this order.
+#        """
+#        mp = self.metadata
+#
+#        if hasattr(mp, 'Sample'):
+#            if hasattr(mp.Sample, 'standard_spec'):
+#                l_time = []
+#                for el in range(len(mp.Sample.elements)):
+#                # for el in range(len(mp.Sample.xray_lines)):
+#                    std = mp.Sample.standard_spec[el]
+#                    if "Acquisition_instrument.SEM" in std.metadata:
+#                        microscope = std.metadata.Acquisition_instrument.SEM
+#                    elif "Acquisition_instrument.TEM" in std.metadata:
+#                        microscope = std.metadata.Acquisition_instrument.TEM
+#                    l_time.append(microscope.Detector.EDS.live_time)
+#                std_store = copy.deepcopy(mp.Sample.standard_spec)
+#                std = utils.stack(std_store)
+#                std.metadata.General.title = std_store[
+#                    0].metadata.General.title
+#                if "Acquisition_instrument.SEM" in std.metadata:
+#                    std.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time = l_time
+#                elif "Acquisition_instrument.TEM" in std.metadata:
+#                    std.metadata.Acquisition_instrument.TEM.Detector.EDS.live_time = l_time
+#                mp.Sample.standard_spec = std
+#            result_store = []
+#            for result in ['kratios', 'quant', 'quant_enh', 'intensities']:
+#                if hasattr(mp.Sample, result):
+#                    result_store.append(copy.deepcopy(mp.Sample[result]))
+#                    mp.Sample[result] = utils.stack(mp.Sample[result])
+#                    del mp.Sample[result].original_parameters.stack_elements
+#
+#        super(EDSSpectrum, self).save(filename, overwrite, extension)
+#
+#        if hasattr(mp, 'Sample'):
+#            if hasattr(mp.Sample, 'standard_spec'):
+#                mp.Sample.standard_spec = std_store
+#            i = 0
+#            for result in ['kratios', 'quant', 'quant_enh', 'intensities']:
+#                if hasattr(mp.Sample, result):
+#                    mp.Sample[result] = result_store[i]
+#                    i = i + 1
 
     def compute_continuous_xray_generation(self, generation_factor=1):
         """Continous X-ray generation.
