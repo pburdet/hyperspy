@@ -21,7 +21,6 @@ from nose.tools import assert_true, assert_equal, assert_dict_equal
 
 from hyperspy.signals import EDSTEMSpectrum, Simulation
 from hyperspy.defaults_parser import preferences
-# from hyperspy.misc.eds import database
 from hyperspy.components import Gaussian
 from hyperspy.misc.eds import utils as utils_eds
 
@@ -177,7 +176,6 @@ class Test_vacum_mask:
         assert_equal(s.vacuum_mask().data[-1], False)
 
 
-
 class Test_simple_model:
 
     def setUp(self):
@@ -191,22 +189,6 @@ class Test_simple_model:
                 integration_window_factor=5.0)], [0.5, 0.5], atol=1e-1))
 
 
-# class Test_get_lines_intentisity:
-#    def setUp(self):
-# Create an empty spectrum
-#        s = EDSTEMSpectrum(np.ones((4,2,1024)))
-#        energy_axis = s.axes_manager.signal_axes[0]
-#        energy_axis.scale = 0.01
-#        energy_axis.offset = -0.10
-#        energy_axis.units = 'keV'
-#        self.signal = s
-#
-#    def test(self):
-#        s = self.signal
-#        s.set_elements(['Al','Ni'],['Ka','La'])
-#        sAl = s.get_lines_intensity(plot_result=True)[0]
-#        assert_true(np.allclose(s[...,0].data*15.0, sAl.data))
-
 class Test_get_lines_intentisity:
 
     def test_with_signals_examples(self):
@@ -215,4 +197,3 @@ class Test_get_lines_intentisity:
         s = EDS_TEM_Spectrum()
         np.allclose(np.array([res.data for res in s.get_lines_intensity()]),
                     np.array([3710, 15872]))
-

@@ -16,22 +16,16 @@
 # You should have received a copy of the GNU General Public License
 # along with  HyperSpy.  If not, see <http://www.gnu.org/licenses/>.
 
+
 # To do: weight_fraction different for different pixe. (so basckground)
 # Calibrate on standard and transfer dictionnary
 # k-ratios
 
-import copy
 import numpy as np
-#import traits.api as t
-import math
 
-#from hyperspy.model import Model
 from hyperspy.models.edsmodel import EDSModel
-#from hyperspy._signals.eds import EDSSpectrum
-#from hyperspy.misc.elements import elements as elements_db
-#from hyperspy.misc.eds import utils as utils_eds
 import hyperspy.components as create_component
-#from hyperspy import utils
+
 
 class EDSSEMModel(EDSModel):
 
@@ -39,11 +33,15 @@ class EDSSEMModel(EDSModel):
 
     Parameters
     ----------
-    spectrum : an Spectrum (or any Spectrum subclass) instance
+    spectrum : an EDSSEMSpectrum instance
+    auto_add_lines : boolean
+        If True, automatically add Gaussians for all X-rays generated
+        in the energy range by an element, using the edsmodel.add_family_lines
+        method
     auto_background : boolean
-        If True, and if spectrum is an EELS instance adds automatically
-        a powerlaw to the model and estimate the parameters by the
-        two-area method.
+        If True, adds automatically a polynomial order 6 to the model,
+        using the edsmodel.add_polynomial_background method.
+
 
     """
 
@@ -51,11 +49,10 @@ class EDSSEMModel(EDSModel):
                  auto_add_lines=True,
                  *args, **kwargs):
         EDSModel.__init__(self, spectrum, auto_add_lines, *args, **kwargs)
-
-        self.background_components = list()        
-
+        self.background_components = list()
         if auto_background is True:
-            self.add_background()
+            self.add_polynomial_background()
+            #self.add_background()
 
     def add_background(self,
                        generation_factors=[1, 2],
@@ -116,8 +113,8 @@ class EDSSEMModel(EDSModel):
             component = create_component.ScalableFixedPattern(bck)
             component.set_parameters_not_free(['xscale', 'shift'])
             component.name = bck.metadata.General.title
-            #component.yscale.ext_bounded = True
-            #component.yscale.bmin = 0
+            # component.yscale.ext_bounded = True
+            # component.yscale.bmin = 0
             component.yscale.ext_force_positive = True
             component.isbackground = True
             self.append(component)
@@ -129,7 +126,3 @@ class EDSSEMModel(EDSModel):
                 self[bck.metadata.General.title].yscale.map['is_set'] = (
                     np.ones(sumspec.shape) == 1)
         self.fetch_stored_values()
-
-   
-
-    
