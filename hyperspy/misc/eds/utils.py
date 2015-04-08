@@ -284,7 +284,6 @@ def get_index_from_names(self, axis_names, index_name, axis_name_in_mp=True):
         The name of the index to find
     axis_name_in_mp: bool
         if axis_name is in metadata.Sample.
-
     """
     if axis_name_in_mp:
         axis_names = self.metadata.Sample[axis_names]
