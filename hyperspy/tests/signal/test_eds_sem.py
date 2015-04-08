@@ -296,62 +296,29 @@ class Test_get_lines_intentisity:
 class Test_quantification:
 
     def setUp(self):
-        s = EDSSEMSpectrum(np.ones((2, 2, 3, 1024)))
-        energy_axis = s.axes_manager.signal_axes[0]
-        energy_axis.scale = 1e-2
-        energy_axis.units = 'keV'
-        energy_axis.name = "Energy"
-        s.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time = 3.1
-        s.metadata.Acquisition_instrument.SEM.beam_energy = 15.0
-        s.metadata.Acquisition_instrument.SEM.Detector.EDS.elevation_angle = 35.0
-        s.metadata.Acquisition_instrument.SEM.Detector.EDS.FWHM_MnKa = 130
-        FWHM_MnKa = 130
-        s.metadata.Acquisition_instrument.SEM.Detector.EDS.azimuth_angle = 0.0
-        s.metadata.Acquisition_instrument.SEM.tilt_stage = 0.0
-
-        gauss = Gaussian()
-        line_energy = elements_EDS.Al.Atomic_properties.Xray_lines.Ka.energy_keV
-        gauss.centre.value = line_energy
-        gauss.A.value = 500
-        #FWHM_MnKa = s.metadata.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa
-        gauss.fwhm = utils_eds.get_FWHM_at_Energy(
-            FWHM_MnKa,
-            line_energy)
-
-        gauss2 = Gaussian()
-        line_energy = elements_EDS.Zn.Atomic_properties.Xray_lines.La.energy_keV
-        gauss2.centre.value = line_energy
-        gauss2.A.value = 300
-        #FWHM_MnKa = s.metadata.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa
-        gauss2.fwhm = utils_eds.get_FWHM_at_Energy(
-            FWHM_MnKa,
-            line_energy)
-
-        s.data[:] = (gauss.function(energy_axis.axis) +
-                     gauss2.function(energy_axis.axis))
-
-        s.set_elements(('Al', 'Zn'))
+        s = utils.eds.xray_lines_model(
+            elements=['Al', 'Zn'], beam_energy=15, counts_rate=1000,
+            weight_percents=[70, 30],
+            energy_resolution_MnKa=130, live_time=3.1,
+            energy_axis={'units': 'keV', 'size': 1024,
+                         'scale': 1e-2, 'name': 'Energy', 'offset': -0.1})
+        s.set_signal_type('EDS_SEM')
+        s = utils.stack([utils.stack([utils.stack([s]*3)]*2)]*2)
         s.add_lines()
-        
-        sAl = s.get_lines_intensity(["Al_Ka"],
-                            plot_result=False,
-                            integration_windows=5)[0]
-        nose.tools.assert_true(
-            np.allclose(500*100, sAl.data[0, 0, 0], atol=1e-3))
-
-
-        stdAl = s[0, 0, 0].deepcopy()
-        gauss.A.value = 12000
-        stdAl.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time = 31
-        stdAl.data[:] = gauss.function(energy_axis.axis)
+        stdAl = utils.eds.xray_lines_model(
+            elements=['Al'], beam_energy=15, counts_rate=1000, live_time=31.,
+            weight_percents=[100], energy_resolution_MnKa=130,
+            energy_axis={'units': 'keV', 'size': 1024,
+                         'scale': 1e-2, 'name': 'Energy', 'offset': -0.1})
         stdAl.metadata.General.title = 'Al_std'
-
-        stdZn = s[0, 0, 0].deepcopy()
-        gauss2.A.value = 13000
-        stdZn.metadata.Acquisition_instrument.SEM.Detector.EDS.live_time = 32
-        stdZn.data[:] = gauss2.function(energy_axis.axis)
+        stdAl.set_signal_type('EDS_SEM')
+        stdZn = utils.eds.xray_lines_model(
+            elements=['Zn'], beam_energy=15, counts_rate=1000, live_time=31.,
+            weight_percents=[100], energy_resolution_MnKa=130,
+            energy_axis={'units': 'keV', 'size': 1024,
+                         'scale': 1e-2, 'name': 'Energy', 'offset': -0.1})
+        stdZn.set_signal_type('EDS_SEM')
         stdZn.metadata.General.title = 'Zn_std'
-
         s.metadata.Sample.standard_spec = [stdAl, stdZn]
         self.signal = s
 
@@ -363,8 +330,7 @@ class Test_quantification:
         s1.get_kratio(plot_result=False)
         res = np.array([s1.get_result('Al_Ka', 'kratios').data,
                         s1.get_result('Zn_La', 'kratios').data])
-        nose.tools.assert_true(np.allclose(res,
-                                np.array([0.4166665022647609, 0.23821329009859846])))
+        nose.tools.assert_true(np.allclose(res, np.array([70.,  30.])))
 
         # s1.check_kratio(('Al_Ka', 'Zn_La'))
 
@@ -372,28 +338,24 @@ class Test_quantification:
         s1.get_kratio(plot_result=False)
         res = np.array([s1.get_result('Al_Ka', 'kratios').data[0],
                         s1.get_result('Zn_La', 'kratios').data[0]])
-        nose.tools.assert_true(np.allclose(res,
-                                np.array([0.4166665022647609, 0.23821329009859846])))
+        nose.tools.assert_true(np.allclose(res, np.array([70.,  30.])))
 
         s1 = s.deepcopy()[0]
         s1.get_kratio(plot_result=False)
         res = np.array([s1.get_result('Al_Ka', 'kratios').data[0, 0],
                         s1.get_result('Zn_La', 'kratios').data[0, 0]])
-        nose.tools.assert_true(np.allclose(res,
-                                np.array([0.4166665022647609, 0.23821329009859846])))
+        nose.tools.assert_true(np.allclose(res, np.array([70.,  30.])))
 
         s.get_kratio(plot_result=False)
         res = np.array([s.get_result('Al_Ka', 'kratios').data[0, 0, 0],
                         s.get_result('Zn_La', 'kratios').data[0, 0, 0]])
-        nose.tools.assert_true(np.allclose(res,
-                                np.array([0.4166665022647609, 0.23821329009859846])))
+        nose.tools.assert_true(np.allclose(res, np.array([70.,  30.])))
 
         s.get_kratio([[["Zn_La", 'Al_Ka'], ["Zn", 'Al'], [0.8, 1.75]]],
                      plot_result=False)
         res = np.array([s.get_result('Al_Ka', 'kratios').data[0, 0, 0],
                         s.get_result('Zn_La', 'kratios').data[0, 0, 0]])
-        np.allclose(res,
-                    np.array([0.41666667, 0.2382134]))
+        nose.tools.assert_true(np.allclose(res, np.array([70.,  30.])))
 
     def test_quant(self):
         s = self.signal
@@ -403,31 +365,27 @@ class Test_quantification:
         s1.quant(plot_result=False)
         res = np.array([s1.get_result('Al', 'quant').data,
                         s1.get_result('Zn', 'quant').data])
-        nose.tools.assert_true(np.allclose(res,
-                                np.array([0.610979, 0.246892])))
+        nose.tools.assert_true(np.allclose(res, np.array([1.,  1.])))
 
         s1 = s.deepcopy()[0, 0]
         s1.get_kratio(plot_result=False)
         s1.quant(plot_result=False)
         res = np.array([s1.get_result('Al', 'quant').data[0],
                         s1.get_result('Zn', 'quant').data[0]])
-        nose.tools.assert_true(np.allclose(res,
-                                np.array([0.610979, 0.246892])))
+        nose.tools.assert_true(np.allclose(res, np.array([1.,  1.])))
 
         s1 = s.deepcopy()[0]
         s1.get_kratio(plot_result=False)
         s1.quant(plot_result=False)
         res = np.array([s1.get_result('Al', 'quant').data[0, 0],
                         s1.get_result('Zn', 'quant').data[0, 0]])
-        nose.tools.assert_true(np.allclose(res,
-                                np.array([0.610979, 0.246892])))
+        nose.tools.assert_true(np.allclose(res, np.array([1.,  1.])))
 
         s.get_kratio(plot_result=False)
         s.quant(plot_result=False)
         res = np.array([s.get_result('Al', 'quant').data[0, 0, 0],
                         s.get_result('Zn', 'quant').data[0, 0, 0]])
-        nose.tools.assert_true(np.allclose(res,
-                                np.array([0.610979, 0.246892])))
+        nose.tools.assert_true(np.allclose(res, np.array([1.,  1.])))
 
 # Should go in is own file
 
