@@ -366,7 +366,7 @@ class Test_quantification:
         nose.tools.assert_true(np.allclose(res,
                                 np.array([0.4166665022647609, 0.23821329009859846])))
 
-        s1.check_kratio(('Al_Ka', 'Zn_La'))
+        # s1.check_kratio(('Al_Ka', 'Zn_La'))
 
         s1 = s.deepcopy()[0, 0]
         s1.get_kratio(plot_result=False)

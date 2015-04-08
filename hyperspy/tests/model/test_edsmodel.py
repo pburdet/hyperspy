@@ -1,14 +1,13 @@
 import nose.tools
-
-import hyperspy.hspy as hs
 import numpy as np
 
 from hyperspy.misc.eds import utils as utils_eds
 from hyperspy.models.edstemmodel import EDSTEMModel as Model
 from hyperspy.misc.elements import elements as elements_db
+import hyperspy.hspy as hs
 
 
-class TestlineFit:
+class TestlineFit_edslab:
 
     def setUp(self):
         s = hs.signals.EDSSEMSpectrum(range(200))
@@ -23,27 +22,10 @@ class TestlineFit:
         nose.tools.assert_equal(len(m), 9)
         nose.tools.assert_equal(len(m.xray_lines), 3)
 
-    def test_fit(self):
-        m = self.m
-        m.fit()
 
-    def test_get_intensity(self):
-        m = self.m
-
-
-class TestbackgroundFit:
+class TestlineFit:
 
     def setUp(self):
-        s = hs.signals.EDSSEMSpectrum(range(200))
-        s.set_microscope_parameters(beam_energy=100)
-        s.axes_manager.signal_axes[0].units = "keV"
-        s.axes_manager[-1].offset = 0.150
-        s.add_elements(("Al", "Zn"))
-        self.m = hs.create_model(s)
-
-    def test_fit(self):
-        m = self.m
-        # m.fit()
         s = utils_eds.xray_lines_model(elements=['Fe', 'Cr', 'Zn'],
                                        beam_energy=200,
                                        weight_percents=[20, 50, 30],
