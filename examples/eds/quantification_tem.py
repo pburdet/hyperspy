@@ -1,31 +1,32 @@
-
 # Cliff-Lorimer
 
 # simple method
 
 s = database.spec3D('TEM')
-s.set_elements(["Ni", "Cr", 'Al'])
-s.set_lines(["Ni_Ka", "Cr_Ka", "Al_Ka"])
-kfactors = [s.metadata.Sample.kfactors[2],
-            s.metadata.Sample.kfactors[6]]
-intensities = s.get_two_windows_intensities(
-    bck_position=[[1.2, 3.0], [5.0, 5.7], [5.0, 9.5]])
-res = s.quant_cliff_lorimer_simple(intensities, kfactors)
+s.set_elements(['Al','Cr', "Ni"])
+s.set_lines(["Al_Ka", "Cr_Ka", "Ni_Ka"])
+kfactors = [s.metadata.Sample.kfactors[0], s.metadata.Sample.kfactors[3],
+            s.metadata.Sample.kfactors[7]]
+bc = s.estimate_background_windows()
+s.sum(0).sum(0).plot(background_windows=bc)
+intensities = s.get_lines_intensity(background_windows=bc)
+res = s.quantification(intensities, kfactors)
 utils.plot.plot_signals(res)
 
 # Simulate two elements standard
 s.set_microscope_parameters(live_time=30)
 s.simulate_two_elements_standard(nTraj=100)
 s.get_kfactors_from_standard()
-s.quant_cliff_lorimer()
+s.metadata.Sample.intensities = intensities
+s.quantification_old()
 
 # kfactors from first principles
 s.get_kfactors_from_first_principles()
-s.quant_cliff_lorimer()
+s.quantification_old()
 
 # Quant of PCA
 
 mask = (s.sum(-1) > 25) 
 intensities = s.get_lines_intensity()
 intensities = [intens * mask for intens in intensities]
-s.quant_cliff_lorimer(intensities=intensities)
+s.quantification_old(intensities=intensities)

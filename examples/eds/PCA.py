@@ -5,6 +5,7 @@ pyplot.set_cmap('RdYlBu_r')
 
 elements = ["C", "Al", "Ti", "Cr", "Co", "Ni", "Mo", "Hf", "Ta", 'Zr']
 s = database.spec3D('SEM')
+s.add_elements(elements)
 
 # basic pca
 s.change_dtype('float')
@@ -15,7 +16,7 @@ s.plot_decomposition_results()
 f = s.get_decomposition_factors()
 f.get_calibration_from(s)
 f.add_elements(s.metadata.Sample.elements)
-f.plot_xray_lines(navigator='slider')
+f.plot(True, navigator='slider')
 
 sr = s.get_decomposition_model(5)
 
@@ -60,11 +61,12 @@ s = s.add_standards_to_signal('all')
 s.change_dtype('float')
 s.decomposition(True)
 sr = s.get_decomposition_model(5)
-sr[102:134, 125:152].get_lines_intensity(
+sr[102:134, 125:152].get_lines_intensity_old(
     plot_result=True, lines_deconvolution='standard')
 
 # back fitting
 s = database.spec4D('TEM')[64:, 64:, 1]
+s.set_microscope_parameters(beam_energy=200)
 s.change_dtype('float')
 dim = s.axes_manager.shape
 s = s.rebin((dim[0] / 4, dim[1] / 4, dim[2]))
