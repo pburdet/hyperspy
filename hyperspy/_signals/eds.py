@@ -710,253 +710,253 @@ class EDSSpectrum(Spectrum):
 
     # suppress lines_deconvolution="model"
     # suppress standard? add option in "edsmodel"
-#    def get_lines_intensity(self,
-#                            xray_lines=None,
-#                            plot_result=False,
-#                            integration_window_factor=2.,
-#                            only_one=True,
-#                            only_lines=("Ka", "La", "Ma"),
-#                            lines_deconvolution=None,
-#                            bck=0,
-#                            plot_fit=False,
-#                            store_in_mp=False,
-#                            bounded=False,
-#                            grad=False,
-#                            init=True,
-#                            return_model=False,
-#                            **kwargs):
-#        """Return the intensity map of selected Xray lines.
-#
-#        The intensities, the number of X-ray counts, are computed by
-#        suming the spectrum over the
-#        different X-ray lines. The sum window width
-#        is calculated from the energy resolution of the detector
-#        defined as defined in
-#        `self.metadata.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa` or
-#        `self.metadata.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa`.
-#
-#
-#        Parameters
-#        ----------
-#
-#        xray_lines: {None, "best", list of string}
-#            If None,
-#            if `mapped.parameters.Sample.elements.xray_lines` contains a
-#            list of lines use those.
-#            If `mapped.parameters.Sample.elements.xray_lines` is undefined
-#            or empty but `mapped.parameters.Sample.elements` is defined,
-#            use the same syntax as `add_line` to select a subset of lines
-#            for the operation.
-#            Alternatively, provide an iterable containing
-#            a list of valid X-ray lines symbols.
-#        plot_result : bool
-#            If True, plot the calculated line intensities. If the current
-#            object is a single spectrum it prints the result instead.
-#        integration_window_factor: Float
-#            The integration window is centered at the center of the X-ray
-#            line and its width is defined by this factor (2 by default)
-#            times the calculated FWHM of the line.
-#        only_one : bool
-#            If False, use all the lines of each element in the data spectral
-#            range. If True use only the line at the highest energy
-#            above an overvoltage of 2 (< beam energy / 2).
-#        only_lines : {None, list of strings}
-#            If not None, use only the given lines.
-#        lines_deconvolution : None or 'model' or 'standard' or 'top_hat'
-#            Deconvolution of the line with a gaussian model. Take time
-#        bck : float
-#            background to substract. Only for deconvolution
-#        store_in_mp : bool
-#            store the result in metadata.Sample
-#        bounded: bool
-#            force positive fit, fast with PCA
-#        grad: bool
-#            fit option, fast with PCA
-#        init: bool
-#            initialize value
-#        return_model: bool
-#            return the model instead of the intensities
-#        kwargs
-#            The extra keyword arguments for plotting. See
-#            `utils.plot.plot_signals`
-#
-#        Returns
-#        -------
-#        intensities : list
-#            A list containing the intensities as Signal subclasses.
-#
-#        Examples
-#        --------
-#
-#        >>> pyplot.set_cmap('RdYlBu_r')
-#
-#        #Mode standard
-#
-#        >>> s = database.spec3D('SEM')
-#        >>> s[102:134,125:152].get_lines_intensity(["Hf_Ma", "Ta_Ma"],
-#                plot_result=True)
-#
-#        #Mode 'model'
-#
-#        >>> s = database.spec3D('SEM')
-#        >>> s[102:134,125:152].get_lines_intensity(["Hf_Ma", "Ta_Ma"],
-#                plot_result=True,lines_deconvolution='model',plot_fit=True)
-#
-#        #Mode 'standard'
-#
-#        >>> s = database.spec3D('SEM')
-#        >>> from hyperspy.misc.config_dir import config_path
-#        >>> s.add_elements(['Hf','Ta'])
-#        >>> s.link_standard(config_path+'/database/std_RR')
-#        >>> s[102:134,125:152].get_lines_intensity(
-#                plot_result=True,lines_deconvolution='standard')
-#
-#        See also
-#        --------
-#
-#        set_elements, add_elements.
-#
-#        """
-#
-#        from hyperspy.hspy import create_model
-#
-#        if xray_lines is None:
-#            if 'Sample.xray_lines' in self.metadata:
-#                xray_lines = self.metadata.Sample.xray_lines
-#            elif 'Sample.elements' in self.metadata:
-#                xray_lines = self._get_lines_from_elements(
-#                    self.metadata.Sample.elements,
-#                    only_one=only_one,
-#                    only_lines=only_lines)
-#            else:
+    def get_lines_intensity_old(self,
+                                xray_lines=None,
+                                plot_result=False,
+                                integration_window_factor=2.,
+                                only_one=True,
+                                only_lines=("Ka", "La", "Ma"),
+                                lines_deconvolution=None,
+                                bck=0,
+                                plot_fit=False,
+                                store_in_mp=False,
+                                bounded=False,
+                                grad=False,
+                                init=True,
+                                return_model=False,
+                                **kwargs):
+        """Return the intensity map of selected Xray lines.
+
+        The intensities, the number of X-ray counts, are computed by
+        suming the spectrum over the
+        different X-ray lines. The sum window width
+        is calculated from the energy resolution of the detector
+        defined as defined in
+        `self.metadata.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa` or
+        `self.metadata.Acquisition_instrument.SEM.Detector.EDS.energy_resolution_MnKa`.
+
+
+        Parameters
+        ----------
+
+        xray_lines: {None, "best", list of string}
+            If None,
+            if `mapped.parameters.Sample.elements.xray_lines` contains a
+            list of lines use those.
+            If `mapped.parameters.Sample.elements.xray_lines` is undefined
+            or empty but `mapped.parameters.Sample.elements` is defined,
+            use the same syntax as `add_line` to select a subset of lines
+            for the operation.
+            Alternatively, provide an iterable containing
+            a list of valid X-ray lines symbols.
+        plot_result : bool
+            If True, plot the calculated line intensities. If the current
+            object is a single spectrum it prints the result instead.
+        integration_window_factor: Float
+            The integration window is centered at the center of the X-ray
+            line and its width is defined by this factor (2 by default)
+            times the calculated FWHM of the line.
+        only_one : bool
+            If False, use all the lines of each element in the data spectral
+            range. If True use only the line at the highest energy
+            above an overvoltage of 2 (< beam energy / 2).
+        only_lines : {None, list of strings}
+            If not None, use only the given lines.
+        lines_deconvolution : None or 'model' or 'standard' or 'top_hat'
+            Deconvolution of the line with a gaussian model. Take time
+        bck : float
+            background to substract. Only for deconvolution
+        store_in_mp : bool
+            store the result in metadata.Sample
+        bounded: bool
+            force positive fit, fast with PCA
+        grad: bool
+            fit option, fast with PCA
+        init: bool
+            initialize value
+        return_model: bool
+            return the model instead of the intensities
+        kwargs
+            The extra keyword arguments for plotting. See
+            `utils.plot.plot_signals`
+
+        Returns
+        -------
+        intensities : list
+            A list containing the intensities as Signal subclasses.
+
+        Examples
+        --------
+
+        >>> pyplot.set_cmap('RdYlBu_r')
+
+        #Mode standard
+
+        >>> s = database.spec3D('SEM')
+        >>> s[102:134,125:152].get_lines_intensity(["Hf_Ma", "Ta_Ma"],
+                plot_result=True)
+
+        #Mode 'model'
+
+        >>> s = database.spec3D('SEM')
+        >>> s[102:134,125:152].get_lines_intensity(["Hf_Ma", "Ta_Ma"],
+                plot_result=True,lines_deconvolution='model',plot_fit=True)
+
+        #Mode 'standard'
+
+        >>> s = database.spec3D('SEM')
+        >>> from hyperspy.misc.config_dir import config_path
+        >>> s.add_elements(['Hf','Ta'])
+        >>> s.link_standard(config_path+'/database/std_RR')
+        >>> s[102:134,125:152].get_lines_intensity(
+                plot_result=True,lines_deconvolution='standard')
+
+        See also
+        --------
+
+        set_elements, add_elements.
+
+        """
+
+        from hyperspy.hspy import create_model
+
+        if xray_lines is None:
+            if 'Sample.xray_lines' in self.metadata:
+                xray_lines = self.metadata.Sample.xray_lines
+            elif 'Sample.elements' in self.metadata:
+                xray_lines = self._get_lines_from_elements(
+                    self.metadata.Sample.elements,
+                    only_one=only_one,
+                    only_lines=only_lines)
+            else:
+                raise ValueError(
+                    "Not X-ray line, set them with `add_elements`")
+        xray_lines, xray_not_here = self._get_xray_lines_in_spectral_range(
+            xray_lines)
+        for xray in xray_not_here:
+            warnings.warn("%s is not in the data energy range." % (xray) +
+                          "You can remove it with" +
+                          "s.metadata.Sample.xray_lines.remove('%s')"
+                          % (xray))
+        intensities = [0] * len(xray_lines)
+        if lines_deconvolution == 'standard':
+            m = create_model(self, auto_background=False,
+                             auto_add_lines=False)
+        elif lines_deconvolution == 'model':
+            s = self - bck
+            m = create_model(s, auto_background=False,
+                             auto_add_lines=False)
+
+        for i, xray_line in enumerate(xray_lines):
+            line_energy, line_FWHM = self._get_line_energy(xray_line,
+                                                           FWHM_MnKa='auto')
+            element, line = utils_eds._get_element_and_line(xray_line)
+            det = integration_window_factor * line_FWHM / 2.
+#            ax = self.axes_manager.signal_axes[0]
+#            if line_energy - det < ax.low_value or \
+#                    line_energy + det > ax.high_value:
 #                raise ValueError(
-#                    "Not X-ray line, set them with `add_elements`")
-#        xray_lines, xray_not_here = self._get_xray_lines_in_spectral_range(
-#            xray_lines)
-#        for xray in xray_not_here:
-#            warnings.warn("%s is not in the data energy range." % (xray) +
-#                          "You can remove it with" +
-#                          "s.metadata.Sample.xray_lines.remove('%s')"
-#                          % (xray))
-#        intensities = [0] * len(xray_lines)
-#        if lines_deconvolution == 'standard':
-#            m = create_model(self, auto_background=False,
-#                             auto_add_lines=False)
-#        elif lines_deconvolution == 'model':
-#            s = self - bck
-#            m = create_model(s, auto_background=False,
-#                             auto_add_lines=False)
-#
-#        for i, xray_line in enumerate(xray_lines):
-#            line_energy, line_FWHM = self._get_line_energy(xray_line,
-#                                                           FWHM_MnKa='auto')
-#            element, line = utils_eds._get_element_and_line(xray_line)
-#            det = integration_window_factor * line_FWHM / 2.
-##            ax = self.axes_manager.signal_axes[0]
-##            if line_energy - det < ax.low_value or \
-##                    line_energy + det > ax.high_value:
-##                raise ValueError(
-##                    "%s is outside the energy range." % (xray_line))
-#            if lines_deconvolution is None:
-#                intensities[i] = self[..., line_energy - det:line_energy +
-#                                      det].integrate1D(-1).data
-#            elif lines_deconvolution == 'top_hat':
-#                intensities[i] = self.top_hat(line_energy
-#                                              ).integrate1D(-1).data
-#            else:
-#                if lines_deconvolution == 'model':
-#                    fp = create_component.Gaussian()
-#                    fp.centre.value = line_energy
-#                    fp.sigma.value = line_FWHM / 2.355
-#                    fp.centre.free = False
-#                    fp.sigma.free = False
-#                    if bounded:
-#                        fp.A.ext_bounded = True
-#                        fp.A.ext_force_positive = True
-#                elif lines_deconvolution == 'standard':
-#                    std = self.get_result(element, 'standard_spec').deepcopy()
-#                    std[:line_energy - det] = 0
-#                    std[line_energy + det:] = 0
-#                    fp = create_component.ScalableFixedPattern(std)
-#                    fp.set_parameters_not_free(['offset', 'xscale', 'shift'])
-#                    if bounded:
-#                        fp.yscale.ext_bounded = True
-#                        fp.yscale.ext_force_positive = True
-#                fp.name = xray_line
-#                m.append(fp)
-#                if init:
-#                    if lines_deconvolution == 'standard':
-#                        m[xray_line].yscale.map[
-#                            'values'] = self[..., line_energy].data
-#                        m[xray_line].yscale.map['is_set'] = (
-#                            np.ones(self[..., line_energy].data.shape) == 1)
-#                    elif lines_deconvolution == 'model':
-#                        m[xray_line].A.map[
-#                            'values'] = self[..., line_energy].data
-#                        m[xray_line].A.map['is_set'] = (
-#                            np.ones(self[..., line_energy].data.shape) == 1)
-#                # Other line of the family as twin
-#                if lines_deconvolution == 'model':
-#                    for li in elements_db[element]['Atomic_properties']['Xray_lines']:
-#                        if line[0] in li and line != li:
-#                            xray_sub = element + '_' + li
-#                            line_energy, line_FWHM = self._get_line_energy(
-#                                xray_sub, FWHM_MnKa='auto')
-#                            fp_sub = create_component.Gaussian()
-#                            fp_sub.centre.value = line_energy
-#                            fp_sub.name = xray_sub
-#                            fp_sub.sigma.value = line_FWHM / 2.355
-#                            fp_sub.A.twin = fp.A
-#                            fp_sub.centre.free = False
-#                            fp_sub.sigma.free = False
-#                            fp_sub.A.twin_function = _get_weight(element, li)
-#                            fp_sub.A.twin_inverse_function = _get_iweight(
-#                                element, li)
-#                            m.append(fp_sub)
-#        if lines_deconvolution == 'model' or lines_deconvolution == 'standard':
-#            m.multifit(fitter='leastsq', grad=grad)
-#            if plot_fit:
-#                m.plot()
-#                plt.title('Fit')
-#        # data as image, store and plot
-#        for i, xray_line in enumerate(xray_lines):
-#            line_energy = self._get_line_energy(xray_line)
-#            if lines_deconvolution == 'model':
-#                data_res = m[xray_line].A.map['values']
-#                if self.axes_manager.navigation_dimension == 0:
-#                    data_res = data_res[0]
-#            elif lines_deconvolution == 'standard':
-#                data_res = m[xray_line].yscale.map['values']
-#                if self.axes_manager.navigation_dimension == 0:
-#                    data_res = data_res[0]
-#            else:
-#                data_res = intensities[i]
-#
-#            img = self._set_result(xray_line, 'intensities',
-#                                   data_res, plot_result=False,
-#                                   store_in_mp=store_in_mp)
-#            img.metadata.General.title = (
-#                'Intensity of %s at %.2f %s from %s' %
-#                (xray_line,
-#                 line_energy,
-#                 self.axes_manager.signal_axes[0].units,
-#                 self.metadata.General.title))
-#            if plot_result and img.axes_manager.signal_dimension == 0:
-#                print("%s at %s %s : Intensity = %.2f"
-#                      % (xray_line,
-#                         line_energy,
-#                         self.axes_manager.signal_axes[0].units,
-#                         img.data))
-#            img.metadata.set_item("Sample.elements", ([element]))
-#            img.metadata.set_item("Sample.xray_lines", ([Xray_line]))
-#            intensities[i] = img
-#        if plot_result and img.axes_manager.signal_dimension != 0:
-#            utils.plot.plot_signals(intensities, **kwargs)
-#
-#        if return_model:
-#            return m
-#        else:
-#            return intensities
+#                    "%s is outside the energy range." % (xray_line))
+            if lines_deconvolution is None:
+                intensities[i] = self[..., line_energy - det:line_energy +
+                                      det].integrate1D(-1).data
+            elif lines_deconvolution == 'top_hat':
+                intensities[i] = self.top_hat(line_energy
+                                              ).integrate1D(-1).data
+            else:
+                if lines_deconvolution == 'model':
+                    fp = create_component.Gaussian()
+                    fp.centre.value = line_energy
+                    fp.sigma.value = line_FWHM / 2.355
+                    fp.centre.free = False
+                    fp.sigma.free = False
+                    if bounded:
+                        fp.A.ext_bounded = True
+                        fp.A.ext_force_positive = True
+                elif lines_deconvolution == 'standard':
+                    std = self.get_result(element, 'standard_spec').deepcopy()
+                    std[:line_energy - det] = 0
+                    std[line_energy + det:] = 0
+                    fp = create_component.ScalableFixedPattern(std)
+                    fp.set_parameters_not_free(['offset', 'xscale', 'shift'])
+                    if bounded:
+                        fp.yscale.ext_bounded = True
+                        fp.yscale.ext_force_positive = True
+                fp.name = xray_line
+                m.append(fp)
+                if init:
+                    if lines_deconvolution == 'standard':
+                        m[xray_line].yscale.map[
+                            'values'] = self[..., line_energy].data
+                        m[xray_line].yscale.map['is_set'] = (
+                            np.ones(self[..., line_energy].data.shape) == 1)
+                    elif lines_deconvolution == 'model':
+                        m[xray_line].A.map[
+                            'values'] = self[..., line_energy].data
+                        m[xray_line].A.map['is_set'] = (
+                            np.ones(self[..., line_energy].data.shape) == 1)
+                # Other line of the family as twin
+                if lines_deconvolution == 'model':
+                    for li in elements_db[element]['Atomic_properties']['Xray_lines']:
+                        if line[0] in li and line != li:
+                            xray_sub = element + '_' + li
+                            line_energy, line_FWHM = self._get_line_energy(
+                                xray_sub, FWHM_MnKa='auto')
+                            fp_sub = create_component.Gaussian()
+                            fp_sub.centre.value = line_energy
+                            fp_sub.name = xray_sub
+                            fp_sub.sigma.value = line_FWHM / 2.355
+                            fp_sub.A.twin = fp.A
+                            fp_sub.centre.free = False
+                            fp_sub.sigma.free = False
+                            fp_sub.A.twin_function = _get_weight(element, li)
+                            fp_sub.A.twin_inverse_function = _get_iweight(
+                                element, li)
+                            m.append(fp_sub)
+        if lines_deconvolution == 'model' or lines_deconvolution == 'standard':
+            m.multifit(fitter='leastsq', grad=grad)
+            if plot_fit:
+                m.plot()
+                plt.title('Fit')
+        # data as image, store and plot
+        for i, xray_line in enumerate(xray_lines):
+            line_energy = self._get_line_energy(xray_line)
+            if lines_deconvolution == 'model':
+                data_res = m[xray_line].A.map['values']
+                if self.axes_manager.navigation_dimension == 0:
+                    data_res = data_res[0]
+            elif lines_deconvolution == 'standard':
+                data_res = m[xray_line].yscale.map['values']
+                if self.axes_manager.navigation_dimension == 0:
+                    data_res = data_res[0]
+            else:
+                data_res = intensities[i]
+
+            img = self._set_result(xray_line, 'intensities',
+                                   data_res, plot_result=False,
+                                   store_in_mp=store_in_mp)
+            img.metadata.General.title = (
+                'Intensity of %s at %.2f %s from %s' %
+                (xray_line,
+                 line_energy,
+                 self.axes_manager.signal_axes[0].units,
+                 self.metadata.General.title))
+            if plot_result and img.axes_manager.signal_dimension == 0:
+                print("%s at %s %s : Intensity = %.2f"
+                      % (xray_line,
+                         line_energy,
+                         self.axes_manager.signal_axes[0].units,
+                         img.data))
+            img.metadata.set_item("Sample.elements", ([element]))
+            img.metadata.set_item("Sample.xray_lines", ([xray_line]))
+            intensities[i] = img
+        if plot_result and img.axes_manager.signal_dimension != 0:
+            utils.plot.plot_signals(intensities, **kwargs)
+
+        if return_model:
+            return m
+        else:
+            return intensities
 
     def convolve_sum(self, kernel='square', size=3, **kwargs):
         """
@@ -1724,13 +1724,21 @@ class EDSSpectrum(Spectrum):
         data_s = np.array(data_s)
 
         dim = len(self.data.shape)
-        #spec_th = EDSSEMSpectrum(np.rollaxis(data_s.dot(g),0,dim))
-
-        spec_th = Spectrum(np.rollaxis(data_s, 0, dim))
+        from hyperspy._signals.eds_sem import EDSSEMSpectrum
+        from hyperspy._signals.eds_tem import EDSTEMSpectrum
+        # spec_th = self._deepcopy_with_new_data(np.rollaxis(data_s, 0, dim))
+        # spec_th.get_dimensions_from_data()
+        if self.metadata.Signal.signal_type == 'EDS_SEM':
+            spec_th = EDSSEMSpectrum(np.rollaxis(data_s, 0, dim))
+        elif self.metadata.Signal.signal_type == 'EDS_TEM':
+            spec_th = EDSTEMSpectrum(np.rollaxis(data_s, 0, dim))
+        spec_th.metadata = self.metadata.deepcopy()
+        spec_th.axes_manager[-1].units = self.axes_manager[-1].units
+        spec_th.axes_manager[-1].scale = self.axes_manager[-1].scale
 
         return spec_th
 
-#Should be able to save lsit with hyperpsy 0.8.0
+# Should be able to save lsit with hyperpsy 0.8.0
 #    def save(self, filename=None, overwrite=None, extension=None,
 #             **kwds):
 #        """Saves the signal in the specified format.

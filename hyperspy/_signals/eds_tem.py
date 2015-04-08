@@ -447,53 +447,54 @@ class EDSTEMSpectrum(EDSSpectrum):
         self.metadata.Sample.kfactors = kfactors
         self.metadata.Sample.kfactors_name = kfactors_name
 
-    def get_two_windows_intensities(self, bck_position):
-        """
-        Quantified for giorgio, 21.05.2014
-
-        Parameters
-        ----------
-        bck_position: list
-            The position of the bck to substract eg [[1.2,1.4],[2.5,2.6]]
-
-        Examples
-        --------
-        >>> s = database.spec3D('TEM')
-        >>> s.set_elements(["Ni", "Cr",'Al'])
-        >>> s.set_lines(["Ni_Ka", "Cr_Ka", "Al_Ka"])
-        >>> intensities = s.get_two_windows_intensities(
-        >>>      bck_position=[[1.2,3.0],[5.0,5.7],[5.0,9.5]])
-        """
-        if 'Sample.xray_lines' in self.metadata:
-            xray_lines = self.metadata.Sample.xray_lines
-        else:
-            print('Set the Xray lines with set_lines')
-        intensities = []
-        t = self.deepcopy()
-        for i, Xray_line in enumerate(xray_lines):
-            line_energy, line_FWHM = self._get_line_energy(Xray_line,
-                                                           FWHM_MnKa='auto')
-            det = line_FWHM
-            img = self[..., line_energy - det:line_energy + det
-                       ].integrate1D(-1)
-            img1 = self[..., bck_position[i][0] - det:bck_position[i][0] + det
-                        ].integrate1D(-1)
-            img2 = self[..., bck_position[i][1] - det:bck_position[i][1] + det
-                        ].integrate1D(-1)
-            img = img - (img1 + img2) / 2
-            img.metadata.General.title = (
-                'Intensity of %s at %.2f %s from %s' %
-                (Xray_line,
-                 line_energy,
-                 self.axes_manager.signal_axes[0].units,
-                 self.metadata.General.title))
-            intensities.append(img.as_image([0, 1]))
-
-            t[..., line_energy - det:line_energy + det] = 10
-            t[..., bck_position[i][0] - det:bck_position[i][0] + det] = 10
-            t[..., bck_position[i][1] - det:bck_position[i][1] + det] = 10
-        t.plot()
-        return intensities
+# replace by estimate_background_windows
+#    def get_two_windows_intensities(self, bck_position):
+#        """
+#        Quantified for giorgio, 21.05.2014
+#
+#        Parameters
+#        ----------
+#        bck_position: list
+#            The position of the bck to substract eg [[1.2,1.4],[2.5,2.6]]
+#
+#        Examples
+#        --------
+#        >>> s = database.spec3D('TEM')
+#        >>> s.set_elements(["Ni", "Cr",'Al'])
+#        >>> s.set_lines(["Ni_Ka", "Cr_Ka", "Al_Ka"])
+#        >>> intensities = s.get_two_windows_intensities(
+#        >>>      bck_position=[[1.2,3.0],[5.0,5.7],[5.0,9.5]])
+#        """
+#        if 'Sample.xray_lines' in self.metadata:
+#            xray_lines = self.metadata.Sample.xray_lines
+#        else:
+#            print('Set the Xray lines with set_lines')
+#        intensities = []
+#        t = self.deepcopy()
+#        for i, Xray_line in enumerate(xray_lines):
+#            line_energy, line_FWHM = self._get_line_energy(Xray_line,
+#                                                           FWHM_MnKa='auto')
+#            det = line_FWHM
+#            img = self[..., line_energy - det:line_energy + det
+#                       ].integrate1D(-1)
+#            img1 = self[..., bck_position[i][0] - det:bck_position[i][0] + det
+#                        ].integrate1D(-1)
+#            img2 = self[..., bck_position[i][1] - det:bck_position[i][1] + det
+#                        ].integrate1D(-1)
+#            img = img - (img1 + img2) / 2
+#            img.metadata.General.title = (
+#                'Intensity of %s at %.2f %s from %s' %
+#                (Xray_line,
+#                 line_energy,
+#                 self.axes_manager.signal_axes[0].units,
+#                 self.metadata.General.title))
+#            intensities.append(img.as_image([0, 1]))
+#
+#            t[..., line_energy - det:line_energy + det] = 10
+#            t[..., bck_position[i][0] - det:bck_position[i][0] + det] = 10
+#            t[..., bck_position[i][1] - det:bck_position[i][1] + det] = 10
+#        t.plot()
+#        return intensities
 
         # Examples
         #---------
@@ -687,17 +688,17 @@ class EDSTEMSpectrum(EDSSpectrum):
             utils.plot.plot_signals(composition, **kwargs)
         return composition
 
-    def quantification_1(self,
-                       intensities='auto',
-                       method='CL',
-                       kfactors='auto',
-                       composition_units='weight',
-                       navigation_mask=1.0,
-                       closing=True,
-                       plot_result=False,
-                       store_in_mp=True,
-                       min_intensity = 0.1,
-                       **kwargs):
+    def quantification_old(self,
+                           intensities='auto',
+                           method='CL',
+                           kfactors='auto',
+                           composition_units='weight',
+                           navigation_mask=1.0,
+                           closing=True,
+                           plot_result=False,
+                           store_in_mp=True,
+                           min_intensity = 0.1,
+                           **kwargs):
         """
         Quantification using Cliff-Lorimer or zeta-factor method
         
