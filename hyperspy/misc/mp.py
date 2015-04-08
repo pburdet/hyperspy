@@ -40,7 +40,7 @@ def pool(parallel, pool_type=None, ipython_timeout=1.):
             from multiprocessing import Pool as pool_mp
             pool_type = 'mp'
             pool = pool_mp(processes=parallel)
-    elif pool_type == 'ipython':
+    elif set('ipython') == set(pool_type):
         c = client_ip(profile='hyperspy', timeout=ipython_timeout)
         pool = c[:parallel]
         pool_type = 'ipython'
