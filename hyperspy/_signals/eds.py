@@ -1791,20 +1791,24 @@ class EDSSpectrum(Spectrum):
         for i in range(bornA[0], bornA[1]):
             data_s.append(self.data[..., i - olob:i + olob].dot(g))
             # data_s.append(self.data[...,i-olob:i+olob])
+        
         data_s = np.array(data_s)
 
         dim = len(self.data.shape)
-        from hyperspy._signals.eds_sem import EDSSEMSpectrum
-        from hyperspy._signals.eds_tem import EDSTEMSpectrum
-        # spec_th = self._deepcopy_with_new_data(np.rollaxis(data_s, 0, dim))
-        # spec_th.get_dimensions_from_data()
-        if self.metadata.Signal.signal_type == 'EDS_SEM':
-            spec_th = EDSSEMSpectrum(np.rollaxis(data_s, 0, dim))
-        elif self.metadata.Signal.signal_type == 'EDS_TEM':
-            spec_th = EDSTEMSpectrum(np.rollaxis(data_s, 0, dim))
-        spec_th.metadata = self.metadata.deepcopy()
-        spec_th.axes_manager[-1].units = self.axes_manager[-1].units
-        spec_th.axes_manager[-1].scale = self.axes_manager[-1].scale
+        spec_th = self.isig[bornA[0]:bornA[1]]._deepcopy_with_new_data(
+            np.rollaxis(data_s, 0, dim))
+        
+#        from hyperspy._signals.eds_sem import EDSSEMSpectrum
+#        from hyperspy._signals.eds_tem import EDSTEMSpectrum
+#        # spec_th = self._deepcopy_with_new_data(np.rollaxis(data_s, 0, dim))
+#        # spec_th.get_dimensions_from_data()
+#        if self.metadata.Signal.signal_type == 'EDS_SEM':
+#            spec_th = EDSSEMSpectrum(np.rollaxis(data_s, 0, dim))
+#        elif self.metadata.Signal.signal_type == 'EDS_TEM':
+#            spec_th = EDSTEMSpectrum(np.rollaxis(data_s, 0, dim))
+#        spec_th.metadata = self.metadata.deepcopy()
+#        spec_th.axes_manager[-1].units = self.axes_manager[-1].units
+#        spec_th.axes_manager[-1].scale = self.axes_manager[-1].scale
 
         return spec_th
 

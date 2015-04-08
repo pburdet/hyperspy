@@ -365,7 +365,9 @@ class EDSSEMSpectrum(EDSSpectrum):
             diff_ltime = mp.Acquisition_instrument.SEM.Detector.EDS.live_time / \
                 mp_std.Acquisition_instrument.SEM.Detector.EDS.live_time
             # Fit with least square
-            m = create_model(self.top_hat(line_energy, width_windows))
+            m = create_model(
+                self.top_hat(line_energy, width_windows),
+                auto_background=False, auto_add_lines=False)
             fp = components.ScalableFixedPattern(std.top_hat(line_energy,
                                                              width_windows))
             fp.set_parameters_not_free(['xscale', 'shift'])
