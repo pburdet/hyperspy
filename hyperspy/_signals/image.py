@@ -262,6 +262,55 @@ class Image(Signal):
         from hyperspy.misc.eds.image_eds import plot_orthoview_animated
         plot_orthoview_animated(self, isotropic_voxel=isotropic_voxel)
 
+    def plot_orthoview_new(image):
+        """
+        Plot an orthogonal view of a 3D images
+
+        Parameters
+        ---------
+        image: signals.Image
+            An image in 3D.
+        isotropic_voxel:
+            If True, generate a new image, scaling z in order to obtain
+            isotropic voxel.
+        """
+        if len(image.axes_manager.shape) != 3:
+            raise ValueError("image must have 3 dimension.")
+
+        im_xy = image.deepcopy()
+        im_xy.metadata.General.title = 'xy'
+        im_xy.axes_manager.set_signal_dimension(0)
+
+        im_xz = im_xy.deepcopy()
+        im_xz = im_xz.rollaxis(2, 1)
+        im_xz.metadata.General.title = 'xz'
+        im_xz.axes_manager.set_signal_dimension(0)
+
+        im_xz.axes_manager._axes[2] = im_xy.axes_manager._axes[2]
+        im_xz.axes_manager._axes[1] = im_xy.axes_manager._axes[0]
+        im_xz.axes_manager._axes[0] = im_xy.axes_manager._axes[1]
+
+        im_yz = im_xy.deepcopy()
+        im_yz = im_yz.rollaxis(0, 2)
+        im_yz = im_yz.rollaxis(1, 0)
+        im_yz.metadata.General.title = 'yz'
+        im_yz.axes_manager.set_signal_dimension(0)
+
+        im_yz.axes_manager._axes = im_xy.axes_manager._axes[::-1]
+
+        im_xy.axes_manager[0].index = (im_xy.axes_manager[0].high_index -
+                                       im_xy.axes_manager[0].low_index)/2
+        im_xy.axes_manager[1].index = (im_xy.axes_manager[1].high_index -
+                                       im_xy.axes_manager[1].low_index)/2
+        im_xy.axes_manager[2].index = (im_xy.axes_manager[2].high_index -
+                                       im_xy.axes_manager[2].low_index)/2
+
+        im_xz.axes_manager._update_attributes()
+        im_yz.axes_manager._update_attributes()
+        im_xy.plot()
+        im_xz.plot()
+        im_yz.plot()
+
     def plot(self,
              colorbar=True,
              scalebar=True,
