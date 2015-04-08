@@ -337,9 +337,9 @@ class DictionaryTreeBrowser(object):
                     continue
                 if isinstance(item_['_dtb_value_'], DictionaryTreeBrowser):
                     item = item_['_dtb_value_'].as_dictionary()
-#                elif isinstance(item_['_dtb_value_'], Signal):
-#                    item = item_['_dtb_value_']._to_dictionary()
-#                    key = '_sig_' + key
+                elif isinstance(item_['_dtb_value_'], Signal):
+                    item = item_['_dtb_value_']._to_dictionary()
+                    key = '_sig_' + key
                 else:
                     item = item_['_dtb_value_']
                 par_dict.__setitem__(key, item)
