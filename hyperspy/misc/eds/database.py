@@ -23,10 +23,11 @@ def spec1D(which_spec='BAM'):
     ----------
 
     which_spec: {'BAM','msa','noisy','TEM'}
-        if BAM: bam sample
+        if BAM: bam sample (as examples_signal)
         if msa: GnMeba test, coin of euro
         if noisy: 1 pixel in AlZn
-        if TEM: sum spec from Robert A5
+        if TEM: sum bare particle David (as examples_signal)
+        if TEM_robert: sum spec from Robert A5
         if TEM_nico: IMT sample from Nico
 
     """
@@ -38,6 +39,8 @@ def spec1D(which_spec='BAM'):
     elif which_spec == 'noisy':
         return _load_in_database('SEM/1DS_1pix_AlZn.msa')
     elif which_spec == 'TEM':
+        return _load_in_database('TEM/1D_EDS_TEM_Spectrum.hdf5')
+    elif which_spec == 'TEM_robert':
         return _load_in_database('TEM/1Ds_Robert.hdf5')
     elif which_spec == 'TEM_nico':
         return _load_in_database('TEM/1Ds_Nico_IMT.hdf5')
@@ -52,7 +55,9 @@ def spec3D(which_spec='PCA_SEM'):
 
     which_spec: {'PCA_SEM','SEM','Ti_SEM','rpl','noisy'}
         if 'PCA_SEM', load RR 46 PCA rec
-        if 'TEM', 0 degree roabert A5
+        if 'TEM', core shell david
+        if 'TEM_bare', bare particles david
+        if 'TEM_robert', 0 degree roabert A5
         if 'SEM', load RR 46 no PCA
         ifs 'Ti_SEM', load TiFeNi no PCA jonas1h croped (::,:12)
         if 'rpl', jonas1h raw
@@ -62,6 +67,10 @@ def spec3D(which_spec='PCA_SEM'):
     if which_spec == 'PCA_SEM':
         return _load_in_database('SEM/3Ds_specImg3DBinPCAre46.hdf5')
     elif which_spec == 'TEM':
+        return _load_in_database('TEM/3Ds_core_shell.hdf5')
+    elif which_spec == 'TEM_bare':
+        return _load_in_database('TEM/3Ds_bare_core.hdf5')
+    elif which_spec == 'TEM_robert':
         return _load_in_database('TEM/3Ds_robert_a5.hdf5')
     elif which_spec == 'SEM':
         return _load_in_database('SEM/3Ds_specImg3D46.hdf5')
