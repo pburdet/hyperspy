@@ -205,6 +205,7 @@ def take_off_angle(tilt_stage,
     return math.degrees(np.arcsin(-math.cos(a) * math.cos(b) * math.cos(c)
                                   + math.sin(a) * math.sin(c)))
 
+
 def xray_lines_model(elements=['Al', 'Zn'],
                      beam_energy=200,
                      weight_percents=[50, 50],
@@ -2316,7 +2317,6 @@ def quantification_absorption_corrections_thin_film(intensities,
     # else:
         # return _mac_interpolation(mac, mac1, energy,
         # energy_db, energy_db1)
-
 
 def quantification_cliff_lorimer(intensities,
                                  kfactors,
