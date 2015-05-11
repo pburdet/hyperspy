@@ -805,7 +805,7 @@ def get_link_to_jython():
     """Return the execnet gateway to jython.
     """
     return execnet.makegateway(
-        "popen//python=C:\Users\pb565\Documents\Java\Jython2.7b\jython.bat")
+        "popen//python=jython")
 
 
 def load_EDSSEMSpectrum(filenames=None,
