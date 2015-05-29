@@ -246,12 +246,12 @@ def align_with_stackReg(img,
 
         imp.show()
         imp.setSlice(""" + str(starting_slice) + """+1)
-        IJ.runPlugIn(imp, "MultiStackReg_", "")
+        IJ.runPlugIn(imp, "MultiStackReg", "")
 
         return_align_img=""" + str(return_align_img) + """
         if return_align_img:
             IJ.saveAs(imp,"Tiff",path_img_alnd[0])
-        imp.close()
+        #imp.close()
         channel.send(1)
 
     """)

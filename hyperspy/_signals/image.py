@@ -408,3 +408,88 @@ class Image(Signal):
             no_nans=no_nans,
             **kwargs
         )
+
+    def calibrate_image_smartsem(self):
+        """
+        Calibrate the image using the metadata of the tiff file as exported by
+        SmartSEM (Carl Zeiss)
+        """
+        corr_t = False
+        corr_f = False
+        is_esb = False
+        lin_avg = False
+        for dat in self.original_metadata.Number_34118.split('\r\n'):
+            if 'Tilt Corrn. = On' in dat:
+                corr_t = True
+            if 'Dyn.Focus = On' in dat:
+                corr_f = True
+            if 'Detector = ESB' in dat:
+                is_esb = True
+            if 'Noise Reduction = Line Avg' in dat:
+                lin_avg = True
+        for dat in self.original_metadata.Number_34118.split('\r\n'):
+            if 'Image Pixel' in dat:
+                da = dat.split(' ')
+                self.axes_manager.signal_axes[0].name = 'x'
+                self.axes_manager.signal_axes[1].name = 'y'
+                self.axes_manager.signal_axes[0].units = da[-1]
+                self.axes_manager.signal_axes[1].units = da[-1]
+                self.axes_manager.signal_axes[0].scale = float(da[-2])
+                self.axes_manager.signal_axes[1].scale = float(da[-2])
+            if 'Date' in dat:
+                self.metadata.set_item('General.date', dat[6:])
+            if 'Time :' in dat:
+                self.metadata.set_item('General.time', dat[6:])
+            if 'Detector =' in dat:
+                det = dat.split(' ')[-1]
+                self.metadata.set_item('Acquisition_instrument.SEM.Detector',
+                                       det)
+            if 'EHT Target' in dat:
+                self.metadata.set_item(
+                    'Acquisition_instrument.SEM.beam_energy',
+                    float(dat.split(' ')[-2]))
+            if 'Serial No.' in dat:
+                self.metadata.set_item('Acquisition_instrument.SEM.microscope',
+                                       dat.split('= ')[-1])
+            if 'Beam Current' in dat:
+                self.metadata.set_item(
+                    'Acquisition_instrument.SEM.beam_current',
+                    float(dat.split(' ')[-2]))
+            if 'Contrast A' in dat:
+                self.metadata.set_item('Acquisition_instrument.SEM.contrast',
+                                       float(dat.split(' ')[-2]))
+            if 'Brightness A' in dat:
+                self.metadata.set_item('Acquisition_instrument.SEM.brightness',
+                                       float(dat.split(' ')[-2]))
+            if 'Cycle Time' in dat:
+                self.metadata.set_item('Acquisition_instrument.SEM.frame_time',
+                                       float(dat.split(' ')[-2]))
+            if 'Line Avg.Count' in dat and lin_avg:
+                self.metadata.set_item('Acquisition_instrument.SEM.line_avg',
+                                       int(dat.split('= ')[-1]))
+            if 'Scan Speed' in dat:
+                self.metadata.set_item('Acquisition_instrument.SEM.scan_speed',
+                                       int(dat.split(' ')[-1]))
+            if 'Tilt Angle = ' in dat and corr_t and 'FCF' not in dat:
+                self.metadata.set_item('Acquisition_instrument.SEM.tilt_corr',
+                                       float(dat.split(' ')[-2]))
+            if 'Stage at T' in dat:
+                self.metadata.set_item('Acquisition_instrument.SEM.tilt_stage',
+                                       float(dat.split(' ')[-2]))
+            if 'FCF Setting' in dat and corr_f:
+                self.metadata.set_item(
+                    'Acquisition_instrument.SEM.dynamic_focus',
+                    float(dat.split(' ')[-2]))
+            if 'ESB Grid is' in dat and is_esb:
+                    self.metadata.Acquisition_instrument.SEM.set_item(
+                        'ESB_grid', dat.split(' ')[-2])
+            if 'FIB Image Probe =' in dat:
+                self.metadata.set_item(
+                    'Acquisition_instrument.FIB.beam_current',
+                    dat.split(':')[-1])
+                self.metadata.set_item(
+                    'Acquisition_instrument.FIB.beam_energy',
+                    float(dat.split('kV:')[0].split('= ')[-1]))
+            if 'FIB Column =' in dat:
+                self.metadata.set_item('Acquisition_instrument.FIB.microscope',
+                                       dat.split('= ')[-1])
