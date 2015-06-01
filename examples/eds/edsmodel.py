@@ -52,6 +52,25 @@ from hyperspy.drawing.utils import animate_legend
 m.plot(plot_components=True)
 legend(['spectrum','model']+[co.name for co in m])
 animate_legend()
+
+#Posi +  plot resiudal
+posi = {'YZ':[8.5, 5.7], 'CGO':[4.1, 1.4],
+	'LSCF': [2.7, 4.3], 'Pores':[0.27, 2.34]}
+def change_posi(name):
+    pos = posi[name]
+    s.axes_manager[0].set_index_from_value(pos[0])
+    s.axes_manager[1].set_index_from_value(pos[1])
+def plot_residual(title='Residual'):
+	if hasattr(m, '_plot.signal_plot') is False:
+		print 'plot m first'
+		return
+    sd = s._get_signal_signal()
+    sd.data = m._plot.signal_plot.ax_lines[0].ax.lines[0].get_data()[1]
+    sm = s._get_signal_signal()
+    sm.data = m._plot.signal_plot.ax_lines[0].ax.lines[1].get_data()[1]
+    utils.plot.plot_spectra([sd, sm, sd-sm],
+                            legend=['spectrum','model','residual'])
+    plt.title(title)
     
 #TEM quant
 m.get_lines_intensity(xray_lines='from_metadata')
