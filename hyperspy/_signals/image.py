@@ -247,7 +247,7 @@ class Image(Signal):
         rec.get_dimensions_from_data()
         return rec
 
-    def plot_orthoview(self, isotropic_voxel=True):
+    def plot_orthoview_old(self, isotropic_voxel=True):
         """
         Plot an orthogonal view of a 3D images
 
@@ -262,7 +262,7 @@ class Image(Signal):
         from hyperspy.misc.eds.image_eds import plot_orthoview_animated
         plot_orthoview_animated(self, isotropic_voxel=isotropic_voxel)
 
-    def plot_orthoview_new(image):
+    def plot_orthoview(image, **kwargs):
         """
         Plot an orthogonal view of a 3D images
 
@@ -273,11 +273,13 @@ class Image(Signal):
         isotropic_voxel:
             If True, generate a new image, scaling z in order to obtain
             isotropic voxel.
+        kwargs
+            The key word arguments are passed to image.plot
         """
         if len(image.axes_manager.shape) != 3:
             raise ValueError("image must have 3 dimension.")
-
-        im_xy = image.deepcopy()
+        im_xy = Signal(image.data.copy())
+        im_xy.axes_manager = image.axes_manager.deepcopy()
         im_xy.metadata.General.title = 'xy'
         im_xy.axes_manager.set_signal_dimension(0)
 
@@ -289,7 +291,6 @@ class Image(Signal):
         im_xz.axes_manager._axes[2] = im_xy.axes_manager._axes[2]
         im_xz.axes_manager._axes[1] = im_xy.axes_manager._axes[0]
         im_xz.axes_manager._axes[0] = im_xy.axes_manager._axes[1]
-
         im_yz = im_xy.deepcopy()
         im_yz = im_yz.rollaxis(0, 2)
         im_yz = im_yz.rollaxis(1, 0)
@@ -307,9 +308,9 @@ class Image(Signal):
 
         im_xz.axes_manager._update_attributes()
         im_yz.axes_manager._update_attributes()
-        im_xy.plot()
-        im_xz.plot()
-        im_yz.plot()
+        im_xy.plot(**kwargs)
+        im_xz.plot(**kwargs)
+        im_yz.plot(**kwargs)
 
     def plot(self,
              colorbar=True,
