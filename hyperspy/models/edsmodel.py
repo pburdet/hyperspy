@@ -739,7 +739,8 @@ class EDSModel(Model):
 
         free(xray_lines=xray_lines, bound=bound)
         if kind == 'single':
-            self.fit(bounded=True, fitter='mpfit', **kwargs)
+             # self.fit(bounded=True, fitter='mpfit', **kwargs)
+            self.fit(**kwargs)
         elif kind == 'multi':
             self.multifit(bounded=True, fitter='mpfit', **kwargs)
         fix(xray_lines=xray_lines)
