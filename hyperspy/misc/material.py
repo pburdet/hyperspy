@@ -469,11 +469,11 @@ def _lines_auto(composition, xray_lines):
 
 def _elements_auto(composition, elements):
     if isinstance(composition[0], numbers.Number):
-        if isinstance(elements, str):
+        if isinstance(elements, basestring):
             if elements == 'auto':
                 raise ValueError("The elements needs to be provided.")
     else:
-        if isinstance(elements, str):
+        if isinstance(elements, basestring):
             if elements == 'auto':
                 elements = []
                 for compo in composition:

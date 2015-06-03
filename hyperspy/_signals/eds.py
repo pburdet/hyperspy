@@ -321,9 +321,9 @@ class EDSSpectrum(Spectrum):
 
     def _parse_only_lines(self, only_lines):
         if hasattr(only_lines, '__iter__'):
-            if isinstance(only_lines[0], str) is False:
+            if isinstance(only_lines[0], basestring) is False:
                 return only_lines
-        elif isinstance(only_lines, str) is False:
+        elif isinstance(only_lines, basestring) is False:
             return only_lines
         only_lines = list(only_lines)
         for only_line in only_lines:
@@ -1509,6 +1509,12 @@ class EDSSpectrum(Spectrum):
         get_lines_intensity, estimate_background_windows
         """
         super(EDSSpectrum, self).plot(**kwargs)
+        self._plot_xray_lines(xray_lines, only_lines, only_one,
+                              background_windows, integration_windows)
+
+    def _plot_xray_lines(self, xray_lines=False, only_lines=("a", "b"),
+                         only_one=False, background_windows=None,
+                         integration_windows=None):
         if xray_lines is not False or\
                 background_windows is not None or\
                 integration_windows is not None:
