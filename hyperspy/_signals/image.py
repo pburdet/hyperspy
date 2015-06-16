@@ -445,17 +445,17 @@ class Image(Signal):
                 det = dat.split(' ')[-1]
                 self.metadata.set_item('Acquisition_instrument.SEM.Detector',
                                        det)
-            if 'EHT Target' in dat:
+            if 'EHT Target' in dat and 'FIB' not in dat:
                 self.metadata.set_item(
-                    'Acquisition_instrument.SEM.beam_energy',
+                    'Acquisition_instrument.SEM.beam_energy_kV',
                     float(dat.split(' ')[-2]))
             if 'Serial No.' in dat:
                 self.metadata.set_item('Acquisition_instrument.SEM.microscope',
                                        dat.split('= ')[-1])
-            if 'Beam Current' in dat:
+            if 'I Probe ' in dat and 'FIB' not in dat:
                 self.metadata.set_item(
-                    'Acquisition_instrument.SEM.beam_current',
-                    float(dat.split(' ')[-2]))
+                    'Acquisition_instrument.SEM.beam_current_nA',
+                    float(dat.split(' = ')[1][:-3]))
             if 'Contrast A' in dat:
                 self.metadata.set_item('Acquisition_instrument.SEM.contrast',
                                        float(dat.split(' ')[-2]))
@@ -463,8 +463,9 @@ class Image(Signal):
                 self.metadata.set_item('Acquisition_instrument.SEM.brightness',
                                        float(dat.split(' ')[-2]))
             if 'Cycle Time' in dat:
-                self.metadata.set_item('Acquisition_instrument.SEM.frame_time',
-                                       float(dat.split(' ')[-2]))
+                self.metadata.set_item(
+                    'Acquisition_instrument.SEM.frame_time_s',
+                    float(dat.split('= ')[1][:-5]))
             if 'Line Avg.Count' in dat and lin_avg:
                 self.metadata.set_item('Acquisition_instrument.SEM.line_avg',
                                        int(dat.split('= ')[-1]))
@@ -483,14 +484,95 @@ class Image(Signal):
                     float(dat.split(' ')[-2]))
             if 'ESB Grid is' in dat and is_esb:
                     self.metadata.Acquisition_instrument.SEM.set_item(
-                        'ESB_grid', dat.split(' ')[-2])
+                        'ESB_grid_V', dat.split(' ')[-2])
             if 'FIB Image Probe =' in dat:
+                current = float(dat.split(':')[-1].split('A')[0][:-1])
+                if 'pA' in dat.split(':')[-1]:
+                    current = current / 1000.
                 self.metadata.set_item(
-                    'Acquisition_instrument.FIB.beam_current',
-                    dat.split(':')[-1])
+                    'Acquisition_instrument.FIB.beam_current_nA',
+                    current)
                 self.metadata.set_item(
-                    'Acquisition_instrument.FIB.beam_energy',
+                    'Acquisition_instrument.FIB.beam_energy_kV',
                     float(dat.split('kV:')[0].split('= ')[-1]))
             if 'FIB Column =' in dat:
                 self.metadata.set_item('Acquisition_instrument.FIB.microscope',
                                        dat.split('= ')[-1])
+        ax = self.axes_manager['y']
+        self.metadata.set_item(
+            'Acquisition_instrument.SEM.fov_y_mum',
+            ax.size * ax.scale / 1000.)
+        ax = self.axes_manager['x']
+        self.metadata.set_item(
+            'Acquisition_instrument.SEM.fov_x_mum',
+            ax.size * ax.scale / 1000.)
+
+    def calibrate_image_altas3D(self):
+        """
+        Calibrate the image using the metadata of the tiff file as exported by
+        Atlas 3D (Fibics)
+        """
+        self.axes_manager.signal_axes[0].name = 'x'
+        self.axes_manager.signal_axes[1].name = 'y'
+        self.axes_manager['x'].units = '${\mu}m$'
+        self.axes_manager['y'].units = '${\mu}m$'
+        is_esb = False
+        for tmp in self.original_metadata.Number_51023.split('</'):
+            if 'Version><Date>' in tmp:
+                self.metadata.set_item('General.date',
+                                       tmp.split('Date>')[1][:10])
+                self.metadata.set_item('General.time', tmp.split('T')[1][:8])
+            if '<Aperture>' in tmp:
+                if ' kV | ' in tmp:
+                    dat = tmp.split('<Aperture>')[1].split(' kV | ')
+                else:
+                    dat = tmp.split('<Aperture>')[1].split('kV:')
+                self.metadata.set_item(
+                            'Acquisition_instrument.SEM.beam_energy_kV',
+                            float(dat[0]))
+                current = float(dat[1].split('A')[0][:-1])
+                if 'pA' in dat[1]:
+                    current = current / 1000.
+                self.metadata.set_item(
+                            'Acquisition_instrument.SEM.beam_current_nA',
+                            current)
+            if 'Detector><Contrast>' in tmp:
+                self.metadata.set_item('Acquisition_instrument.SEM.contrast',
+                                       float(tmp.split('<Contrast>')[1]))
+            if 'Contrast><Brightness>' in tmp:
+                self.metadata.set_item('Acquisition_instrument.SEM.brightness',
+                                       float(tmp.split('<Brightness>')[1]))
+            if 'Aperture><Detector>' in tmp:
+                self.metadata.set_item('Acquisition_instrument.SEM.Detector',
+                                       tmp.split('<Detector>')[1])
+                if tmp.split('<Detector>')[1] == 'ESB':
+                    is_esb = True
+            if 'Dwell><LineAvg>' in tmp:
+                self.metadata.set_item('Acquisition_instrument.SEM.line_avg',
+                                       int(tmp.split('<LineAvg>')[1]))
+            if 'Image><Scan><Dwell' in tmp:
+                self.metadata.set_item(
+                    'Acquisition_instrument.SEM.dwell_time_ms',
+                    float(tmp.split('">')[1]) / 1000)
+            if '<DetectorInfo><item name="ESB Grid"' in tmp and is_esb:
+                self.metadata.set_item(
+                    'Acquisition_instrument.SEM.ESB_grid_V',
+                    float(tmp.split('ESB Grid">=  ')[1][:-2]))
+            if 'LineAvg><FOV_X units="um">' in tmp:
+                fov_x = float(tmp.split('units="um">')[1])
+                ax = self.axes_manager['x']
+                ax.scale = fov_x / ax.size
+                self.metadata.set_item(
+                    'Acquisition_instrument.SEM.fov_x_mum', fov_x)
+            if 'FOV_X><FOV_Y units="um">' in tmp:
+                fov_y = float(tmp.split('units="um">')[1])
+                ax = self.axes_manager['y']
+                ax.scale = fov_y / ax.size
+                for i, dat in enumerate(self.data[:, 0]):
+                    if dat != self.data[0, 0]:
+                        break
+                self.metadata.set_item(
+                    'Acquisition_instrument.SEM.fov_y_mum',
+                    self[:, i:].axes_manager['y'].size * ax.scale)
+            if 'ID><Name>' in tmp:
+                self.metadata.General.title = tmp.split('ID><Name>')[1]
