@@ -558,7 +558,7 @@ class Image(Signal):
                 self.metadata.set_item(
                     'Acquisition_instrument.SEM.ESB_grid_V',
                     float(tmp.split('ESB Grid">=  ')[1][:-2]))
-            if 'LineAvg><FOV_X units="um">' in tmp:
+            if '><FOV_X units="um">' in tmp:
                 fov_x = float(tmp.split('units="um">')[1])
                 ax = self.axes_manager['x']
                 ax.scale = fov_x / ax.size

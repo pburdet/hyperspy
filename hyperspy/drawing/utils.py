@@ -559,18 +559,16 @@ def plot_images(images,
             div_num = int(min(np.sum(res, 1)))
             basename = label_list[0][:div_num - 1]
             all_match = False
-        try:
-            # trim off any '(' or ' ' characters at end of basename
-            if div_num > 1:
-                while True:
-                    if basename[len(basename) - 1] == '(':
-                        basename = basename[:-1]
-                    elif basename[len(basename) - 1] == ' ':
-                        basename = basename[:-1]
-                    else:
-                        break
-        except:
-            pass
+
+        # trim off any '(' or ' ' characters at end of basename
+        if div_num > 1:
+            while True:
+                if basename[len(basename) - 1] == '(':
+                    basename = basename[:-1]
+                elif basename[len(basename) - 1] == ' ':
+                    basename = basename[:-1]
+                else:
+                    break
 
         # namefrac is ratio of length of basename to the image name
         # if it is high (e.g. over 0.5), we can assume that all images
