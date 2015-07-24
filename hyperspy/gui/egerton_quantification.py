@@ -42,6 +42,10 @@ class BackgroundRemoval(SpanSelectorInSpectrum):
         'Polynomial',
         default='Power Law')
     polynomial_order = t.Range(1, 10)
+    estimate_background = t.Enum(
+        'Estimate',
+        'Full fit',
+        default='Estimate')
     background_estimator = t.Instance(Component)
     bg_line_range = t.Enum('from_left_range',
                            'full',
@@ -54,6 +58,7 @@ class BackgroundRemoval(SpanSelectorInSpectrum):
             tu.Group(
                 'polynomial_order',
                 visible_when='background_type == \'Polynomial\''),),
+            'estimate_background',
             buttons=[OKButton, CancelButton],
             handler=SpanSelectorInSpectrumHandler,
             title='Background removal tool')
@@ -61,6 +66,7 @@ class BackgroundRemoval(SpanSelectorInSpectrum):
     def __init__(self, signal):
         super(BackgroundRemoval, self).__init__(signal)
         self.set_background_estimator()
+        self.estimate_fit = True
         self.bg_line = None
 
     def on_disabling_span_selector(self):
@@ -92,6 +98,12 @@ class BackgroundRemoval(SpanSelectorInSpectrum):
         self.set_background_estimator()
         self.span_selector_changed()
 
+    def _estimate_background_changed(self, old, new):
+        if self.estimate_background == 'Full fit':
+            self.estimate_fit = False
+        if self.estimate_background == 'Estimate':
+            self.estimate_fit = True
+
     def _ss_left_value_changed(self, old, new):
         self.span_selector_changed()
 
@@ -103,7 +115,8 @@ class BackgroundRemoval(SpanSelectorInSpectrum):
         self.bg_line.data_function = self.bg_to_plot
         self.bg_line.set_line_properties(
             color='blue',
-            type='line')
+            type='line',
+            scaley=False)
         self.signal._plot.signal_plot.add_line(self.bg_line)
         self.bg_line.autoscale = False
         self.bg_line.plot()
@@ -154,7 +167,7 @@ class BackgroundRemoval(SpanSelectorInSpectrum):
         self.signal._plot.auto_update_plot = False
         new_spectra = self.signal._remove_background_cli(
             (self.ss_left_value, self.ss_right_value),
-            self.background_estimator)
+            self.background_estimator, estimate_background=self.estimate_fit)
         self.signal.data = new_spectra.data
         self.signal._replot()
         self.signal._plot.auto_update_plot = True
@@ -320,8 +333,11 @@ class SpikesRemoval(SpanSelectorInSpectrum):
         else:
             minimum = max(0, self.argmax - 50)
             maximum = min(len(self.signal()) - 1, self.argmax + 50)
-            thresh_label = DerivativeTextParameters(text="$\mathsf{\delta}_\mathsf{max}=$", color="black")
-            self.ax.legend([thresh_label], [repr(int(self.derivmax))], handler_map={DerivativeTextParameters: DerivativeTextHandler()}, loc='best')
+            thresh_label = DerivativeTextParameters(
+                text="$\mathsf{\delta}_\mathsf{max}=$",
+                color="black")
+            self.ax.legend([thresh_label], [repr(int(self.derivmax))], handler_map={
+                           DerivativeTextParameters: DerivativeTextHandler()}, loc='best')
             self.ax.set_xlim(
                 self.signal.axes_manager.signal_axes[0].index2value(
                     minimum),
@@ -465,16 +481,19 @@ class SpikesRemoval(SpanSelectorInSpectrum):
 
 # For creating a text handler in legend (to label derivative magnitude)
 class DerivativeTextParameters(object):
+
     def __init__(self, text, color):
         self.my_text = text
         self.my_color = color
 
 
 class DerivativeTextHandler(object):
+
     def legend_artist(self, legend, orig_handle, fontsize, handlebox):
         x0, y0 = handlebox.xdescent, handlebox.ydescent
         width, height = handlebox.width, handlebox.height
-        patch = mpl_text.Text(text=orig_handle.my_text, color=orig_handle.my_color)
+        patch = mpl_text.Text(
+            text=orig_handle.my_text,
+            color=orig_handle.my_color)
         handlebox.add_artist(patch)
         return patch
-

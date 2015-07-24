@@ -23,7 +23,6 @@ import numpy as np
 import warnings
 
 import traits.api as t
-import traitsui.api as tu
 from traits.trait_numeric import Array
 
 from hyperspy.defaults_parser import preferences
@@ -102,9 +101,10 @@ class Parameter(t.HasTraits):
 
     # traitsui bugs out trying to make an editor for this, so always specify!
     # (it bugs out, because both editor shares the object, and Array editors
-    # don't like non-sequence objects). TextEditor() works well.
-    value = t.Property(
-        t.Either([t.CFloat(0), Array()]), editor=tu.TextEditor())
+    # don't like non-sequence objects). TextEditor() works well, so does
+    # RangeEditor() as it works with bmin/bmax.
+    value = t.Property(t.Either([t.CFloat(0), Array()]))
+
     units = t.Str('')
     free = t.Property(t.CBool(True))
 
@@ -598,6 +598,24 @@ class Parameter(t.HasTraits):
             dic['twin_inverse_function'] = marshal.dumps(
                 self.twin_inverse_function.func_code)
         return dic
+
+    def default_traits_view(self):
+        # As mentioned above, the default editor for
+        # value = t.Property(t.Either([t.CFloat(0), Array()]))
+        # gives a ValueError. We therefore implement default_traits_view so
+        # that configure/edit_traits will still work straight out of the box.
+        # A whitelist controls which traits to include in this view.
+        from traitsui.api import RangeEditor, View, Item
+        whitelist = ['bmax', 'bmin', 'free', 'name', 'std', 'units', 'value']
+        editable_traits = [trait for trait in self.editable_traits()
+                           if trait in whitelist]
+        if 'value' in editable_traits:
+            i = editable_traits.index('value')
+            v = editable_traits.pop(i)
+            editable_traits.insert(i, Item(
+                v, editor=RangeEditor(low_name='bmin', high_name='bmax')))
+        view = View(editable_traits, buttons=['OK', 'Cancel'])
+        return view
 
 
 class Component(t.HasTraits):
