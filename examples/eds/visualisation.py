@@ -53,3 +53,9 @@ m = utils.plot.markers.rectangle(x1=10.,x2=20.,y1=10.,y2=15.,
 splot.add_marker(m)
 fig = gcf()
 fig
+
+def fig_screenShot(f):
+    data = np.fromstring(f.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+    data = data.reshape(f.canvas.get_width_height()[::-1] + (3,))
+    a = hs.signals.Spectrum(data)
+    a.change_dtype('rgb8')

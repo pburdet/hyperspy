@@ -54,6 +54,18 @@ legend(['spectrum','model']+[co.name for co in m])
 animate_legend()
 
 #Posi +  plot resiudal
+posi = {}
+for re in ime.metadata.Sample.intensity:
+    posi[re.metadata.Sample.xray_lines[0]] = [
+            np.where(re.data == re.data.max())[0][0],
+            np.where(re.data == re.data.max())[2][0],
+            np.where(re.data == re.data.max())[1][0]]
+def change_posi(name):
+    pos = posi[name]
+    s.axes_manager[0].set_index_from_value(pos[0])
+    s.axes_manager[1].set_index_from_value(pos[1])
+    s.axes_manager[2].set_index_from_value(pos[2])
+
 posi = {'YZ':[8.5, 5.7], 'CGO':[4.1, 1.4],
 	'LSCF': [2.7, 4.3], 'Pores':[0.27, 2.34]}
 def change_posi(name):
