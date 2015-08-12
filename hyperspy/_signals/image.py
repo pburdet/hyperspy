@@ -109,7 +109,7 @@ class Image(Signal):
         img_res = self.deepcopy()
 
         src = img_res._get_mayavi_scalar_field()
-        img_data = self.data
+        # img_data = self.data
 
         if hasattr(threshold, "__iter__") is False:
             threshold = [threshold]
@@ -117,8 +117,8 @@ class Image(Signal):
             if color is None:
                 color = colors[len(figure.children) - 1]
 
-        threshold = [img_data.max() - thr * img_data.ptp()
-                     for thr in threshold]
+#        threshold = [img_data.max() - thr * img_data.ptp()
+#                     for thr in threshold]
 
         if color is None:
             iso = mlab.pipeline.iso_surface(src,
@@ -132,6 +132,8 @@ class Image(Signal):
         if outline:
             mlab.outline(color=(0.5, 0.5, 0.5))
             # mlab.outline()
+            
+        iso.contour.contours = threshold
 
         return figure, src, iso
 
