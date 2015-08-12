@@ -385,12 +385,12 @@ def plot_orthoview_animated(image, isotropic_voxel=True):
     else:
         im_xy = image.deepcopy()
     im_xy.metadata.General.title = 'xy'
-    im_xy.axes_manager.set_signal_dimension(0)
+    #im_xy.axes_manager.set_signal_dimension(0)
 
     im_xz = im_xy.deepcopy()
     im_xz = im_xz.rollaxis(2, 1)
     im_xz.metadata.General.title = 'xz'
-    im_xz.axes_manager.set_signal_dimension(0)
+    #im_xz.axes_manager.set_signal_dimension(0)
 
     im_xz.axes_manager._axes[2] = im_xy.axes_manager._axes[2]
     im_xz.axes_manager._axes[1] = im_xy.axes_manager._axes[0]
@@ -400,7 +400,7 @@ def plot_orthoview_animated(image, isotropic_voxel=True):
     im_yz = im_yz.rollaxis(0, 2)
     im_yz = im_yz.rollaxis(1, 0)
     im_yz.metadata.General.title = 'yz'
-    im_yz.axes_manager.set_signal_dimension(0)
+    #im_yz.axes_manager.set_signal_dimension(0)
 
     im_yz.axes_manager._axes = im_xy.axes_manager._axes[::-1]
 
