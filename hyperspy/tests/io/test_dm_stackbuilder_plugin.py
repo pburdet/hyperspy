@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2007-2011 The HyperSpy developers
+# Copyright 2007-2015 The HyperSpy developers
 #
 # This file is part of  HyperSpy.
 #
@@ -17,17 +17,21 @@
 # along with  HyperSpy.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from IPython import ipapi
-from hyperspy import Release
+import os
+
+from nose.tools import assert_equal
+from hyperspy.io import load
+
+my_path = os.path.dirname(__file__)
 
 
-def main():
-    import ipy_user_conf
-    ip = ipapi.get()
-    o = ip.options
-    o.pylab_import_all = 0
-    ip.ex("from hyperspy.hspy import *")
-    ip.ex("__version__ = Release.version")
-    o.banner = Release.info
+class TestStackBuilder:
 
-main()
+    def test_load_stackbuilder_imagestack(self):
+        image_stack = load(
+            my_path +
+            "/dm_stackbuilder_plugin/test_stackbuilder_imagestack.dm3")
+        data_dimensions = image_stack.data.ndim
+        am = image_stack.axes_manager
+        axes_dimensions = am.signal_dimension + am.navigation_dimension
+        assert_equal(data_dimensions, axes_dimensions)
