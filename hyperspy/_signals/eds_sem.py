@@ -1698,6 +1698,35 @@ class EDSSEMSpectrum(EDSSpectrum):
                                   TOA=TOA))
         return spec
 
+    def create_model(self,
+                     auto_add_lines=True,
+                     auto_background=True):
+        """Create a model for the current EDS SEM data.
+
+        Parameters
+        ----------
+        auto_add_lines : boolean
+            If True, automatically add Gaussians for all X-rays generated
+            in the energy range by an element, using the
+            edsmodel.add_family_lines method
+        auto_background : boolean
+            If True, adds automatically a polynomial order 6 to the model,
+            using the edsmodel.add_polynomial_background method.
+
+        Example
+        -------
+        >>> m = s.create_model()
+        >>> m.fit()
+        >>> m.fit_background()
+        >>> m.calibrate_energy_axis('resolution')
+        >>> m.calibrate_xray_lines('energy',['Au_Ma'])
+        >>> m.calibrate_xray_lines('sub_weight',['Mn_La'],bound=10)
+        """
+        from hyperspy.models.edssemmodel import EDSSEMModel
+        model = EDSSEMModel(self, auto_add_lines=auto_add_lines,
+                            auto_background=auto_background)
+        return model
+
     # def check_total(self):
         #img_0 = self.get_result(xray_lines[0],'kratios')
 

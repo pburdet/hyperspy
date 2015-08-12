@@ -1414,3 +1414,32 @@ class EDSTEMSpectrum(EDSSpectrum):
         if real_time == 'auto':
             real_time = parameters.Detector.EDS.real_time
         return real_time * beam_current * 1e-9 / constants.e
+
+    def create_model(self,
+                     auto_add_lines=True,
+                     auto_background=True):
+        """Create a model for the current EDS TEM data.
+
+        Parameters
+        ----------
+        auto_add_lines : boolean
+            If True, automatically add Gaussians for all X-rays generated
+            in the energy range by an element, using the
+            edsmodel.add_family_lines method
+        auto_background : boolean
+            If True, adds automatically a polynomial order 6 to the model,
+            using the edsmodel.add_polynomial_background method.
+
+        Example
+        -------
+        >>> m = s.create_model()
+        >>> m.fit()
+        >>> m.fit_background()
+        >>> m.calibrate_energy_axis('resolution')
+        >>> m.calibrate_xray_lines('energy',['Au_Ma'])
+        >>> m.calibrate_xray_lines('sub_weight',['Mn_La'],bound=10)
+        """
+        from hyperspy.models.edstemmodel import EDSTEMModel
+        model = EDSTEMModel(self, auto_add_lines=auto_add_lines,
+                            auto_background=auto_background)
+        return model

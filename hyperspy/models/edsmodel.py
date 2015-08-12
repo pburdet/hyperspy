@@ -177,10 +177,10 @@ class EDSModel(Model):
             init = True
             if init:
                 self[xray_line].A.map[
-                    'values'] = self.spectrum[..., line_energy].data * \
+                    'values'] = self.spectrum.isig[line_energy].data * \
                     line_FWHM / self.spectrum.axes_manager[-1].scale
                 self[xray_line].A.map['is_set'] = (
-                    np.ones(self.spectrum[..., line_energy].data.shape) == 1)
+                    np.ones(self.spectrum.isig[line_energy].data.shape) == 1)
 
             component.A.ext_force_positive = True
             for li in elements_db[element]['Atomic_properties']['Xray_lines']:
