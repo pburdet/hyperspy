@@ -5,6 +5,8 @@ This example is done for file exported from INCA, oxford instrument.
 It might need to be change for other
 
 """
+%hyperspy -r qt4
+
 
 your_own_file = False
 # loading the rpl file and a spectrum from one pixel

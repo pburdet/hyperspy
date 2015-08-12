@@ -3,7 +3,10 @@ Visualisation
 
 """
 
-pyplot.set_cmap('RdYlBu_r')
+plt.rcParams['image.cmap'] = 'RdYlBu_r'
+#plt.rcParams['image.cmap'] = 'gray'
+
+#pyplot.set_cmap('RdYlBu_r')
 
 # 3D spectrum
 
