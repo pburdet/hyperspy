@@ -369,8 +369,8 @@ class EDSModel(Model):
         else:
             self.spectrum.set_microscope_parameters(
                 energy_resolution_MnKa=FWHM_MnKa)
-            print("Energy resolution (FWHM at Mn Ka) changed from "
-                  + "%lf to %lf eV" % (FWHM_MnKa_old, FWHM_MnKa))
+            print("Energy resolution (FWHM at Mn Ka) changed from " +
+                  "%lf to %lf eV" % (FWHM_MnKa_old, FWHM_MnKa))
             for component in self:
                 if component.isbackground is False:
                     line_energy, line_FWHM = self.spectrum._get_line_energy(
@@ -578,15 +578,18 @@ class EDSModel(Model):
             for li in elements_db[element]['Atomic_properties']['Xray_lines']:
                 if line[0] in li and line != li:
                     xray_sub = element + '_' + li
-                    component_sub = self[xray_sub]
-                    component_sub.A.bmin = 1e-10
-                    component_sub.A.bmax = None
-                    weight_line = component_sub.A.value / component.A.value
-                    component_sub.A.twin_function = _get_weight(
-                        element, li, weight_line)
-                    component_sub.A.twin_inverse_function = _get_iweight(
-                        element, li, weight_line)
-                    component_sub.A.twin = component.A
+                    if self.spectrum.\
+                            _get_xray_lines_in_spectral_range(
+                                [xray_sub])[0] != []:
+                        component_sub = self[xray_sub]
+                        component_sub.A.bmin = 1e-10
+                        component_sub.A.bmax = None
+                        weight_line = component_sub.A.value / component.A.value
+                        component_sub.A.twin_function = _get_weight(
+                            element, li, weight_line)
+                        component_sub.A.twin_inverse_function = _get_iweight(
+                            element, li, weight_line)
+                        component_sub.A.twin = component.A
         for component in self.xray_lines:
             if xray_lines == 'all':
                 fix_twin()
@@ -617,6 +620,16 @@ class EDSModel(Model):
                     component.centre.bmin = component.centre.value - bound
                     component.centre.bmax = component.centre.value + bound
 
+    def set_xray_lines_energy(self, xray_lines='all'):
+        if xray_lines == 'all_alpha':
+            xray_lines = [compo.name for compo in self.xray_lines]
+        for component in self:
+            if component.isbackground is False:
+                if xray_lines == 'all':
+                    component.centre.assign_current_value_to_all()
+                elif component.name in xray_lines:
+                    component.centre.assign_current_value_to_all()
+
     def fix_xray_lines_energy(self, xray_lines='all'):
         """
         Fix the X-ray line energy (shift or centre of the Gaussian)
@@ -642,6 +655,16 @@ class EDSModel(Model):
                     component.centre.free = False
                     component.centre.bmin = None
                     component.centre.bmax = None
+
+    def set_xray_lines_width(self, xray_lines='all'):
+        if xray_lines == 'all_alpha':
+            xray_lines = [compo.name for compo in self.xray_lines]
+        for component in self:
+            if component.isbackground is False:
+                if xray_lines == 'all':
+                    component.sigma.assign_current_value_to_all()
+                elif component.name in xray_lines:
+                    component.sigma.assign_current_value_to_all()
 
     def free_xray_lines_width(self, xray_lines='all', bound=0.01):
         """
@@ -729,21 +752,25 @@ class EDSModel(Model):
             bound = bound / 1000. * self.units_factor
             free = self.free_xray_lines_energy
             fix = self.fix_xray_lines_energy
+            scale = self.set_xray_lines_energy
         elif calibrate == 'sub_weight':
             free = self.free_sub_xray_lines_weight
             fix = self.fix_sub_xray_lines_weight
+            scale = None
         elif calibrate == 'width':
             bound = bound / 1000. * self.units_factor
             free = self.free_xray_lines_width
             fix = self.fix_xray_lines_width
-
+            scale = self.set_xray_lines_width
         free(xray_lines=xray_lines, bound=bound)
         if kind == 'single':
-             # self.fit(bounded=True, fitter='mpfit', **kwargs)
-            self.fit(**kwargs)
+            self.fit(bounded=True, fitter='mpfit', **kwargs)
+            # self.fit(**kwargs)
         elif kind == 'multi':
             self.multifit(bounded=True, fitter='mpfit', **kwargs)
         fix(xray_lines=xray_lines)
+        if scale is not None:
+            scale(xray_lines=xray_lines)
 
     def get_lines_intensity(self,
                             xray_lines=None,
