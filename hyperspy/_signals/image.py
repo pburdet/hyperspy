@@ -313,9 +313,22 @@ class Image(Signal):
 
         im_xz.axes_manager._update_attributes()
         im_yz.axes_manager._update_attributes()
+
+        def iso_pix(im):
+            min_aspect = im.axes_manager[0].scale / im.axes_manager[1].scale
+            if min_aspect > 1.:
+                min_aspect = 1. / min_aspect
+            im._plot.navigator_plot.min_aspect = min_aspect
+            im._plot.navigator_plot.figure.clear()
+            im._plot.navigator_plot.create_axis()
+            im._plot.navigator_plot.plot()
+            im._plot.pointer.set_mpl_ax(im._plot.navigator_plot.ax)
         im_xy.plot(**kwargs)
+        iso_pix(im_xy)
         im_xz.plot(**kwargs)
+        iso_pix(im_xz)
         im_yz.plot(**kwargs)
+        iso_pix(im_yz)
 
     def plot(self,
              colorbar=True,
