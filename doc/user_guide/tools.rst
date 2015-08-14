@@ -468,43 +468,55 @@ are not equal `numpy broadcasting rules apply
 <http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html>`_ *first*. In
 addition HyperSpy extend numpy's broadcasting rules to the following cases:
 
-+------------+----------------------+------------------+
-| **Signal** | **NavigationShape**  | **SignalShape**  |
-+============+======================+==================+
-|   s1       |        a             |      b           |
-+------------+----------------------+------------------+
-|   s2       |       (0,)           |      a           |
-+------------+----------------------+------------------+
-|   s1 + s2  |       a              |      b           |
-+------------+----------------------+------------------+
-|   s2 + s1  |       a              |      b           |
-+------------+----------------------+------------------+
+
+.. deprecated:: 0.8.1
+
+    This broadcasting rules will change in HyperSpy 0.9.
+
+    .. table:: Signal broadcasting rules (i).
+
+        +------------+----------------------+------------------+
+        | **Signal** | **NavigationShape**  | **SignalShape**  |
+        +============+======================+==================+
+        |   s1       |        a             |      b           |
+        +------------+----------------------+------------------+
+        |   s2       |       (0,)           |      a           |
+        +------------+----------------------+------------------+
+        |   s1 + s2  |       a              |      b           |
+        +------------+----------------------+------------------+
+        |   s2 + s1  |       a              |      b           |
+        +------------+----------------------+------------------+
 
 
-+------------+----------------------+------------------+
-| **Signal** | **NavigationShape**  | **SignalShape**  |
-+============+======================+==================+
-|   s1       |        a             |      b           |
-+------------+----------------------+------------------+
-|   s2       |       (0,)           |      b           |
-+------------+----------------------+------------------+
-|   s1 + s2  |       a              |      b           |
-+------------+----------------------+------------------+
-|   s2 + s1  |       a              |      b           |
-+------------+----------------------+------------------+
+    .. table:: Signal broadcasting rules (ii).
+
+        +------------+----------------------+------------------+
+        | **Signal** | **NavigationShape**  | **SignalShape**  |
+        +============+======================+==================+
+        |   s1       |        a             |      b           |
+        +------------+----------------------+------------------+
+        |   s2       |       (0,)           |      b           |
+        +------------+----------------------+------------------+
+        |   s1 + s2  |       a              |      b           |
+        +------------+----------------------+------------------+
+        |   s2 + s1  |       a              |      b           |
+        +------------+----------------------+------------------+
 
 
-+------------+----------------------+------------------+
-| **Signal** | **NavigationShape**  | **SignalShape**  |
-+============+======================+==================+
-|   s1       |       (0,)           |      a           |
-+------------+----------------------+------------------+
-|   s2       |       (0,)           |      b           |
-+------------+----------------------+------------------+
-|   s1 + s2  |       b              |      a           |
-+------------+----------------------+------------------+
-|   s2 + s1  |       a              |      b           |
-+------------+----------------------+------------------+
+    .. table:: Signal broadcasting rules (iii).
+
+        +------------+----------------------+------------------+
+        | **Signal** | **NavigationShape**  | **SignalShape**  |
+        +============+======================+==================+
+        |   s1       |       (0,)           |      a           |
+        +------------+----------------------+------------------+
+        |   s2       |       (0,)           |      b           |
+        +------------+----------------------+------------------+
+        |   s1 + s2  |       b              |      a           |
+        +------------+----------------------+------------------+
+        |   s2 + s1  |       a              |      b           |
+        +------------+----------------------+------------------+
+
 
 .. _signal.iterator:
 
@@ -555,6 +567,8 @@ to make a horizontal "collage" of the image stack:
   :align:   center
   :width:   500
 
+  Rotation of images by iteration.
+
 .. versionadded:: 0.7
 
 
@@ -577,6 +591,8 @@ external function can be more easily accomplished using the
 .. figure::  images/rotate_lena_apply_simple.png
   :align:   center
   :width:   500
+
+  Rotation of images by the same amount using :py:meth:`~.signal.Signal.map`.
 
 The :py:meth:`~.signal.Signal.map` method can also take variable
 arguments as in the following example.
@@ -620,6 +636,9 @@ The :py:meth:`~.signal.Signal.map` method can be automatically parallelized usin
     >>> %%time
     >>> self.map(denoise_tv_chambolle, parallel=8, eps=2e-5, n_iter_max=2000)
     Wall time: 6.61 s   
+
+  Rotation of images using :py:meth:`~.signal.Signal.map` with different
+  arguments for each image in the stack.
 
 Cropping
 ^^^^^^^^
@@ -671,6 +690,8 @@ with same dimension.
   :align:   center
   :width:   500
 
+  Stacking example.
+
 An object can be splitted into several objects
 with the :py:meth:`~.signal.Signal.split` method. This function can be used
 to reverse the :py:func:`~.utils.stack` function:
@@ -697,6 +718,9 @@ Fast Fourier transform and its inverse can be applied on a signal with the :py:m
 .. figure::  images/lena_fft.png
   :align:   center
   :width:   400 
+
+  Splitting example.
+
 
 Simple operations over one axis
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -834,7 +858,7 @@ with histograms of several random chi-square distributions:
    :align:   center
    :width:   500
 
-   Comparing histograms
+   Comparing histograms.
 
 
 .. _signal.noise_properties:
