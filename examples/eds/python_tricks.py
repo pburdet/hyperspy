@@ -113,6 +113,7 @@ copy paste part of code
 %load "C:\Users\pb565\Documents\Python\hyperspy\examples\eds\simulation.py"
 %load "C:\Users\pb565\Documents\Python\hyperspy\examples\eds\visualisation.py"
 %load "C:\Users\pb565\Documents\Python\hyperspy\examples\eds\quantification_tem.py"
+%load "C:\Users\pb565\Documents\Python\hyperspy\examples\eds\edsmodel.py"
 
 # To configure lprune
 # http://pynash.org/2013/03/06/timing-and-profiling.html

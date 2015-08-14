@@ -4,7 +4,7 @@
 
 #SEM BAM
 s = database.spec1D()
-m = create_model(s,auto_background=False)
+m = s.create_model(auto_background=False)
 m.add_family_lines(['Ar_Ka','O_Ka'])
 m.add_background([1,2,3],detector_name='Xmax')
     # , weight_fraction=[0.25,0,0.25,0.25,0.25])
@@ -14,10 +14,11 @@ m.fit_energy_resolution()
 m.fit_sub_xray_lines_weight(['Cu_La','Mn_La','Zr_La'],bound=1)
 m.fit_xray_lines_energy(bound=0.02)
 m.fit()
-           
+       
+    
 #TEM
 s = database.spec1D('TEM')
-m = create_model(s,auto_background=False)
+m = s.create_model(auto_background=False)
 m.add_family_lines(['Cu_Ka','Cu_La'])
 m.add_background(detector_name='osiris' 
                  ,thicknesses = [75,100,125])
@@ -28,7 +29,7 @@ m.fit_energy_resolution()
 m.fit_sub_xray_lines_weight(bound=1)#Might be slow
 
 #Determining the scaling (fast method)
-m = create_model(s,auto_add_lines=False,auto_background=False)
+m = s.create_model(auto_add_lines=False,auto_background=False)
 line_to_fit = 'Ni_Ka'
 m.add_family_lines([line_to_fit])
 m.fit()
@@ -42,7 +43,7 @@ s.axes_manager[-1].scale = scale - (
 #Plotting
 m.plot(plot_components=True)
 m.plot()
-utils.plot.plot_spectra([s,m.as_signal(),s-m.as_signal()],
+hs.plot.plot_spectra([s,m.as_signal(),s-m.as_signal()],
                         legend=['spectrum','model','residual'])
 for bc in m.background_components:
     print bc.name
@@ -73,9 +74,9 @@ def change_posi(name):
     s.axes_manager[0].set_index_from_value(pos[0])
     s.axes_manager[1].set_index_from_value(pos[1])
 def plot_residual(title='Residual'):
-	if hasattr(m, '_plot.signal_plot') is False:
-		print 'plot m first'
-		return
+    if hasattr(m, '_plot.signal_plot') is False:
+        print 'plot m first'
+        return
     sd = s._get_signal_signal()
     sd.data = m._plot.signal_plot.ax_lines[0].ax.lines[0].get_data()[1]
     sm = s._get_signal_signal()
@@ -89,3 +90,33 @@ m.get_lines_intensity(xray_lines='from_metadata')
 s.get_kfactors_from_brucker()
 s.quant_cliff_lorimer()
 weight_fraction = utils.stack(s.metadata.Sample.quant).data
+# Cliff-Lorimer
+
+# simple method
+
+s = database.spec3D('TEM_robert')
+s.set_elements(['Al','Cr', "Ni"])
+s.set_lines(["Al_Ka", "Cr_Ka", "Ni_Ka"])
+kfactors = [s.metadata.Sample.kfactors[0], s.metadata.Sample.kfactors[3],
+            s.metadata.Sample.kfactors[7]]
+bc = s.estimate_background_windows()
+s.sum(0).sum(0).plot(background_windows=bc)
+intensities = s.get_lines_intensity(background_windows=bc)
+res = s.quantification(intensities, kfactors)
+hs.plot.plot_signals(res)
+
+# Simulate two elements standard
+s.set_microscope_parameters(live_time=30)
+s.simulate_two_elements_standard(nTraj=100)
+s.get_kfactors_from_standard()
+s.metadata.Sample.intensities = intensities
+s.quantification_old()
+# kfactors from first principles
+s.get_kfactors_from_first_principles()
+s.quantification_old()
+# Quant of PCA
+
+mask = (s.sum(-1) > 25) 
+intensities = s.get_lines_intensity()
+intensities = [intens * mask for intens in intensities]
+s.quantification_old(intensities=intensities)
