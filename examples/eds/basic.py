@@ -11,8 +11,8 @@ It might need to be change for other
 your_own_file = False
 # loading the rpl file and a spectrum from one pixel
 if your_own_file:
-    s = load('your_file.rpl', signal_type="EDS_SEM").as_spectrum(0)
-    s_1_pixel = load('your_file_1_pixel.msa', signal_type="EDS_SEM")
+    s = hs.load('your_file.rpl', signal_type="EDS_SEM").as_spectrum(0)
+    s_1_pixel = hs.load('your_file_1_pixel.msa', signal_type="EDS_SEM")
 else:
     others = 'database'
     #others = 'model'
@@ -25,15 +25,15 @@ else:
         s = utils_eds.simulate_model(['Al', 'Zn'], shape_spectrum=[2, 3, 1024])
         s_1_pixel = utils_eds.simulate_model(['Al', 'Zn'])
     elif others == 'model2':
-        s = signals.EDSSEMSpectrum(range(1024))
+        s = hs.signals.EDSSEMSpectrum(range(1024))
         s.axes_manager[-1].scale = 0.01
         s.axes_manager[-1].units = "keV"
         s.axes_manager[-1].offset = -0.1
         s.metadata.Acquisition_instrument.SEM.Detector.EDS.counts_rate = 10
         s.set_microscope_parameters(beam_energy=15, live_time=10)
         s.set_elements(['Al', 'Zn'])
-        s = utils.stack([s.simulate_model()+0.5 for i in range(3)])
-        s = signals.EDSTEMSpectrum([list(s.data)*10]*10)
+        s = hs.stack([s.simulate_model()+0.5 for i in range(3)])
+        s = hs.signals.EDSTEMSpectrum([list(s.data)*10]*10)
         s.add_poissonian_noise()
     else:
         # Build a spectrum
@@ -59,7 +59,7 @@ s.axes_manager[-1].name = 'E'
 # Spatial axes calibration
 axes_name = ['x', 'y']
 units_name = '${\mu}m$'
-scale = array([0.04, 0.04])
+scale = np.array([0.04, 0.04])
 for i in range(2):
     s.axes_manager[i].name = axes_name[i]
     s.axes_manager[i].units = units_name
@@ -70,5 +70,5 @@ s.set_elements(['Al', 'Zn'])
 s.add_lines()
 
 # Plotting the lines intensity
-pyplot.set_cmap('RdYlBu_r')
+plt.set_cmap('RdYlBu_r')
 s.get_lines_intensity(plot_result=True)

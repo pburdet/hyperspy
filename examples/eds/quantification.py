@@ -2,7 +2,7 @@
 Quantification
 """
 
-pyplot.set_cmap('RdYlBu_r')
+plt.set_cmap('RdYlBu_r')
 
 long_time = False
 elements = ['Ti', 'Fe', 'Ni']

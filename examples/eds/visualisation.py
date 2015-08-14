@@ -15,12 +15,12 @@ im = database.image2D('Ti_SEM')
 
 # elemental map and histogram
 res = s.get_lines_intensity(plot_result=True)
-utils.plot.plot_histograms(res)
+hs.plot.plot_histograms(res)
 
 # line scan
 line_scan = s[::, 6.6]
 res = line_scan.get_lines_intensity()
-utils.plot.plot_spectra(res, legend='auto')
+hs.plot.plot_spectra(res, legend='auto')
 
 # Nav with SE image
 dim = s.axes_manager.shape
@@ -38,10 +38,8 @@ fig, src, iso = img.plot_3D_iso_surface([0.2, 0.8])
 fig, src2, iso2 = img2.plot_3D_iso_surface(0.2, figure=fig,
                                            outline=False)
 iso2.contour.contours = [0.73, ]
-
 # orthoview
 img2.plot_orthoview()
-image_eds.plot_orthoview_animated(img2)
 
 #Modify param signal
 img.plot(vmax = 0.45, vmin = 0.0)
@@ -51,10 +49,10 @@ img.plot(saturated_pixels=0.0)
 
 #Draw an area with marker
 splot =  database.image2D()
-m = utils.plot.markers.rectangle(x1=10.,x2=20.,y1=10.,y2=15.,
+m = hs.plot.markers.rectangle(x1=10.,x2=20.,y1=10.,y2=15.,
                                  color='red')
 splot.add_marker(m)
-fig = gcf()
+fig = plt.gcf()
 fig
 
 def fig_screenShot(f):
@@ -62,3 +60,14 @@ def fig_screenShot(f):
     data = data.reshape(f.canvas.get_width_height()[::-1] + (3,))
     a = hs.signals.Spectrum(data)
     a.change_dtype('rgb8')
+    return a
+fig_screenShot(fig).plot()
+
+#Change aspect ratio
+im = database.result3D().metadata.Sample.quant[0].isig[:, 5.].as_image([0, 1])
+im.plot()
+im._plot.signal_plot.min_aspect = im.axes_manager.signal_axes[1].scale /\
+	im.axes_manager.signal_axes[0].scale
+im._plot.signal_plot.figure.clear()
+im._plot.signal_plot.create_axis()
+im._plot.signal_plot.plot()

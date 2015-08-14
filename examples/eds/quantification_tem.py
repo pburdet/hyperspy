@@ -2,7 +2,7 @@
 
 # simple method
 
-s = database.spec3D('TEM')
+s = database.spec3D('TEM_robert')
 s.set_elements(['Al','Cr', "Ni"])
 s.set_lines(["Al_Ka", "Cr_Ka", "Ni_Ka"])
 kfactors = [s.metadata.Sample.kfactors[0], s.metadata.Sample.kfactors[3],
@@ -11,7 +11,7 @@ bc = s.estimate_background_windows()
 s.sum(0).sum(0).plot(background_windows=bc)
 intensities = s.get_lines_intensity(background_windows=bc)
 res = s.quantification(intensities, kfactors)
-utils.plot.plot_signals(res)
+hs.plot.plot_signals(res)
 
 # Simulate two elements standard
 s.set_microscope_parameters(live_time=30)

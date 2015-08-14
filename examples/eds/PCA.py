@@ -26,8 +26,8 @@ s.plot_bss_results()
 #PCA for TEM (masking vacum)
 
 s = database.spec3D('TEM')
-dim = s.axes_manager.shape
-s = s.rebin([dim[0],dim[1],2000])
+# dim = s.axes_manager.shape
+# s = s.rebin([dim[0],dim[1],2000])
 
 mask = (s.sum(-1) < 28) 
 mask.plot()
