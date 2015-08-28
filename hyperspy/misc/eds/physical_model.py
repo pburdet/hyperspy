@@ -246,7 +246,8 @@ def absorption_correction_matrix(weight_fraction,
     for i, xray_line in enumerate(xray_lines):
         mac = utils.material.\
             mass_absorption_coefficient_of_mixture_of_pure_elements(
-                elements, weight_fraction_r, xray_line)
+                elements=elements, weight_percent=weight_fraction_r,
+                energies=[xray_line])[0]
         fact = np.nan_to_num(density_r * mac * thickness * mask_el_r[i])
 
         fact_sum = np.zeros_like(fact)
@@ -395,9 +396,9 @@ def absorption_correction_matrix2(weight_fraction,
     for i, xray_line in enumerate(xray_lines):
         mac = utils.material.\
             mass_absorption_coefficient_of_mixture_of_pure_elements(
-                elements, weight_fraction_r, xray_line)
+                elements, weight_fraction_r, [xray_line])[0]
         fact = np.nan_to_num(
-            density_r * mac * thickness * mask_el_r[i])
+            density_r * mac * thickness / 2 * mask_el_r[i])
         fact_sum = np.zeros_like(fact)
         fact_sum[:, :, -1] = fact[:, :, -1] / 2.  # approx
         for j in range(len(fact[0, 0]) - 2, -1, -1):
@@ -406,9 +407,9 @@ def absorption_correction_matrix2(weight_fraction,
         #
         mac2 = utils.material.\
             mass_absorption_coefficient_of_mixture_of_pure_elements(
-                elements, weight_fraction_r2, xray_line)
+                elements, weight_fraction_r2, [xray_line])[0]
         fact2 = np.nan_to_num(
-            density_r2 * mac2 * thickness * mask_el_r2[i])
+            density_r2 * mac2 * thickness / 2 * mask_el_r2[i])
         fact_sum2 = np.zeros_like(fact2)
         fact_sum2[:, :, -1] = fact2[:, :, -1] / 2.  # approx
         for j in range(len(fact2[0, 0]) - 2, -1, -1):
@@ -427,7 +428,7 @@ def absorption_correction_matrix2(weight_fraction,
     # abs_corr = np.exp(-(abs_corr + abs_corr2))
     abs_corr = np.exp(-abs_corr)
     abs_corr2 = np.exp(-abs_corr2)
-    abs_corr = (abs_corr + abs_corr2) / 2.
+    # abs_corr = (abs_corr + abs_corr2) / 2.
 #    abs_co = abs_corr[-1]
 #    # Masking
 #    interv = (abs_co.max() - abs_co.min())
