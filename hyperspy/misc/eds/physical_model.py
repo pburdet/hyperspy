@@ -390,7 +390,7 @@ def absorption_correction_matrix2(weight_fraction,
                                     axes=(x_ax, z_ax),
                                     order=0, mode='reflect')
     # abs_corr = np.zeros_like(weight_fraction_r)
-    abs_corr = np.zeros([len(xray_lines)]+list(weight_fraction_r.shape[1:]))
+    abs_corr1 = np.zeros([len(xray_lines)]+list(weight_fraction_r.shape[1:]))
     abs_corr2 = np.zeros([len(xray_lines)]+list(weight_fraction_r2.shape[1:]))
     for i, xray_line in enumerate(xray_lines):
         mac = utils.material.\
@@ -402,7 +402,9 @@ def absorption_correction_matrix2(weight_fraction,
         fact_sum[:, :, -1] = fact[:, :, -1] / 2.  # approx
         for j in range(len(fact[0, 0]) - 2, -1, -1):
             fact_sum[:, :, j] = fact_sum[:, :, j+1] + fact[:, :, j]
-        abs_corr[i] = fact_sum
+        abs_co = np.exp(-(fact_sum))
+        abs_corr1[i] = abs_co
+        # abs_corr1[i] = fact_sum
         #
         mac2 = utils.material.\
             mass_absorption_coefficient_of_mixture_of_pure_elements(
@@ -413,21 +415,29 @@ def absorption_correction_matrix2(weight_fraction,
         fact_sum2[:, :, -1] = fact2[:, :, -1] / 2.  # approx
         for j in range(len(fact2[0, 0]) - 2, -1, -1):
             fact_sum2[:, :, j] = fact_sum2[:, :, j+1] + fact2[:, :, j]
-        abs_corr2[i] = fact_sum2
+        abs_co = np.exp(-(fact_sum2))
+        abs_corr2[i] = abs_co
         # abs_co = np.exp(-(fact_sum + fact_sum2))
         # abs_corr[i] = abs_co
-    abs_corr = ndimage.rotate(abs_corr, angle=elevation_angle,
+    abs_corr1 = ndimage.rotate(abs_corr1, angle=elevation_angle,
                               axes=(x_ax, z_ax), reshape=False, order=0)
-    abs_corr = ndimage.rotate(abs_corr, angle=azimuth_angle[0],
+    abs_corr1 = ndimage.rotate(abs_corr1, angle=azimuth_angle[0],
                               axes=(x_ax, y_ax), reshape=False, order=0)
     abs_corr2 = ndimage.rotate(abs_corr2, angle=elevation_angle,
                                axes=(x_ax, z_ax), reshape=False, order=0)
     abs_corr2 = ndimage.rotate(abs_corr2, angle=azimuth_angle[1],
                                axes=(x_ax, y_ax), reshape=False, order=0)
-    # abs_corr = np.exp(-(abs_corr + abs_corr2))
-    abs_corr = np.exp(-abs_corr)
-    abs_corr2 = np.exp(-abs_corr2)
-    abs_corr = (abs_corr + abs_corr2) / 2.
+#    if 0 == 1:
+#        abs_corr1 = np.exp(-(abs_corr1 + abs_corr2)/2.)
+#    elif 1 == 0:
+#        abs_corr = np.exp(-(abs_corr + abs_corr2))
+#    else:
+#        # abs_corr1 = np.exp(-abs_corr1)
+#        # abs_corr2 = np.exp(-abs_corr2)
+                               
+                  
+    abs_corr = (abs_corr1 + abs_corr2) / 2.
+    
 #    abs_co = abs_corr[-1]
 #    # Masking
 #    interv = (abs_co.max() - abs_co.min())
@@ -458,4 +468,5 @@ def absorption_correction_matrix2(weight_fraction,
     # abs_corr*=(abs_corr == 0.)
     abs_corr[:, 0] = np.ones_like(abs_corr[:, 0])
     abs_corr[abs_corr > 1.] = 1.
+    abs_corr[abs_corr == 0.5] = 1.
     return abs_corr
