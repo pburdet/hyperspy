@@ -23,6 +23,10 @@ sr = s.get_decomposition_model(5)
 s.blind_source_separation(5)
 s.plot_bss_results()
 
+sj = s.deepcopy()
+sj.data = sj.data + 1j*sr.data
+sj.plot()
+
 #PCA for TEM (masking vacum)
 
 s = database.spec3D('TEM')
